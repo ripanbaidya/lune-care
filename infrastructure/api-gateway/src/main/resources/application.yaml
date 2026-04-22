@@ -1,0 +1,76 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: false # disable the default gateway route provider
+          lower-case-service-id: true
+      # This configures the Netty-based Http client used internally by gateway to call downstream services
+      httpclient:
+        # Time taken to establish a TCP connection, if exceeded gateway then throws connection timeout error
+        # In our case, if any service doesn't accept a connection within 5s, it'll fail and throws an error
+        connect-timeout: 5000 # 5s
+        # Time taken to get a response from the server, if exceeded gateway then throws read timeout error
+        response-timeout: 10s
+  # WebFlux codec configuration (serialization/deserialization layer)
+  # Maximum size of request/response body kept in memory
+  # must match or exceed multipart size limit
+  codec:
+    max-in-memory-size: 10MB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  health:
+    liveness-state:
+      enabled: true
+    readiness-state:
+      enabled: true
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+    info:
+      access: unrestricted
+  info:
+    env:
+      enabled: true
+
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+app:
+  security:
+    jwt:
+      issuer: "LuneCare"
+    rsa:
+      public-key-path: secrets/keys/public_key.pem
+
+info:
+  app:
+    name: "api-gateway"
+    version: "1.0.0"
+    description: "API Gateway in the healthcare microservice architecture."
