@@ -1,0 +1,69 @@
+services:
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - healthcare_network
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 2s
+      retries: 3
+      start_period: 5s
+
+  auth_db:
+    image: postgres:16-alpine
+    container_name: auth_db
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pg_auth_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - healthcare_network
+
+  patient_db:
+    image: postgres:16-alpine
+    container_name: patient_db
+    environment:
+      POSTGRES_DB: patient_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pg_patient_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    networks:
+      - healthcare_network
+
+  doctor_db:
+    image: postgres:16-alpine
+    container_name: doctor_db
+    environment:
+      POSTGRES_DB: doctor_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pg_doctor_data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"
+    networks:
+      - healthcare_network
+
+
+volumes:
+  redis_data:
+  pg_auth_data:
+  pg_patient_data:
+  pg_doctor_data:
+
+networks:
+  healthcare_network:
+    driver: bridge
