@@ -1,0 +1,55 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: config-server
+
+  # Reading environment variables from .env file
+  config:
+    import: optional:file:../../.env[.properties]
+
+  cloud:
+    config:
+      server:
+        git:
+          uri: ${GIT_URI:https://github.com/ripanbaidya/lune-care-config.git}
+#          username: ${GIT_USERNAME}
+#          password: ${GIT_PASSWORD}
+          default-label: main # default branch is "main", if main branch is not available, then master branch will be used
+          timeout: 10 # 10 seconds (default is 5 seconds)
+          force-pull: true # force to pull the latest changes from the remote repository
+          clone-on-start: true
+          refresh-rate: 30 # fetch the latest changes in every 30 second (default is 0 seconds)
+          search-paths:
+            - "." # root, picks up global application.yml
+            - "services/{application}" # services/auth
+            - "infrastructure/{application}" # infrastructure/api-gateway
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+      base-path: /actuator
+  health:
+    liveness-state:
+      enabled: true
+    readiness-state:
+      enabled: true
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+    info:
+      access: unrestricted
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: "config-server"
+    version: "1.0.0"
+    description: "Spring Cloud Config Server for centralized configuration management in microservices architecture"
