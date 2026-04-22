@@ -1,0 +1,69 @@
+# Build artifacts
+**/target/
+**/dist/
+**/build/
+**/*.class
+**/*.jar
+**/*.war
+**/*.ear
+
+# ID
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+*.launch
+
+# OS
+.DS_Store
+.DS_Store?
+Thumbs.db
+desktop.ini
+*~
+.Spotlight-V100
+
+# Secrets & keys
+# Make sure to uncomment the below two lines, since we are in development so I'm committing my credentials
+# secrets/
+# *.pem
+*.key
+*.p12
+*.jks
+*.pfx
+*.crt
+*.cer
+**/.env
+**/.env.*
+!**/.env.example
+
+# Spring Boot/Java
+HELP.md
+*.log
+logs/
+spring-shell.log
+
+# Docker / Infrastructure
+**/*.tfstate
+**/*.tfstate.backup
+.terraform.lock.hcl
+kubeconfig
+**/kubeconfig.*
+
+# Test & coverage reports
+**/surefire-reports/
+**/failsafe-reports/
+jacoco.exec
+**/jacoco/
+**/coverage/
+
+# Generated sources
+**/generated-sources/
+**/generated-test-sources/
+
+# Project specific
+CLAUDE.md
+TODO.md
