@@ -22,18 +22,11 @@ public class InternalAuthController {
 
     private final AuthService authService;
 
-    /**
-     * This endpoint updates the account status of a user.
-     * Used by other services internally
-     */
     @PatchMapping("/update-status")
     public ResponseEntity<Void> updateStatus(
             @Valid @RequestBody UpdateAccountStatusRequest request
     ) {
-
         authService.updateUserStatus(request.userId(), request.newStatus());
-
         return ResponseEntity.ok().build();
     }
-
 }

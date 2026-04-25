@@ -1,24 +1,22 @@
 package com.healthcare.auth.controller;
 
-import com.healthcare.auth.enums.ErrorCode;
-import com.healthcare.auth.exception.AuthException;
+import com.healthcare.auth.payload.dto.success.ResponseWrapper;
+import com.healthcare.auth.payload.request.DoctorRegisterRequest;
+import com.healthcare.auth.payload.request.LoginRequest;
+import com.healthcare.auth.payload.request.PatientRegisterRequest;
+import com.healthcare.auth.payload.request.RefreshTokenRequest;
 import com.healthcare.auth.payload.response.AuthResponse;
 import com.healthcare.auth.payload.response.TokenResponse;
-import com.healthcare.auth.payload.request.LoginRequest;
-import com.healthcare.auth.payload.request.LogoutRequest;
-import com.healthcare.auth.payload.request.RefreshTokenRequest;
-import com.healthcare.auth.payload.request.DoctorRegisterRequest;
-import com.healthcare.auth.payload.request.PatientRegisterRequest;
-import com.healthcare.auth.payload.dto.success.ResponseWrapper;
 import com.healthcare.auth.service.AuthService;
 import com.healthcare.auth.util.ResponseUtil;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.Optional;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @Tag(
         name = "Authentication",
@@ -35,39 +33,32 @@ public class AuthController {
     public ResponseEntity<ResponseWrapper<AuthResponse>> registerPatient(
             @Valid @RequestBody PatientRegisterRequest request
     ) {
-        return ResponseUtil.created(
-                "Patient Registered Successfully",
-                authService.registerPatient(request)
-        );
+        var response = authService.registerPatient(request);
+        return ResponseUtil.created("Patient Registered Successfully", response);
     }
 
     @PostMapping("/register/doctor")
     public ResponseEntity<ResponseWrapper<AuthResponse>> registerDoctor(
-            @Valid @RequestBody DoctorRegisterRequest request) {
-        return ResponseUtil.created(
-                "Doctor Registered Successfully",
-                authService.registerDoctor(request)
-        );
+            @Valid @RequestBody DoctorRegisterRequest request
+    ) {
+        var response = authService.registerDoctor(request);
+        return ResponseUtil.created("Doctor Registered Successfully", response);
     }
 
     @PostMapping("/login")
     public ResponseEntity<ResponseWrapper<AuthResponse>> login(
-            @Valid @RequestBody LoginRequest request) {
-        return ResponseUtil.ok(
-                "Login Successful",
-                authService.login(request)
-        );
+            @Valid @RequestBody LoginRequest request
+    ) {
+        var response = authService.login(request);
+        return ResponseUtil.ok("Login Successful", response);
     }
 
-    @PostMapping("/refresh-token")
+    @PostMapping("/refresh")
     public ResponseEntity<ResponseWrapper<TokenResponse>> refresh(
-
             @Valid @RequestBody RefreshTokenRequest request
     ) {
-        return ResponseUtil.ok(
-                "Token refreshed successfully",
-                authService.refreshToken(request.refreshToken())
-        );
+        var response = authService.refreshToken(request.refreshToken());
+        return ResponseUtil.ok("Token refreshed successfully", response);
     }
 
 }

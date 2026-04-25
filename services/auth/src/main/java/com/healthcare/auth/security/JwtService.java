@@ -23,8 +23,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 
-@Service
 @Slf4j
+@Service
 @RequiredArgsConstructor
 public class JwtService {
 
@@ -46,18 +46,22 @@ public class JwtService {
     private PublicKey publicKey;
     private JwtParser jwtParser;
 
+    /**
+     * RSA key pair initialization
+     *
+     * @throws IllegalStateException if RSA key paths are not configured
+     */
     @PostConstruct
     private void init() {
-        log.info("Initializing RSA key pair for Jwt authentication...");
+        log.info("Initializing RSA key pair for JWT authentication");
 
         String privateKeyPath = rsaProperties.privateKeyPath();
         String publicKeyPath = rsaProperties.publicKeyPath();
 
         if (!StringUtils.hasText(privateKeyPath) || !StringUtils.hasText(publicKeyPath)) {
-            throw new IllegalStateException("RSA key paths must be configured");
+            throw new IllegalStateException("RSA key paths must be configured. Check rsa.private-key-path and rsa.public-key-path.");
         }
 
-        // KeyLoadException (RuntimeException) propagates as-is if keys fail to load
         this.privateKey = KeyUtils.loadPrivateKey(privateKeyPath, resourceLoader);
         this.publicKey = KeyUtils.loadPublicKey(publicKeyPath, resourceLoader);
 
@@ -67,70 +71,61 @@ public class JwtService {
                 .clockSkewSeconds(60)
                 .build();
 
-        log.info("RSA key pair initialized successfully");
+        log.info("RSA key pair initialized successfully.");
     }
 
-    /*
-     * Token Generation
+    /**
+     * ------- Token Generation -------
+     * <p>Note: for both access and refresh tokens, the same user ID is used as the subject.
+     * The expiration time is set based on the token type (access or refresh) and the expiry
+     * is in milliseconds.
      */
 
     public String generateAccessToken(User user) {
-        String subject = user.getId();
-        long expirationInMillis = jwtProperties.accessToken().expiry();
-
-        return buildToken(subject, buildClaims(user, TOKEN_TYPE_ACCESS), expirationInMillis);
+        return buildToken(
+                user.getId(),
+                buildClaims(user, TOKEN_TYPE_ACCESS),
+                jwtProperties.accessToken().expiry()
+        );
     }
 
     public String generateRefreshToken(User user) {
-        String subject = user.getId();
-        long expirationInMillis = jwtProperties.refreshToken().expiry();
-
-        return buildToken(subject, buildClaims(user, TOKEN_TYPE_REFRESH), expirationInMillis);
+        return buildToken(
+                user.getId(),
+                buildClaims(user, TOKEN_TYPE_REFRESH),
+                jwtProperties.refreshToken().expiry()
+        );
     }
 
-    /*
-     * Token Validation
-     */
-
     /**
-     * Returns true only if the token parses and passes all JJWT validations.
+     * ------- Token Validation -------
+     * <p>Validates that the token is well-formed, correctly signed, not expired, and
+     * issued by this service.
+     *
+     * @return true if the token is valid, false for any failure instead.
      */
     public boolean isTokenValid(String token) {
         if (!StringUtils.hasText(token)) {
+            log.debug("Token validation failed — token is null or blank.");
             return false;
         }
         try {
             jwtParser.parseSignedClaims(stripBearerPrefix(token));
             return true;
         } catch (ExpiredJwtException ex) {
-            log.warn("JWT rejected — token expired: {}", ex.getMessage());
-            return false;
+            log.warn("JWT validation failed — token expired: {}", ex.getMessage());
         } catch (SignatureException ex) {
-            log.warn("JWT rejected — signature invalid: {}", ex.getMessage());
-            return false;
+            log.warn("JWT validation failed — invalid RSA signature: {}", ex.getMessage());
         } catch (MalformedJwtException | UnsupportedJwtException ex) {
-            log.warn("JWT rejected — malformed or unsupported: {}", ex.getMessage());
-            return false;
+            log.warn("JWT validation failed — malformed or unsupported format: {}", ex.getMessage());
         } catch (JwtException ex) {
-            log.warn("JWT rejected: {}", ex.getMessage());
-            return false;
+            log.warn("JWT validation failed — general JWT error: {}", ex.getMessage());
         }
-    }
-
-    /**
-     * Returns true if the token's expiration is in the past.
-     */
-    public boolean isTokenExpired(String token) {
-        try {
-            return extractClaims(token).getExpiration().before(new Date());
-        } catch (JwtAuthenticationException ex) {
-            // Malformed or invalid tokens are treated as expired
-            return true;
-        }
+        return false;
     }
 
     /*
-     * Claim Extraction
+     * ------- Claim Extraction -------
      */
 
     public <T> T extractClaim(String token, Function<Claims, T> resolver) {
@@ -157,52 +152,66 @@ public class JwtService {
         return extractClaim(token, claims -> claims.get(CLAIM_TOKEN_TYPE, String.class));
     }
 
+    /**
+     * Checks whether a token carries the {@code token_type=access} claim.
+     */
     public boolean isAccessToken(String token) {
         return TOKEN_TYPE_ACCESS.equals(extractTokenType(token));
     }
 
+    /**
+     * Checks whether a token carries the {@code token_type=refresh} claim.
+     */
     public boolean isRefreshToken(String token) {
         return TOKEN_TYPE_REFRESH.equals(extractTokenType(token));
     }
 
+    /**
+     * Extracts the JWT ID ({@code jti}) claim.
+     */
     public String extractJti(String token) {
         return extractClaim(token, Claims::getId);
     }
 
+    /**
+     * Returns how many milliseconds remain until the token expires.
+     * Returns {@code 0} if the token is already expired.
+     */
     public long getRemainingValidityInMillis(String token) {
         Date expiration = extractClaim(token, Claims::getExpiration);
         return Math.max(expiration.getTime() - System.currentTimeMillis(), 0);
     }
 
     /*
-     * Private Helpers
+     * ------- Private Helpers -------
      */
 
+    /**
+     * Parses the token and returns its {@link Claims} payload.
+     */
     private Claims extractClaims(String token) {
         try {
             return jwtParser
                     .parseSignedClaims(stripBearerPrefix(token))
                     .getPayload();
         } catch (ExpiredJwtException ex) {
-            log.debug("JWT expired: {}", ex.getMessage());
+            log.debug("Claims extraction failed — token expired for jti: {}", safeExtractJtiFromExpired(ex));
             throw new JwtAuthenticationException(ErrorCode.TOKEN_EXPIRED);
         } catch (SignatureException ex) {
-            log.warn("JWT signature invalid: {}", ex.getMessage());
+            log.warn("Claims extraction failed — RSA signature mismatch.");
             throw new JwtAuthenticationException(ErrorCode.TOKEN_SIGNATURE_INVALID);
         } catch (MalformedJwtException | UnsupportedJwtException ex) {
-            log.warn("JWT malformed or unsupported: {}", ex.getMessage());
+            log.warn("Claims extraction failed — token is malformed or uses unsupported algorithm.");
             throw new JwtAuthenticationException(ErrorCode.TOKEN_UNSUPPORTED);
         } catch (JwtException ex) {
-            log.warn("JWT parsing failed: {}", ex.getMessage());
+            log.warn("Claims extraction failed — general JWT error: {}", ex.getMessage());
             throw new JwtAuthenticationException(ErrorCode.TOKEN_INVALID);
         }
     }
 
     /**
-     * Stripe the bearer prefix from the token if present.
-     *
-     * @param token the token string
-     * @return stripped token string
+     * Strips the {@code Bearer } prefix from the token if present.
+     * Handles both prefixed and raw token strings safely.
      */
     private String stripBearerPrefix(String token) {
         if (token != null && token.startsWith(BEARER_PREFIX)) {
@@ -212,10 +221,9 @@ public class JwtService {
     }
 
     /**
-     * Build claims from the {@code User} object
-     *
-     * @param user the object of user
-     * @return a map of claims to be included in the JWT token
+     * Builds the custom claims map for the given user and token type.
+     * All values are non-null by contract — {@code role} and {@code accountStatus}
+     * are enums so they are always present on a valid {@link User}.
      */
     private static Map<String, Object> buildClaims(User user, String tokenType) {
         return Map.of(
@@ -227,12 +235,12 @@ public class JwtService {
     }
 
     /**
-     * Builds a JWT token with the given user ID, claims, and expiration time.
+     * Assembles and signs a JWT with the provided subject, claims, and TTL.
      *
-     * @param userId             ID of the user, use as subject
-     * @param claims             custom claims to include in the token
-     * @param expirationInMillis expiration time of token (access, refresh) in millis
-     * @return the generated JWT token string
+     * @param userId             used as JWT {@code sub} claim
+     * @param claims             additional payload claims
+     * @param expirationInMillis token lifetime from now, in milliseconds
+     * @return compact, signed JWT string
      */
     private String buildToken(String userId, Map<String, Object> claims, long expirationInMillis) {
         Instant now = Instant.now();
@@ -247,5 +255,17 @@ public class JwtService {
                 .expiration(Date.from(expiry))
                 .signWith(privateKey, Jwts.SIG.RS512)
                 .compact();
+    }
+
+    /**
+     * Safely extracts the JTI from an expired token for logging purposes.
+     * The claims are still accessible from {@link ExpiredJwtException} even after expiry.
+     */
+    private String safeExtractJtiFromExpired(ExpiredJwtException ex) {
+        try {
+            return ex.getClaims().getId();
+        } catch (Exception ignored) {
+            return "unknown";
+        }
     }
 }
