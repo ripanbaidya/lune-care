@@ -2,18 +2,21 @@ package com.healthcare.auth.controller;
 
 import com.healthcare.auth.enums.ErrorCode;
 import com.healthcare.auth.exception.AuthException;
+import com.healthcare.auth.payload.dto.success.ResponseWrapper;
 import com.healthcare.auth.payload.request.LogoutRequest;
+import com.healthcare.auth.payload.response.UserProfileResponse;
 import com.healthcare.auth.service.AuthService;
 import com.healthcare.auth.util.ResponseUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
 
@@ -32,5 +35,13 @@ public class UserController {
 
         authService.logout(accessToken, request.refreshToken());
         return ResponseUtil.noContent();
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ResponseWrapper<UserProfileResponse>> getUser(
+            @AuthenticationPrincipal String userId
+    ) {
+        var response = authService.getUser(userId);
+        return ResponseUtil.ok("User fetched Successfully", response);
     }
 }

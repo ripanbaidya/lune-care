@@ -28,6 +28,24 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Stri
         @Param("userId") String userId,
         @Param("now") Instant now);
 
+    /**
+     * Deletes all refresh tokens that are either revoked or past their expiry.
+     * <p>This should be called on a scheduled basis (e.g. nightly) to prevent
+     * unbounded table growth.
+     *
+     * <p>Example scheduler:
+     * <pre>{@code
+     * @Scheduled(cron = "0 0 2 * * *")   // every day at 02:00
+     * @Transactional
+     * public void purgeExpiredTokens() {
+     *     int deleted = refreshTokenRepository.deleteAllInactiveTokens(Instant.now());
+     *     log.info("Purged {} inactive refresh tokens.", deleted);
+     * }
+     * }</pre>
+     *
+     * @param now tokens expired before this instant will be deleted
+     * @return number of rows deleted
+     */
     @Modifying
     @Query("delete from RefreshToken rt where rt.revoked = true or rt.expiresAt < :now")
     int deleteAllInactiveTokens(@Param("now") Instant now);

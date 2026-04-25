@@ -1,5 +1,7 @@
 package com.healthcare.auth.config;
 
+import com.healthcare.auth.security.CustomAccessDeniedHandler;
+import com.healthcare.auth.security.GatewayAuthFilter;
 import com.healthcare.auth.security.JwtAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -10,6 +12,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
@@ -18,21 +21,16 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private static final String[] PUBLIC_ENDPOINTS = {"/api/auth/**", "/api/user/**", "/error"};
+    private static final String[] PUBLIC_ENDPOINTS = {"/api/auth/**", "/api/internal/**", "/error"};
     private static final String[] ACTUATOR_ENDPOINTS = {"/actuator/health/**", "/actuator/info"};
     private static final String[] SWAGGER_ENDPOINTS = {"/api-docs/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"};
 
+    private final GatewayAuthFilter gatewayAuthFilter;
     private final JwtAuthenticationEntryPoint authenticationEntryPoint;
+    private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        /*
-         * auth-service does not validate JWT tokens for incoming requests,
-         * it only issues them.
-         * The actual validation of JWT tokens will be done by the API Gateway or
-         * the respective microservices (like patient-service, doctor-service) that
-         * receive the requests with JWT tokens in the Authorization header.
-         */
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
@@ -40,12 +38,12 @@ public class SecurityConfig {
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .requestMatchers(ACTUATOR_ENDPOINTS).permitAll()
                         .requestMatchers(SWAGGER_ENDPOINTS).permitAll()
-                        .requestMatchers("/api/internal/**").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint(authenticationEntryPoint))
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(customAccessDeniedHandler))
+                .addFilterBefore(gatewayAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
-
     }
 
     @Bean

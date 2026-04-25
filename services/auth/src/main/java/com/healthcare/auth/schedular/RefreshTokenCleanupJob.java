@@ -12,7 +12,7 @@ import java.time.Instant;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class RefreshTokenCleanupScheduler {
+public class RefreshTokenCleanupJob {
 
     private final RefreshTokenRepository refreshTokenRepository;
 
