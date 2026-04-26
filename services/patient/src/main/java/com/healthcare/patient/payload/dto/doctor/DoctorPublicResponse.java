@@ -4,6 +4,7 @@ import java.util.List;
 
 public record DoctorPublicResponse(
         String id,
+        String userId,
         String firstName,
         String lastName,
         String profilePhotoUrl,
