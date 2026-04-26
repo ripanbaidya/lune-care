@@ -41,6 +41,7 @@ public final class DoctorMapper {
 
         return DoctorPublicResponse.builder()
                 .id(doctor.getId())
+                .userId(doctor.getUserId())
                 .firstName(doctor.getFirstName())
                 .lastName(doctor.getLastName())
                 .profilePhotoUrl(doctor.getProfilePhotoUrl())
