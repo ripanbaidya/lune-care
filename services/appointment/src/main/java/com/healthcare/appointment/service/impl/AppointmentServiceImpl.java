@@ -56,7 +56,6 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Value("${app.appointment.cancellation-cutoff-hours}")
     private int cancellationCutoffHours;
 
-    // TODO: This method returning a empty list even for valid request
     @Override
     @Transactional(readOnly = true)
     public List<SlotResponse> getAvailableSlots(String doctorId, String clinicId, LocalDate date) {
@@ -90,12 +89,10 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
     }
 
-    // SAGA Step 1 — Book appointment
+    // Book appointment (SAGA Step 1)
     @Override
     @Transactional
-    public AppointmentResponse bookAppointment(String patientId,
-                                               BookAppointmentRequest request
-    ) {
+    public AppointmentResponse bookAppointment(String patientId, BookAppointmentRequest request) {
         String slotId = request.slotId();
         log.info("Attempting to book appointment. patientId: {}, slotId: {}", patientId, slotId);
 
@@ -159,7 +156,21 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
     }
 
-    // SAGA Step 2a — Confirm payment
+    /**
+     * <b>Confirm payment (SAGA Step 2a)</b>
+     * <p>Called by {@code payment-service} via internal API after a payment is verified.
+     * <p><b>Idempotency:</b> If the appointment is already {@code CONFIRMED} (payment-service
+     * retried the call), this method returns the current state without side effects.
+     * <p><b>Race condition guard:</b> The timeout scheduler may fire between
+     * payment capture and this confirmation call, leaving the appointment {@code CANCELLED}.
+     * In that case we cannot confirm — we log a critical warning for operations and return
+     * the current (canceled) state. The payment-service's {@code verifyPayment} transaction
+     * will roll back, reverting the {@code PaymentStatus} to {@code INITIATED}, so operations
+     * can identify and manually refund the Razorpay capture if needed.
+     *
+     * @param request the payment confirmation request
+     * @return response containing the appointment details
+     */
     @Override
     @Transactional
     public AppointmentResponse confirmPayment(ConfirmPaymentRequest request) {
@@ -170,11 +181,32 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         Appointment appointment = findAppointmentById(request.appointmentId());
 
+        // Idempotency: already confirmed
+        if (appointment.getStatus() == AppointmentStatus.CONFIRMED) {
+            log.info("Appointment already confirmed (idempotent call) — appointmentId: {}",
+                    appointmentId);
+            return AppointmentMapper.toAppointmentResponse(appointment);
+        }
+
+        // Race condition: appointment cancelled by timeout
+        if (appointment.getStatus() == AppointmentStatus.CANCELLED) {
+            // Payment was captured, but the appointment is already gone.
+            // Note: Operation must manually refund the Razorpay dashboard.
+            log.error("CRITICAL: Payment captured buy appointment already CANCELLED by timeout " +
+                            "- appointmentId: {}, paymentId: {}. Manual refund required",
+                    appointmentId, paymentId);
+
+            throw new AppointmentException(ErrorCode.APPOINTMENT_NOT_FOUND,
+                    "Appointment was cancelled before payment confirmation could be processed. " +
+                            "Payment will be refunded, If you want help please contact support."
+            );
+        }
+
+        // Normal case: must be PENDING_PAYMENT
         if (appointment.getStatus() != AppointmentStatus.PENDING_PAYMENT) {
             log.warn("Payment confirmation rejected: Invalid state. appointmentId={}, currentStatus={}, paymentId={}",
                     appointmentId, appointment.getStatus(), paymentId);
-            throw new IllegalStateException(
-                    "Appointment is not in PENDING_PAYMENT state: " + appointment.getStatus());
+            throw new IllegalStateException("Appointment is not in PENDING_PAYMENT state: " + appointment.getStatus());
         }
 
         // Update appointment
@@ -189,16 +221,15 @@ public class AppointmentServiceImpl implements AppointmentService {
                     slotRepository.save(slot);
                     log.debug("Slot status updated to BOOKED. slotId={}, appointmentId={}", slot.getId(), appointmentId);
                 },
-                () -> {
-                    log.error("DATA INTEGRITY ERROR: Slot not found for confirmed appointment. slotId={}, appointmentId={}",
-                            appointment.getSlotId(), appointmentId);
-                }
+                () -> log.error("DATA INTEGRITY ERROR: Slot not found for confirmed appointment. slotId={}, appointmentId={}",
+                            appointment.getSlotId(), appointmentId)
+
         );
 
         log.debug("Releasing slot lock. slotId={}, patientId={}", appointment.getSlotId(), appointment.getPatientId());
         slotLockService.releaseLock(appointment.getSlotId(), appointment.getPatientId());
 
-        // Publish event
+        // Publish confirmed event
         AppointmentConfirmedEvent event = buildBaseEvent(new AppointmentConfirmedEvent(), appointment);
         event.setPaymentId(paymentId);
         event.setConsultationFees(appointment.getConsultationFees());
@@ -212,7 +243,21 @@ public class AppointmentServiceImpl implements AppointmentService {
         return AppointmentMapper.toAppointmentResponse(appointment);
     }
 
-    // SAGA Step 2b — Cancel via timeout (compensating transaction)
+    /**
+     * <b>Cancel due to timeout (SAGA Step 2b compensation)</b>
+     * <p>Cancels an appointment stuck in {@code PENDING_PAYMENT} beyond the 15-minute window.
+     * <p><b>Race condition handling:</b>
+     * The scheduler may fire while payment verification is in progress. Two cases:
+     * <ol>
+     *   <li><b>Appointment is PENDING_PAYMENT, payment is being verified concurrently:</b>
+     *       We cancel and set {@code refundRequired = false} (correct — money hasn't been
+     *       confirmed in our DB yet). If payment-service's {@code verifyPayment} then calls
+     *       {@code confirmPayment}, that method detects the {@code CANCELLED} state and throws,
+     *       rolling back the {@code PaymentStatus.SUCCESS} — no orphaned payment.</li>
+     *   <li><b>Appointment is already CONFIRMED:</b> Skip — payment went through first. The
+     *       {@code status != PENDING_PAYMENT} guard handles this.</li>
+     * </ol>
+     */
     @Override
     @Transactional
     public void cancelDueToTimeout(String appointmentId) {
@@ -334,7 +379,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         } catch (AppointmentException | IllegalStateException e) {
             throw e;
         } catch (Exception e) {
-            // Technical Failure Log - Catching things like DB timeouts or network blips
             log.error("Failed to complete appointment due to system error. appointmentId={}, doctorId={}, error={}",
                     appointmentId, doctorId, e.getMessage(), e);
             throw e;
@@ -514,7 +558,9 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     /**
-     * Shared cancellation logic used by patient cancel, doctor cancel, and SAGA
+     * Shared cancellation logic for patient cancel, doctor cancel, and SAGA compensation.
+     * <p>Sets status to {@code REFUND_INITIATED} if the appointment was previously
+     * {@code CONFIRMED} (money was taken), or {@code CANCELLED} otherwise.
      */
     private void performCancellation(Appointment appointment, String reason,
                                      CancelledBy cancelledBy, boolean wasConfirmed) {
