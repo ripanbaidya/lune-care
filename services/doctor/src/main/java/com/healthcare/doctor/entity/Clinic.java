@@ -39,8 +39,7 @@ public class Clinic {
     @Column(name = "type", nullable = false, length = 30)
     private ClinicType type;
 
-    @Column(name = "consultation_fees",
-            nullable = false, precision = 10, scale = 2)
+    @Column(name = "consultation_fees", nullable = false, precision = 10, scale = 2)
     private BigDecimal consultationFees;
 
     @Column(name = "consultation_duration_minutes", nullable = false)

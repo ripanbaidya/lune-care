@@ -36,7 +36,10 @@ public enum ErrorCode {
     // General
     VALIDATION_FAILED(ErrorType.VALIDATION, "One or more request fields are invalid"),
     INTERNAL_ERROR(ErrorType.INTERNAL, "An unexpected internal server error occurred"),
-    SERVICE_UNAVAILABLE(ErrorType.SERVICE_UNAVAILABLE, "The service is temporarily unavailable. Please try again later");
+    SERVICE_UNAVAILABLE(ErrorType.SERVICE_UNAVAILABLE, "The service is temporarily unavailable. Please try again later"),
+    REMOTE_SERVICE_FAILURE(ErrorType.INTERNAL, "Failed to communicate with remote service"),
+
+    CLINIC_SCHEDULE_NOT_FOUND(ErrorType.NOT_FOUND, "Clinic schedule not found for the provided date");
 
     private final ErrorType type;
     private final String defaultMessage;

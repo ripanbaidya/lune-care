@@ -52,8 +52,11 @@ public class DoctorServiceImpl implements DoctorService {
     @Override
     @Transactional
     public void creteProfile(CreateDoctorProfileRequest request) {
-        if (doctorRepository.existsByUserId(request.userId())) {
-            log.error("Patient already exist with with the userId: {}", request.userId());
+        String userId = request.userId();
+        log.info("Creating doctor profile for userId: {}", userId);
+
+        if (doctorRepository.existsByUserId(userId)) {
+            log.error("Doctor already exist with with the userId: {}", userId);
             throw new DoctorException(ErrorCode.DOCTOR_ALREADY_EXISTS);
         }
 
@@ -63,8 +66,7 @@ public class DoctorServiceImpl implements DoctorService {
         doctor.setLastName(request.lastName());
         doctor.setPhoneNumber(request.phoneNumber());
 
-        // Create Doctor profile at the time of creating the doctor
-        // profile fields are populated later during the onboarding
+        // Create Doctor profile at the time of creating the Doctor
         DoctorProfile profile = new DoctorProfile();
         profile.setDoctor(doctor);
 
@@ -76,118 +78,169 @@ public class DoctorServiceImpl implements DoctorService {
     @Override
     @Transactional(readOnly = true)
     public DoctorProfileResponse getProfile(String userId) {
-        Doctor doctor = findByUserId(userId);
+        log.debug("Fetching doctor profile for userId: {}", userId);
 
+        Doctor doctor = findByUserId(userId);
         return DoctorMapper.toProfileResponse(doctor);
     }
 
     @Override
     @Transactional
     public DoctorProfileResponse completeOnboarding(String userId, OnboardingRequest request) {
+        log.info("Starting onboarding completion. userId={}, specialization={}", userId, request.specialization());
+
         Doctor doctor = findByUserId(userId);
 
         if (doctor.isOnboardingCompleted()) {
+            log.warn("Onboarding rejected: Already completed. userId={}", userId);
             throw new DoctorException(ErrorCode.ONBOARDING_ALREADY_COMPLETED);
         }
 
-        DoctorProfile profile = doctor.getProfile();
-        profile.setEmail(request.email());
-        profile.setGender(request.gender());
-        profile.setDateOfBirth(request.dateOfBirth());
-        profile.setSpecialization(request.specialization());
-        profile.setQualification(request.qualification());
-        profile.setYearsOfExperience(request.yearsOfExperience());
-        profile.setBio(request.bio());
-        profile.setLanguagesSpoken(request.languagesSpoken());
-
-        // Mark onboarding complete and activate account
-        doctor.setOnboardingCompleted(true);
-        doctorRepository.save(doctor);
-
-        // Notify auth-service to flip status from ONBOARDING to ACTIVE
         try {
-            var updateAccountStatusRequest = new UpdateAccountStatusRequest(userId, AccountStatus.ACTIVE);
-            authServiceClient.updateStatus(updateAccountStatusRequest);
+            // Update doctor profile
+            DoctorProfile profile = doctor.getProfile();
+            profile.setEmail(request.email());
+            profile.setGender(request.gender());
+            profile.setDateOfBirth(request.dateOfBirth());
+            profile.setSpecialization(request.specialization());
+            profile.setQualification(request.qualification());
+            profile.setYearsOfExperience(request.yearsOfExperience());
+            profile.setBio(request.bio());
+            profile.setLanguagesSpoken(request.languagesSpoken());
 
-            log.info("Doctor account activated for userId: {}", userId);
+            // Local state change
+            doctor.setOnboardingCompleted(true);
+            doctorRepository.save(doctor);
+            log.debug("Local doctor profile updated and marked as complete. userId={}", userId);
+
+            // Remote Sync
+            syncStatusWithAuthService(userId);
+            log.info("Onboarding successful. Doctor is now ACTIVE. userId={}, doctorId={}",
+                    userId, doctor.getId());
+
+            return DoctorMapper.toProfileResponse(doctor);
+
         } catch (Exception e) {
-            log.error("Failed to update status in auth-service for userId: {}. Error: {}",
-                    userId, e.getMessage());
+            log.error("Onboarding failed for userId={}. Reason: {}", userId, e.getMessage(), e);
+            throw e;
         }
+    }
 
-        return DoctorMapper.toProfileResponse(doctor);
+    private void syncStatusWithAuthService(String userId) {
+        try {
+            log.debug("Synchronizing account status with auth-service. userId={}", userId);
+            var updateRequest = new UpdateAccountStatusRequest(userId, AccountStatus.ACTIVE);
+            authServiceClient.updateStatus(updateRequest);
+            log.info("Auth-service status synchronized to ACTIVE. userId={}", userId);
+        } catch (Exception e) {
+            log.error("Doctor marked active locally but Auth-service update failed. " +
+                    "userId={}, error={}", userId, e.getMessage());
+
+            // We can have retry logic here, but for now we'll just throw an exception
+            throw new DoctorException(ErrorCode.REMOTE_SERVICE_FAILURE);
+        }
     }
 
     @Override
     @Transactional
     public DoctorProfileResponse updateProfile(String userId, UpdateDoctorProfileRequest request) {
+        log.debug("Update profile request received. userId={}", userId);
+
         Doctor doctor = findByUserId(userId);
         DoctorProfile profile = doctor.getProfile();
 
-        if (StringUtils.hasText(request.firstName())) doctor.setFirstName(request.firstName());
-        if (StringUtils.hasText(request.lastName())) doctor.setLastName(request.lastName());
-        if (StringUtils.hasText(request.email())) profile.setEmail(request.email());
+        try {
+            if (StringUtils.hasText(request.firstName())) doctor.setFirstName(request.firstName());
+            if (StringUtils.hasText(request.lastName())) doctor.setLastName(request.lastName());
+            if (StringUtils.hasText(request.email())) profile.setEmail(request.email());
 
-        if (request.gender() != null) profile.setGender(request.gender());
-        if (request.dateOfBirth() != null) profile.setDateOfBirth(request.dateOfBirth());
-        if (request.specialization() != null) profile.setSpecialization(request.specialization());
+            if (request.gender() != null) profile.setGender(request.gender());
+            if (request.dateOfBirth() != null) profile.setDateOfBirth(request.dateOfBirth());
+            if (request.specialization() != null) profile.setSpecialization(request.specialization());
 
-        if (StringUtils.hasText(request.qualification())) profile.setQualification(request.qualification());
-        if (request.yearsOfExperience() != null) profile.setYearsOfExperience(request.yearsOfExperience());
-        if (StringUtils.hasText(request.bio())) profile.setBio(request.bio());
+            if (StringUtils.hasText(request.qualification())) profile.setQualification(request.qualification());
+            if (request.yearsOfExperience() != null) profile.setYearsOfExperience(request.yearsOfExperience());
+            if (StringUtils.hasText(request.bio())) profile.setBio(request.bio());
 
-        if (request.languagesSpoken() != null && !request.languagesSpoken().isEmpty())
-            profile.setLanguagesSpoken(request.languagesSpoken());
+            if (request.languagesSpoken() != null && !request.languagesSpoken().isEmpty())
+                profile.setLanguagesSpoken(request.languagesSpoken());
 
-        doctorRepository.save(doctor);
-        // I never saved the doctor profile, since the cascade type is all
+            // Since you rely on Cascading, this save triggers a multi-table update
+            doctorRepository.save(doctor);
 
-        return DoctorMapper.toProfileResponse(doctor);
+            log.info("Doctor profile updated successfully. userId={}, doctorId={}", userId, doctor.getId());
+
+            return DoctorMapper.toProfileResponse(doctor);
+
+        } catch (Exception e) {
+            log.error("Failed to update doctor profile. userId={}, error={}", userId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     @Override
     @Transactional
     public DoctorProfileResponse uploadProfilePhoto(String userId, MultipartFile file) {
+        log.debug("Starting profile photo upload. userId={}, fileName={}, size={} bytes, type={}",
+                userId, file.getOriginalFilename(), file.getSize(), file.getContentType());
+
         Doctor doctor = findByUserId(userId);
+        long startTime = System.currentTimeMillis();
 
-        /*
-         * Upload patient's profile picture to Cloudinary. If the patient already has a
-         * profile photo,
-         * Cloudinary will automatically overwrite it using the patient ID as the public_id
-         */
-        Map<String, String> cloudinaryResponse = cloudinaryService.uploadPhoto(doctor.getId(), file);
+        try {
+            log.debug("Calling Cloudinary for patientId={}", doctor.getId());
+            Map<String, String> cloudinaryResponse = cloudinaryService.uploadPhoto(doctor.getId(), file);
 
-        doctor.setProfilePhotoUrl(cloudinaryResponse.get("url"));
-        doctor.setCloudinaryPublicId(cloudinaryResponse.get("public_id"));
+            long duration = System.currentTimeMillis() - startTime;
 
-        doctorRepository.save(doctor);
-        log.info("Profile photo uploaded for doctor with userId: {}", userId);
+            // Capture the URL and PublicID returned to ensure the handshake worked
+            log.info("Photo uploaded to Cloudinary. userId={}, publicId={}, duration={}ms",
+                    userId, cloudinaryResponse.get("public_id"), duration);
 
-        return DoctorMapper.toProfileResponse(doctor);
+            doctor.setProfilePhotoUrl(cloudinaryResponse.get("url"));
+            doctor.setCloudinaryPublicId(cloudinaryResponse.get("public_id"));
+
+            doctorRepository.save(doctor);
+
+            log.debug("Database updated with new photo URL. userId={}", userId);
+
+            return DoctorMapper.toProfileResponse(doctor);
+
+        } catch (Exception e) {
+            log.error("Failed doctor photo upload. userId={}, error={}", userId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     @Override
     @Transactional
     public DoctorProfileResponse removeProfilePhoto(String userId) {
-        Doctor doctor = findByUserId(userId);
+        log.info("Request to remove doctor profile photo. userId={}", userId);
 
-        if (doctor.getCloudinaryPublicId() == null) {
+        Doctor doctor = findByUserId(userId);
+        String publicId = doctor.getCloudinaryPublicId();
+
+        if (publicId == null) {
+            log.warn("Photo removal skipped: No photo exists for doctor. userId={}", userId);
             throw new DoctorException(ErrorCode.DOCTOR_PROFILE_PHOTO_NOT_FOUND);
         }
 
         try {
-            cloudinaryService.deletePhoto(doctor.getCloudinaryPublicId());
-        } catch (CloudinaryException e) {
+            log.debug("Deleting photo from Cloudinary. publicId={}", publicId);
+            cloudinaryService.deletePhoto(publicId);
+
+            doctor.setProfilePhotoUrl(null);
+            doctor.setCloudinaryPublicId(null);
+            doctorRepository.save(doctor);
+
+            log.info("Doctor profile photo removed successfully. userId={}, deletedPublicId={}", userId, publicId);
+            return DoctorMapper.toProfileResponse(doctor);
+
+        } catch (Exception e) {
+            log.error("Failed to delete doctor photo from cloud. userId={}, publicId={}, error={}",
+                    userId, publicId, e.getMessage(), e);
             throw new CloudinaryException(ErrorCode.PHOTO_DELETION_FAILED);
         }
-
-        doctor.setProfilePhotoUrl(null);
-        doctor.setCloudinaryPublicId(null);
-
-        doctorRepository.save(doctor);
-        log.info("Profile photo removed for doctor with userId: {}", userId);
-
-        return DoctorMapper.toProfileResponse(doctor);
     }
 
     @Override
@@ -195,11 +248,16 @@ public class DoctorServiceImpl implements DoctorService {
     public Page<DoctorPublicResponse> search(String name, String specialization,
                                              String city, BigDecimal maxFees,
                                              int page, int size) {
+        log.info("Doctor search initiated. name={}, spec={}, city={}, maxFees={}, page={}, size={}",
+                name, specialization, city, maxFees, page, size);
+
         Specialization spec = null;
         if (StringUtils.hasText(specialization)) {
             try {
                 spec = Specialization.valueOf(specialization.toUpperCase());
-            } catch (IllegalArgumentException ignored) {}
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid specialization provided: {}. Ignoring filter.", specialization);
+            }
         }
 
         String nameParam = StringUtils.hasText(name) ? name.trim() : null;
@@ -207,44 +265,78 @@ public class DoctorServiceImpl implements DoctorService {
         boolean hasClinicFilter = cityParam != null || maxFees != null;
 
         Pageable pageable = PageRequest.of(page, size);
+        long startTime = System.currentTimeMillis();
 
-        // Fetch doctors matching names and specialization
-        Page<Doctor> doctorPage = doctorRepository.search(nameParam, spec, pageable);
-        if (doctorPage.isEmpty()) {
-            return Page.empty();
-        }
-
-        List<String> doctorIds = doctorPage.getContent().stream().map(Doctor::getId).toList();
-
-        // Fetch clinics matching city and max fees
-        List<Clinic> clinics = clinicRepository.findByDoctorIdsAndFilters(doctorIds, cityParam, maxFees);
-
-        // Group clinics by doctor doctorId
-        Map<String, List<Clinic>> clinicsByDoctorId = clinics.stream()
-                .collect(Collectors.groupingBy(c -> c.getDoctor().getId()));
-
-
-        // If clinic-level filters are active, exclude doctors with no matching clinics
-        return doctorPage.map(doctor -> {
-            List<Clinic> doctorClinics = clinicsByDoctorId.getOrDefault(doctor.getId(), List.of());
-
-            // If clinic filters were applied and this doctor has no matching clinics, skip
-            if (hasClinicFilter && doctorClinics.isEmpty()) {
-                return null;
+        try {
+            Page<Doctor> doctorPage = doctorRepository.search(nameParam, spec, pageable);
+            if (doctorPage.isEmpty()) {
+                log.debug("No doctors found matching primary criteria. Returning empty page.");
+                return Page.empty();
             }
 
-            return DoctorMapper.toPublicResponse(doctor, doctorClinics);
-        }).map(response -> response); // nulls will still be in the page
+            List<String> doctorIds = doctorPage.getContent().stream().map(Doctor::getId).toList();
+
+            log.debug("Fetching clinics for {} doctors. city={}, maxFees={}", doctorIds.size(), cityParam, maxFees);
+            List<Clinic> clinics = clinicRepository.findByDoctorIdsAndFilters(doctorIds, cityParam, maxFees);
+
+            Map<String, List<Clinic>> clinicsByDoctorId = clinics.stream()
+                    .collect(Collectors.groupingBy(c -> c.getDoctor().getId()));
+
+            Page<DoctorPublicResponse> responsePage = doctorPage.map(doctor -> {
+                List<Clinic> doctorClinics = clinicsByDoctorId.getOrDefault(doctor.getId(), List.of());
+
+                // Note: If hasClinicFilter is true, the doctorRepository.search()
+                // should ideally handle the Join to avoid pagination issues.
+                if (hasClinicFilter && doctorClinics.isEmpty()) {
+                    return null;
+                }
+                return DoctorMapper.toPublicResponse(doctor, doctorClinics);
+            });
+
+            long duration = System.currentTimeMillis() - startTime;
+            log.info("Search completed. resultsOnPage={}, totalResults={}, duration={}ms",
+                    responsePage.getNumberOfElements(), responsePage.getTotalElements(), duration);
+
+            return responsePage;
+
+        } catch (Exception e) {
+            log.error("Search failed. Criteria: name={}, city={}, error={}", name, city, e.getMessage(), e);
+            throw e;
+        }
     }
 
     @Override
     @Transactional(readOnly = true)
     public DoctorPublicResponse getPublicProfile(String doctorId) {
-        Doctor doctor = doctorRepository.findById(doctorId)
-                .orElseThrow(() -> new DoctorException(ErrorCode.DOCTOR_NOT_FOUND));
+        log.debug("Fetching public profile for doctorId: {}", doctorId);
 
-        List<Clinic> clinics = clinicRepository.findByDoctorIdAndActiveTrue(doctor.getId());
-        return DoctorMapper.toPublicResponse(doctor, clinics);
+        long startTime = System.currentTimeMillis();
+
+        try {
+            // Fetch doctor or throw error if missing
+            Doctor doctor = doctorRepository.findById(doctorId)
+                    .orElseThrow(() -> {
+                        log.warn("Public profile lookup failed: Doctor not found. doctorId={}", doctorId);
+                        return new DoctorException(ErrorCode.DOCTOR_NOT_FOUND);
+                    });
+
+            // Fetch associated clinics
+            List<Clinic> clinics = clinicRepository.findByDoctorIdAndActiveTrue(doctor.getId());
+
+            long duration = System.currentTimeMillis() - startTime;
+
+            log.info("Public profile retrieved. doctorId={}, clinicCount={}, duration={}ms",
+                    doctorId, clinics.size(), duration);
+
+            return DoctorMapper.toPublicResponse(doctor, clinics);
+
+        } catch (DoctorException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error retrieving public profile. doctorId={}, error={}",
+                    doctorId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     @Override
