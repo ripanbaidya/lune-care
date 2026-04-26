@@ -31,7 +31,6 @@ public class AddressController {
             @Valid @RequestBody AddressRequest request
     ) {
         var response = addressService.createAddress(userId, request);
-
         return ResponseUtil.ok("Address saved successfully!", response);
     }
 
@@ -41,7 +40,6 @@ public class AddressController {
             @AuthenticationPrincipal String userId) {
 
         var response = addressService.getAddress(userId);
-
         return ResponseUtil.ok("Address fetched successfully!", response);
     }
 
@@ -52,7 +50,6 @@ public class AddressController {
             @Valid @RequestBody AddressRequest request
     ) {
         var response = addressService.updateAddress(userId, request);
-
         return ResponseUtil.ok("Address updated successfully!", response);
 
     }
@@ -63,7 +60,6 @@ public class AddressController {
             @AuthenticationPrincipal String userId
     ) {
         addressService.deleteAddress(userId);
-
         return ResponseUtil.noContent();
     }
 }

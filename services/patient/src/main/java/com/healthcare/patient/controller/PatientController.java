@@ -22,36 +22,33 @@ import org.springframework.web.multipart.MultipartFile;
         description = "Endpoints for managing patient profile"
 )
 @RestController
-@RequestMapping("/api/patient")
+@RequestMapping("/api/patient/profile")
 @RequiredArgsConstructor
 public class PatientController {
 
     private final PatientService patientService;
 
-    @GetMapping("/profile")
+    @GetMapping
     @PreAuthorize("hasAuthority('ROLE_PATIENT')")
     public ResponseEntity<ResponseWrapper<PatientProfileResponse>> getProfile(
-            @AuthenticationPrincipal String userId) {
-
+            @AuthenticationPrincipal String userId
+    ) {
         var response = patientService.getProfile(userId);
-
         return ResponseUtil.ok("Patient profile fetched successfully!", response);
     }
 
-    @PutMapping("/profile")
+    @PutMapping
     @PreAuthorize("hasAuthority('ROLE_PATIENT')")
     public ResponseEntity<ResponseWrapper<PatientProfileResponse>> updateProfile(
             @AuthenticationPrincipal String userId,
             @Valid @RequestBody UpdateProfileRequest request
     ) {
         var response = patientService.updateProfile(userId, request);
-
         return ResponseUtil.ok("Patient profile updated successfully!", response);
-
     }
 
     @PatchMapping(
-            value = "/profile/photo",
+            value = "/upload-photo",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
     @PreAuthorize("hasAuthority('ROLE_PATIENT')")
@@ -67,13 +64,12 @@ public class PatientController {
         return ResponseUtil.ok("Profile photo uploaded successfully!", response);
     }
 
-    @DeleteMapping("/profile/photo")
+    @DeleteMapping("/remove-photo")
     @PreAuthorize("hasAuthority('ROLE_PATIENT')")
     public ResponseEntity<ResponseWrapper<PatientProfileResponse>> removePhoto(
             @AuthenticationPrincipal String userId
     ) {
         var response = patientService.removeProfilePhoto(userId);
-
         return ResponseUtil.ok("Profile photo removed successfully!", response);
     }
 }

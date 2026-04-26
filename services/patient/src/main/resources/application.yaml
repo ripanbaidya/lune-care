@@ -73,7 +73,7 @@ springdoc:
     show-actuator: true
 
 app:
-  integrations:
+  integration:
     cloudinary:
       enabled: true
       cloud-name: ${CLOUDINARY_CLOUD_NAME:dkpchjv9f}

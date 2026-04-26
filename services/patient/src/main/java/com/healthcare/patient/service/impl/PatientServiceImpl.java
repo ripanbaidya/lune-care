@@ -30,8 +30,11 @@ public class PatientServiceImpl implements PatientService {
     @Override
     @Transactional
     public void creteProfile(CreateProfileRequest request) {
-        if (patientRepository.existsByUserId(request.userId())) {
-            log.error("Patient already exist with with the userId: {}", request.userId());
+        log.info("Creating patient profile for userId: {}", request.userId());
+        String userId = request.userId();
+
+        if (patientRepository.existsByUserId(userId)) {
+            log.warn("Patient already exist with the userId: {}", request.userId());
             throw new PatientException(ErrorCode.PATIENT_ALREADY_EXISTS);
         }
 
@@ -42,20 +45,22 @@ public class PatientServiceImpl implements PatientService {
         patient.setPhoneNumber(request.phoneNumber());
 
         patientRepository.saveAndFlush(patient);
-        log.debug("Patient profile created successfully for userId: {}", patient.getUserId());
+        log.info("Patient profile created successfully for userId: {}", patient.getUserId());
     }
 
     @Override
     @Transactional(readOnly = true)
     public PatientProfileResponse getProfile(String userId) {
-        Patient patient = findByUserId(userId);
+        log.debug("Fetching patient profile for userId: {}", userId);
 
+        Patient patient = findByUserId(userId);
         return PatientMapper.toResponse(patient);
     }
 
     @Override
     @Transactional
     public PatientProfileResponse updateProfile(String userId, UpdateProfileRequest request) {
+        log.debug("Updating patient profile for userId: {}", userId);
         Patient patient = findByUserId(userId);
 
         if (StringUtils.hasText(request.firstName())) patient.setFirstName(request.firstName());
@@ -68,48 +73,75 @@ public class PatientServiceImpl implements PatientService {
 
         patientRepository.save(patient);
 
+        log.debug("Patient profile updated successfully for userId: {}", userId);
         return PatientMapper.toResponse(patient);
     }
 
     @Override
     @Transactional
     public PatientProfileResponse uploadProfilePhoto(String userId, MultipartFile file) {
+        log.debug("Starting profile photo upload. userId={}, fileName={}, size={} bytes, type={}",
+                userId, file.getOriginalFilename(), file.getSize(), file.getContentType());
+
         Patient patient = findByUserId(userId);
+        long startTime = System.currentTimeMillis();
 
-        /*
-         * Upload patient's profile picture to Cloudinary. If the patient already has a
-         * profile photo,
-         * Cloudinary will automatically overwrite it using the patient ID as the public_id
-         */
-        Map<String, String> cloudinaryResponse = cloudinaryService.uploadPhoto(patient.getId(), file);
+        try {
+            log.debug("Calling Cloudinary for patientId={}", patient.getId());
+            Map<String, String> cloudinaryResponse = cloudinaryService.uploadPhoto(patient.getId(), file);
 
-        patient.setProfilePhotoUrl(cloudinaryResponse.get("url"));
-        patient.setCloudinaryPublicId(cloudinaryResponse.get("public_id"));
+            long duration = System.currentTimeMillis() - startTime;
 
-        patientRepository.save(patient);
-        log.info("Profile photo uploaded for patient with userId: {}", userId);
+            // Capture the URL and PublicID returned to ensure the handshake worked
+            log.info("Photo uploaded to Cloudinary. userId={}, publicId={}, duration={}ms",
+                    userId, cloudinaryResponse.get("public_id"), duration);
 
-        return PatientMapper.toResponse(patient);
+            patient.setProfilePhotoUrl(cloudinaryResponse.get("url"));
+            patient.setCloudinaryPublicId(cloudinaryResponse.get("public_id"));
+
+            patientRepository.save(patient);
+
+            log.debug("Database updated with new photo URL. userId={}", userId);
+
+            return PatientMapper.toResponse(patient);
+
+        } catch (Exception e) {
+            log.error("Profile photo upload failed. userId={}, error={}", userId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     @Override
     @Transactional
     public PatientProfileResponse removeProfilePhoto(String userId) {
-        Patient patient = findByUserId(userId);
+        log.debug("Request to remove profile photo. userId={}", userId);
 
-        if (patient.getCloudinaryPublicId() == null) {
+        Patient patient = findByUserId(userId);
+        String publicId = patient.getCloudinaryPublicId();
+
+        if (publicId == null) {
+            log.warn("Photo removal aborted: No photo found for user. userId={}", userId);
             throw new PatientException(ErrorCode.PATIENT_PROFILE_PHOTO_NOT_FOUND);
         }
 
-        cloudinaryService.deletePhoto(patient.getCloudinaryPublicId());
+        try {
+            log.debug("Calling Cloudinary to delete photo. userId={}, publicId={}", userId, publicId);
+            cloudinaryService.deletePhoto(publicId);
 
-        patient.setProfilePhotoUrl(null);
-        patient.setCloudinaryPublicId(null);
+            patient.setProfilePhotoUrl(null);
+            patient.setCloudinaryPublicId(null);
+            patientRepository.save(patient);
 
-        patientRepository.save(patient);
-        log.info("Profile photo removed for patient with userId: {}", userId);
-        
-        return PatientMapper.toResponse(patient);
+            log.debug("Profile photo successfully removed from cloud and database. userId={}, deletedPublicId={}",
+                    userId, publicId);
+
+            return PatientMapper.toResponse(patient);
+
+        } catch (Exception e) {
+            log.error("Failed to remove profile photo. userId={}, publicId={}, error={}",
+                    userId, publicId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     /*

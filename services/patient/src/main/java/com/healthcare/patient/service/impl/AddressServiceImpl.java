@@ -27,10 +27,11 @@ public class AddressServiceImpl implements AddressService {
     @Override
     @Transactional
     public AddressResponse createAddress(String userId, AddressRequest request) {
-        log.info("Creating address for userId: {}", userId);
+        log.debug("Creating address for userId='{}'", userId);
         Patient patient = findByUserId(userId);
 
         if (patient.getAddress() != null) {
+            log.warn("Address creation failed: userId={} already has an existing address", userId);
             throw new AddressException(ErrorCode.VALIDATION_FAILED, "Address already exists for this patient");
         }
 
@@ -44,18 +45,21 @@ public class AddressServiceImpl implements AddressService {
         patient.setAddress(address);
         patientRepository.save(patient);
 
-        log.info("Address created successfully for userId: {}", userId);
+        log.info("Successfully created address. userId={}, city={}, state={}",
+                userId, address.getCity(), address.getState());
         return AddressMapper.toResponse(address);
     }
 
     @Override
     @Transactional
     public AddressResponse updateAddress(String userId, AddressRequest request) {
-        log.info("Updating address for userId: {}", userId);
-        Patient patient = findByUserId(userId);
+        log.debug("Updating address for userId='{}'", userId);
 
+        Patient patient = findByUserId(userId);
         Address address = patient.getAddress();
+
         if (address == null) {
+            log.warn("Address update failed: userId={} does not have an existing address", userId);
             throw new AddressException(ErrorCode.VALIDATION_FAILED, "No address found for this patient");
         }
 
@@ -67,21 +71,25 @@ public class AddressServiceImpl implements AddressService {
 
         address = addressRepository.save(address);
 
-        log.info("Address updated successfully for userId: {}", userId);
+        log.debug("Successfully updated address. userId={}, city={}, state={}",
+                userId, address.getCity(), address.getState());
         return AddressMapper.toResponse(address);
     }
 
     @Override
     @Transactional(readOnly = true)
     public AddressResponse getAddress(String userId) {
-        log.info("Retrieving address for userId: {}", userId);
-        Patient patient = findByUserId(userId);
+        log.debug("Retrieving address for userId={}", userId);
 
+        Patient patient = findByUserId(userId);
         Address address = patient.getAddress();
+
         if (address == null) {
+            log.warn("Address retrieval failed: userId={} does not have an existing address", userId);
             throw new AddressException(ErrorCode.VALIDATION_FAILED, "No address found for this patient");
         }
 
+        log.debug("Address fetched successfully. userId={}", userId);
         return AddressMapper.toResponse(address);
     }
 
@@ -94,7 +102,7 @@ public class AddressServiceImpl implements AddressService {
         if (patient.getAddress() != null) {
             patient.setAddress(null);
             patientRepository.save(patient);
-            log.info("Address deleted successfully for userId: {}", userId);
+            log.debug("Address deleted successfully for userId: {}", userId);
         } else {
             log.warn("No address to delete for userId: {}", userId);
         }
