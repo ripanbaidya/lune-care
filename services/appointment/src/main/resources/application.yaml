@@ -95,6 +95,7 @@ rabbitmq:
 app:
   appointment:
     cancellation-cutoff-hours: 2
+    payment-timeout-minutes: 15
 
 info:
   app:
