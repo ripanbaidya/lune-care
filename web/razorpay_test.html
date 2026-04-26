@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Razorpay Test</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 2rem;
+            background: #f9f9f9;
+        }
+
+        input {
+            display: block;
+            width: 500px;
+            padding: 8px;
+            margin: 6px 0 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        button {
+            padding: 10px 24px;
+            background: #333;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        label {
+            font-size: 13px;
+            color: #555;
+        }
+
+        pre {
+            background: #1a1a1a;
+            color: #7fff7f;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-top: 1.5rem;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            min-height: 80px;
+        }
+
+        h2 {
+            font-size: 1rem;
+            margin-top: 1.5rem;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+<h1 style="font-size:1.2rem">Razorpay Test Trigger</h1>
+
+<label>Razorpay Key ID</label>
+<input id="keyId" value="rzp_test_STtxF7zD3d2bmB"/>
+
+<label>Order ID (from /api/payment/initiate → razorpayOrderId)</label>
+<input id="orderId" placeholder="order_xxxxxxxxxx"/>
+
+<label>Amount in ₹ (from /api/payment/initiate → amount)</label>
+<input id="amount" placeholder="500"/>
+
+<button onclick="pay()">Open Razorpay</button>
+
+<h2>Step 3 — Copy these into Postman /api/payment/verify</h2>
+<pre id="output">Waiting for payment...</pre>
+
+<script>
+    function pay() {
+        const key = document.getElementById('keyId').value.trim();
+        const order = document.getElementById('orderId').value.trim();
+        const amount = parseFloat(document.getElementById('amount').value.trim());
+
+        if (!order || !amount) {
+            alert('Fill order ID and amount');
+            return;
+        }
+
+        const rzp = new Razorpay({
+            key,
+            order_id: order,
+            amount: Math.round(amount * 100),
+            currency: 'INR',
+            name: 'LuneCare Test',
+            handler: function (resp) {
+                document.getElementById('output').textContent =
+                    `razorpayPaymentId : ${resp.razorpay_payment_id}
+razorpayOrderId   : ${resp.razorpay_order_id}
+razorpaySignature : ${resp.razorpay_signature}`;
+            },
+            modal: {
+                ondismiss: () => {
+                    document.getElementById('output').textContent = 'Modal closed.';
+                }
+            }
+        });
+
+        rzp.on('payment.failed', e => {
+            document.getElementById('output').textContent = 'FAILED: ' + JSON.stringify(e.error, null, 2);
+        });
+
+        rzp.open();
+    }
+</script>
+</body>
+</html>
