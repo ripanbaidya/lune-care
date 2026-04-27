@@ -1,0 +1,77 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: notification
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+
+  data:
+    mongodb:
+      uri: mongodb://mongouser:mongopass@localhost:27018/notification_db?authSource=admin
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  health:
+    liveness-state:
+      enabled: true
+    readiness-state:
+      enabled: true
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+    info:
+      access: unrestricted
+  info:
+    env:
+      enabled: true
+
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    disable-swagger-default-url: true
+    display-request-duration: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+    doc-expansion: none
+    filter: true
+    show-actuator: true
+
+rabbitmq:
+  exchange:
+    name: lune.care.exchange
+  queues:
+    appointment-events: notification.appointment.events.queue
+
+info:
+  app:
+    name: "notification-service"
+    version: "1.0.0"
+    description: "API documentation for Notification Service for LuneCare Healthcare System"
