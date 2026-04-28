@@ -3,7 +3,9 @@ package com.healthcare.doctor.entity;
 import com.healthcare.doctor.enums.Gender;
 import com.healthcare.doctor.enums.Specialization;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
@@ -26,7 +28,7 @@ public class DoctorProfile {
     private Doctor doctor;
 
     @Column(name = "email", length = 120)
-    private String email;
+    private String email; // optional
 
     @Enumerated(EnumType.STRING)
     @Column(name = "gender", length = 10)
@@ -50,21 +52,11 @@ public class DoctorProfile {
 
     /*
      * Stores the collection in a separate table
-     * eg.
-     * +------------------------------+
-     * |      doctor_languages        |
-     * +------------------------------+
-     * | doctor_profile_id | language |
-     * +------------------------------+
-     * |         uuid      |   EN     |
-     * |         uuid      |   HI     |
-     * +------------------------------+
      */
     @ElementCollection
     @CollectionTable(
             name = "doctor_languages",
-            joinColumns = @JoinColumn(name = "doctor_profile_id")
-    )
+            joinColumns = @JoinColumn(name = "doctor_profile_id"))
     @Column(name = "language", length = 50)
     private List<String> languagesSpoken;
 

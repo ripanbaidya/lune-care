@@ -3,6 +3,7 @@ package com.healthcare.doctor.service.impl;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.Transformation;
 import com.cloudinary.utils.ObjectUtils;
+import com.healthcare.doctor.enums.DocumentType;
 import com.healthcare.doctor.enums.ErrorCode;
 import com.healthcare.doctor.exception.CloudinaryException;
 import com.healthcare.doctor.service.CloudinaryService;
@@ -19,7 +20,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CloudinaryServiceImpl implements CloudinaryService {
 
-    private static final String DOCTOR_FOLDER = "lune-care/doctors/profile-photos";
+    private static final String DOCTOR_PROFILE_PHOTO_FOLDER = "lune-care/doctors/profile-photos";
+    private static final String DOCTOR_DOCUMENTS_FOLDER = "lune-care/doctors/documents";
     private static final String PUBLIC_ID = "public_id";
 
     private final Cloudinary cloudinary;
@@ -40,7 +42,7 @@ public class CloudinaryServiceImpl implements CloudinaryService {
                     file.getBytes(),
                     ObjectUtils.asMap(
                             PUBLIC_ID, doctorId,
-                            "folder", DOCTOR_FOLDER,
+                            "folder", DOCTOR_PROFILE_PHOTO_FOLDER,
                             "overwrite", true,
                             "resource_type", "image",
                             "transformation", transformation
@@ -59,6 +61,40 @@ public class CloudinaryServiceImpl implements CloudinaryService {
             throw new CloudinaryException(ErrorCode.PHOTO_UPLOAD_FAILED);
         } catch (Exception e) {
             log.error("Unexpected Cloudinary API error for doctor {}: {}", doctorId, e.getMessage(), e);
+            throw new CloudinaryException(ErrorCode.PHOTO_UPLOAD_FAILED);
+        }
+    }
+
+    @Override
+    public Map<String, String> uploadDocument(String doctorId, DocumentType documentType, MultipartFile file) {
+        String publicId = doctorId + "_" + documentType.name().toLowerCase();
+
+        log.info("Initiating Cloudinary document upload. doctorId={}, documentType={}, fileSize={} bytes",
+                doctorId, documentType, file.getSize());
+
+        try {
+            Map<?, ?> result = cloudinary.uploader().upload(
+                    file.getBytes(),
+                    ObjectUtils.asMap(
+                            PUBLIC_ID, publicId,
+                            "folder", DOCTOR_DOCUMENTS_FOLDER,
+                            "overwrite", true,
+                            "resource_type", "auto" // supports pdf + images
+                    )
+            );
+
+            String uploadedPublicId = (String) result.get(PUBLIC_ID);
+            String url = (String) result.get("secure_url");
+
+            log.info("Cloudinary document upload successful. publicId={}, url={}", uploadedPublicId, url);
+
+            return Map.of(PUBLIC_ID, uploadedPublicId, "url", url);
+
+        } catch (IOException e) {
+            log.error("IO Error during Cloudinary document upload for doctor {}: {}", doctorId, e.getMessage(), e);
+            throw new CloudinaryException(ErrorCode.PHOTO_UPLOAD_FAILED);
+        } catch (Exception e) {
+            log.error("Unexpected Cloudinary API error during document upload for doctor {}: {}", doctorId, e.getMessage(), e);
             throw new CloudinaryException(ErrorCode.PHOTO_UPLOAD_FAILED);
         }
     }

@@ -40,12 +40,8 @@ public class RefreshToken {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    // Domain specific
-
     /**
      * Revoke the refresh token and mark the timestamp
-     *
-     * @param now the current time
      */
     public void revoke(Instant now) {
         this.revoked = true;
@@ -54,8 +50,6 @@ public class RefreshToken {
 
     /**
      * Check if the refresh token is expired
-     *
-     * @return true if token is expired, false otherwise
      */
     public boolean isExpired() {
         return this.expiresAt.isBefore(Instant.now());

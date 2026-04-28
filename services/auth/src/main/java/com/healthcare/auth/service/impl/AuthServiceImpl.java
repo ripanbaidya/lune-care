@@ -16,14 +16,11 @@ import com.healthcare.auth.payload.request.LoginRequest;
 import com.healthcare.auth.payload.request.PatientRegisterRequest;
 import com.healthcare.auth.payload.response.AuthResponse;
 import com.healthcare.auth.payload.response.TokenResponse;
-import com.healthcare.auth.payload.response.UserProfileResponse;
-import com.healthcare.auth.payload.response.UserResponse;
 import com.healthcare.auth.respository.RefreshTokenRepository;
 import com.healthcare.auth.respository.UserRepository;
 import com.healthcare.auth.security.JwtService;
 import com.healthcare.auth.service.AuthService;
 import com.healthcare.auth.service.TokenBlacklistService;
-import com.healthcare.auth.util.MaskingUtil;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -237,37 +234,6 @@ public class AuthServiceImpl implements AuthService {
         }
 
         log.info("Logout successful — userId='{}'.", stored.getUser().getId());
-    }
-
-    /**
-     * ------- Internal use only -------
-     * <p>Called by other services like - {@code doctor, admin} via Feign clients
-     */
-    @Override
-    @Transactional
-    public void updateUserStatus(String userId, AccountStatus newStatus) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> {
-                    log.error("Status update failed — no user found for userId='{}'.", userId);
-                    return new AuthException(ErrorCode.USER_NOT_FOUND);
-                });
-
-        AccountStatus previous = user.getAccountStatus();
-        user.setAccountStatus(newStatus);
-        userRepository.save(user);
-
-        log.info("Account status updated — userId='{}', {} -> {}.", userId, previous, newStatus);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public UserProfileResponse getUser(String userId) {
-        return userRepository.findById(userId)
-                .map(UserProfileResponse::from)
-                .orElseThrow(() -> {
-                    log.warn("User not found for userId='{}'", userId);
-                    return new AuthException(ErrorCode.USER_NOT_FOUND);
-                });
     }
 
     /*

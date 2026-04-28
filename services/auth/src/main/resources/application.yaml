@@ -11,6 +11,11 @@ spring:
       # and in-memory user.
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
   datasource:
     url: jdbc:postgresql://localhost:5433/auth_db
     username: postgres
@@ -18,7 +23,7 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
@@ -68,13 +73,6 @@ springdoc:
   swagger-ui:
     enabled: true
     path: /swagger-ui.html
-    disable-swagger-default-url: true
-    display-request-duration: true
-    operations-sorter: alpha
-    tags-sorter: alpha
-    doc-expansion: none
-    filter: true
-    show-actuator: true
 
 app:
   security:

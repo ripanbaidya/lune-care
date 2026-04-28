@@ -1,8 +1,7 @@
 package com.healthcare.auth.controller;
 
 import com.healthcare.auth.payload.request.UpdateAccountStatusRequest;
-import com.healthcare.auth.service.AuthService;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import com.healthcare.auth.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -11,22 +10,18 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(
-        name = "Internal Auth",
-        description = "Internal authentication endpoints for service-to-service communication"
-)
 @RestController
 @RequestMapping("/api/internal/auth")
 @RequiredArgsConstructor
 public class InternalAuthController {
 
-    private final AuthService authService;
+    private final UserService userService;
 
     @PatchMapping("/update-status")
     public ResponseEntity<Void> updateStatus(
             @Valid @RequestBody UpdateAccountStatusRequest request
     ) {
-        authService.updateUserStatus(request.userId(), request.newStatus());
+        userService.updateUserStatus(request.userId(), request.newStatus());
         return ResponseEntity.ok().build();
     }
 }

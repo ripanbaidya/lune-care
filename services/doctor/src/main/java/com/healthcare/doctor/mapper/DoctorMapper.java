@@ -5,6 +5,7 @@ import com.healthcare.doctor.entity.Doctor;
 import com.healthcare.doctor.entity.DoctorProfile;
 import com.healthcare.doctor.payload.response.DoctorProfileResponse;
 import com.healthcare.doctor.payload.response.DoctorPublicResponse;
+import com.healthcare.doctor.payload.response.DoctorSummaryResponse;
 
 import java.util.Collections;
 import java.util.List;
@@ -54,5 +55,18 @@ public final class DoctorMapper {
                 .build();
     }
 
+    public static DoctorSummaryResponse toSummaryResponse(Doctor doctor) {
+        DoctorProfile profile = doctor.getProfile();
+        return DoctorSummaryResponse.builder()
+                .id(doctor.getId())
+                .userId(doctor.getUserId())
+                .firstName(doctor.getFirstName())
+                .lastName(doctor.getLastName())
+                .phoneNumber(doctor.getPhoneNumber())
+                .specialization(profile != null ? profile.getSpecialization() : null)
+                .qualification(profile != null ? profile.getQualification() : null)
+                .createdAt(doctor.getCreatedAt())
+                .build();
+    }
 
 }

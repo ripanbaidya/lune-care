@@ -14,8 +14,10 @@ import com.healthcare.doctor.payload.dto.auth.UpdateAccountStatusRequest;
 import com.healthcare.doctor.payload.request.CreateDoctorProfileRequest;
 import com.healthcare.doctor.payload.request.OnboardingRequest;
 import com.healthcare.doctor.payload.request.UpdateDoctorProfileRequest;
+import com.healthcare.doctor.payload.request.UpdateVerificationStatusRequest;
 import com.healthcare.doctor.payload.response.DoctorProfileResponse;
 import com.healthcare.doctor.payload.response.DoctorPublicResponse;
+import com.healthcare.doctor.payload.response.DoctorSummaryResponse;
 import com.healthcare.doctor.repository.ClinicRepository;
 import com.healthcare.doctor.repository.DoctorRepository;
 import com.healthcare.doctor.service.CloudinaryService;
@@ -25,8 +27,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.security.core.userdetails.ReactiveUserDetailsPasswordService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -49,6 +49,12 @@ public class DoctorServiceImpl implements DoctorService {
 
     private final AuthServiceClient authServiceClient;
 
+    /**
+     * Onboarding Step 1: Create Doctor Profile
+     * Used by {@code auth-service} to create a new doctor profile.
+     *
+     * @param request the request object containing user details
+     */
     @Override
     @Transactional
     public void creteProfile(CreateDoctorProfileRequest request) {
@@ -84,6 +90,9 @@ public class DoctorServiceImpl implements DoctorService {
         return DoctorMapper.toProfileResponse(doctor);
     }
 
+    /**
+     * Onboarding Step 2: Profile Completion
+     */
     @Override
     @Transactional
     public DoctorProfileResponse completeOnboarding(String userId, OnboardingRequest request) {
@@ -92,7 +101,7 @@ public class DoctorServiceImpl implements DoctorService {
         Doctor doctor = findByUserId(userId);
 
         if (doctor.isOnboardingCompleted()) {
-            log.warn("Onboarding rejected: Already completed. userId={}", userId);
+            log.warn("Onboarding rejected: Already completed or Document Verified. userId={}", userId);
             throw new DoctorException(ErrorCode.ONBOARDING_ALREADY_COMPLETED);
         }
 
@@ -108,14 +117,17 @@ public class DoctorServiceImpl implements DoctorService {
             profile.setBio(request.bio());
             profile.setLanguagesSpoken(request.languagesSpoken());
 
-            // Local state change
+            // Note: We are making the profile active immediately after profile details are submitted.
+            // We are not waiting for Document Verification. But the frontend will have the complete flow
+            // TODO: Remove this auto-activation and implement full verification flow before production.
+            doctor.setAccountStatus(AccountStatus.ACTIVE);
             doctor.setOnboardingCompleted(true);
+
             doctorRepository.save(doctor);
             log.debug("Local doctor profile updated and marked as complete. userId={}", userId);
 
-            // Remote Sync
-            syncStatusWithAuthService(userId);
-            log.info("Onboarding successful. Doctor is now ACTIVE. userId={}, doctorId={}",
+            syncStatusWithAuthService(userId, AccountStatus.ACTIVE);
+            log.debug("[DEV-MODE] Onboarding step completed. Doctor account auto-activated for development. userId={}, doctorId={}",
                     userId, doctor.getId());
 
             return DoctorMapper.toProfileResponse(doctor);
@@ -123,21 +135,6 @@ public class DoctorServiceImpl implements DoctorService {
         } catch (Exception e) {
             log.error("Onboarding failed for userId={}. Reason: {}", userId, e.getMessage(), e);
             throw e;
-        }
-    }
-
-    private void syncStatusWithAuthService(String userId) {
-        try {
-            log.debug("Synchronizing account status with auth-service. userId={}", userId);
-            var updateRequest = new UpdateAccountStatusRequest(userId, AccountStatus.ACTIVE);
-            authServiceClient.updateStatus(updateRequest);
-            log.info("Auth-service status synchronized to ACTIVE. userId={}", userId);
-        } catch (Exception e) {
-            log.error("Doctor marked active locally but Auth-service update failed. " +
-                    "userId={}, error={}", userId, e.getMessage());
-
-            // We can have retry logic here, but for now we'll just throw an exception
-            throw new DoctorException(ErrorCode.REMOTE_SERVICE_FAILURE);
         }
     }
 
@@ -343,5 +340,56 @@ public class DoctorServiceImpl implements DoctorService {
     public Doctor findByUserId(String userId) {
         return doctorRepository.findByUserId(userId)
                 .orElseThrow(() -> new DoctorException(ErrorCode.DOCTOR_NOT_FOUND));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DoctorSummaryResponse> getDoctorsPendingVerification() {
+        log.debug("Fetching pending verification doctors");
+        return doctorRepository.findByAccountStatus(AccountStatus.PENDING_VERIFICATION)
+                .stream()
+                .map(DoctorMapper::toSummaryResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void updateVerificationStatus(String doctorId, UpdateVerificationStatusRequest request) {
+        final boolean approved = request.approved();
+        final String action = approved ? "APPROVED" : "REJECTED";
+
+        log.info("Doctor verification request received: doctorId={}, action={}", doctorId, action);
+
+        Doctor doctor = doctorRepository.findById(doctorId)
+                .orElseThrow(() -> new DoctorException(ErrorCode.DOCTOR_NOT_FOUND));
+
+        AccountStatus previousStatus = doctor.getAccountStatus();
+        AccountStatus newStatus = approved
+                ? AccountStatus.ACTIVE
+                : AccountStatus.PENDING_VERIFICATION;
+
+        syncStatusWithAuthService(doctor.getUserId(), newStatus);
+
+        // Update doctor state
+        doctor.setDocumentVerified(approved);
+        doctor.setAccountStatus(newStatus);
+
+        doctorRepository.save(doctor);
+
+        log.info("Doctor verification processed: doctorId={}, action={}, previousStatus={}, newStatus={}, documentVerified={}",
+                doctorId, action, previousStatus, newStatus, approved);
+    }
+
+    private void syncStatusWithAuthService(String userId, AccountStatus newStatus) {
+        try {
+            log.debug("Synchronizing account status with auth-service. userId={}, status={}", userId, newStatus);
+            var updateRequest = new UpdateAccountStatusRequest(userId, newStatus);
+            authServiceClient.updateStatus(updateRequest);
+            log.info("Auth-service status synchronized. userId={}, status={}", userId, newStatus);
+        } catch (Exception e) {
+            log.error("Auth-service status sync failed. userId={}, status={}, error={}",
+                    userId, newStatus, e.getMessage());
+            throw new DoctorException(ErrorCode.REMOTE_SERVICE_FAILURE);
+        }
     }
 }

@@ -4,8 +4,10 @@ import com.healthcare.doctor.entity.Doctor;
 import com.healthcare.doctor.payload.request.CreateDoctorProfileRequest;
 import com.healthcare.doctor.payload.request.OnboardingRequest;
 import com.healthcare.doctor.payload.request.UpdateDoctorProfileRequest;
+import com.healthcare.doctor.payload.request.UpdateVerificationStatusRequest;
 import com.healthcare.doctor.payload.response.DoctorProfileResponse;
 import com.healthcare.doctor.payload.response.DoctorPublicResponse;
+import com.healthcare.doctor.payload.response.DoctorSummaryResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -39,4 +41,8 @@ public interface DoctorService {
     DoctorPublicResponse getPublicProfile(String doctorId);
 
     Doctor findByUserId(String userId);
+
+    List<DoctorSummaryResponse> getDoctorsPendingVerification();
+
+    void updateVerificationStatus(String doctorId, UpdateVerificationStatusRequest request);
 }

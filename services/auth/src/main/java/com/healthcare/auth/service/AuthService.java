@@ -1,13 +1,10 @@
 package com.healthcare.auth.service;
 
-import com.healthcare.auth.payload.response.AuthResponse;
-import com.healthcare.auth.payload.request.LoginRequest;
-import com.healthcare.auth.payload.response.TokenResponse;
 import com.healthcare.auth.payload.request.DoctorRegisterRequest;
+import com.healthcare.auth.payload.request.LoginRequest;
 import com.healthcare.auth.payload.request.PatientRegisterRequest;
-import com.healthcare.auth.enums.AccountStatus;
-import com.healthcare.auth.payload.response.UserProfileResponse;
-import com.healthcare.auth.payload.response.UserResponse;
+import com.healthcare.auth.payload.response.AuthResponse;
+import com.healthcare.auth.payload.response.TokenResponse;
 
 public interface AuthService {
 
@@ -36,14 +33,4 @@ public interface AuthService {
      */
     void logout(String accessToken, String refreshToken);
 
-    /**
-     * Called by other services like - doctor or admin via internal Feign clients to
-     * update account status after onboarding or suspension decisions.
-     *
-     * @param userId    the user whose status should change
-     * @param newStatus the target {@link AccountStatus}
-     */
-    void updateUserStatus(String userId, AccountStatus newStatus);
-
-    UserProfileResponse getUser(String userId);
 }

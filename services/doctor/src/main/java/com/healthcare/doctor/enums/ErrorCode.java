@@ -33,6 +33,12 @@ public enum ErrorCode {
      */
     ONBOARDING_ALREADY_COMPLETED(ErrorType.CONFLICT, "Onboarding already completed"),
 
+    /**
+     * Document
+     */
+    NO_FILE_PROVIDED(ErrorType.VALIDATION, "No file provided"),
+    DOCTOR_DOCUMENT_NOT_FOUND(ErrorType.NOT_FOUND, "Doctor document not found"),
+
     // General
     VALIDATION_FAILED(ErrorType.VALIDATION, "One or more request fields are invalid"),
     INTERNAL_ERROR(ErrorType.INTERNAL, "An unexpected internal server error occurred"),

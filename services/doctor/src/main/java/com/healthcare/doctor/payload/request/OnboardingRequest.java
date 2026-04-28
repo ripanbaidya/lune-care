@@ -12,7 +12,7 @@ import java.util.List;
 public record OnboardingRequest(
 
         @Email(message = "Invalid email format")
-        String email, // optional
+        String email,
 
         @NotNull(message = "Gender is required")
         Gender gender,

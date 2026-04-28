@@ -1,10 +1,7 @@
 package com.healthcare.auth.controller;
 
 import com.healthcare.auth.payload.dto.success.ResponseWrapper;
-import com.healthcare.auth.payload.request.DoctorRegisterRequest;
-import com.healthcare.auth.payload.request.LoginRequest;
-import com.healthcare.auth.payload.request.PatientRegisterRequest;
-import com.healthcare.auth.payload.request.RefreshTokenRequest;
+import com.healthcare.auth.payload.request.*;
 import com.healthcare.auth.payload.response.AuthResponse;
 import com.healthcare.auth.payload.response.TokenResponse;
 import com.healthcare.auth.service.AuthService;

@@ -6,6 +6,7 @@ import com.healthcare.auth.payload.dto.success.ResponseWrapper;
 import com.healthcare.auth.payload.request.LogoutRequest;
 import com.healthcare.auth.payload.response.UserProfileResponse;
 import com.healthcare.auth.service.AuthService;
+import com.healthcare.auth.service.UserService;
 import com.healthcare.auth.util.ResponseUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import java.util.Optional;
 public class UserController {
 
     private final AuthService authService;
+    private final UserService userService;
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
@@ -41,7 +43,7 @@ public class UserController {
     public ResponseEntity<ResponseWrapper<UserProfileResponse>> getUser(
             @AuthenticationPrincipal String userId
     ) {
-        var response = authService.getUser(userId);
+        var response = userService.getUser(userId);
         return ResponseUtil.ok("User fetched Successfully", response);
     }
 }
