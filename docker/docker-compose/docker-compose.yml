@@ -15,6 +15,26 @@ services:
       retries: 3
       start_period: 5s
 
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672" # RabbitMQ port
+      - "15672:15672" # RabbitMQ management UI (http://localhost:15672)
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_node"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - healthcare_network
+
   auth_db:
     image: postgres:16-alpine
     container_name: auth_db
@@ -57,12 +77,72 @@ services:
     networks:
       - healthcare_network
 
+  appointment_db:
+    image: postgres:16-alpine
+    container_name: appointment_db
+    environment:
+      POSTGRES_DB: appointment_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pg_appointment_data:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"
+    networks:
+      - healthcare_network
+
+  payment_db:
+    image: postgres:16-alpine
+    container_name: payment_db
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pg_payment_data:/var/lib/postgresql/data
+    ports:
+      - "5437:5432"
+    networks:
+      - healthcare_network
+
+  notification_db:
+    image: mongo:8.2
+    container_name: notification_db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongouser
+      MONGO_INITDB_ROOT_PASSWORD: mongopass
+      MONGO_INITDB_DATABASE: notification_db
+    volumes:
+      - notification_data:/data/db
+    ports:
+      - "27018:27017"
+    networks:
+      - healthcare_network
+
+  feedback_db:
+    image: mongo:8.2
+    container_name: feedback_db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongouser
+      MONGO_INITDB_ROOT_PASSWORD: mongopass
+      MONGO_INITDB_DATABASE: feedback_db
+    volumes:
+      - feedback_data:/data/db
+    ports:
+      - "27019:27017"
+    networks:
+      - healthcare_network
 
 volumes:
   redis_data:
+  rabbitmq_data:
   pg_auth_data:
   pg_patient_data:
   pg_doctor_data:
+  pg_appointment_data:
+  pg_payment_data:
+  notification_data:
+  feedback_data:
 
 networks:
   healthcare_network:
