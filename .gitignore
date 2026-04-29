@@ -27,7 +27,7 @@ desktop.ini
 .Spotlight-V100
 
 # Secrets & keys
-# Make sure to uncomment the below two lines, since we are in development so I'm committing my credentials
+# Make sure do not commit the secrets to production
 # secrets/
 # *.pem
 *.key
@@ -66,4 +66,4 @@ jacoco.exec
 
 # Project specific
 CLAUDE.md
-TODO.md
+public/docs/APIs.md
