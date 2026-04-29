@@ -25,27 +25,33 @@ public class SlotGenerationServiceImpl implements SlotGenerationService {
 
     private final SlotRepository slotRepository;
 
+    /*
+     * Generates slots for the date range [startDate, endDate] defined in the request.
+     * Guards:
+     * startDate is clamped today in the request compact constructor — no past-date generation.
+     * For today specifically, slots whose start time has already passed are skipped.
+     * Duplicate slots are filtered via an in-memory key set loaded once upfront.
+     */
     @Override
     @Transactional
     public int generateSlots(GenerateSlotsRequest request) {
-        LocalDate today = LocalDate.now();
-        LocalDate endDate = today.plusDays(request.daysAhead());
+        LocalDate startDate = request.startDate();
+        LocalDate endDate = request.endDate();
         String doctorId = request.doctorId();
         String clinicId = request.clinicId();
 
-        log.info("Starting slot generation. doctorId={}, clinicId={}, daysAhead={}, range=[{} to {}]",
-                doctorId, clinicId, request.daysAhead(), today, endDate);
+        log.info("Starting slot generation. doctorId={}, clinicId={}, range=[{} → {}]",
+                doctorId, clinicId, startDate, endDate);
 
         long startTime = System.currentTimeMillis();
 
         try {
-            log.debug("Loading existing slot keys to prevent duplicates. doctorId={}", doctorId);
-            Set<String> existingKeys = loadExistingSlotKeys(doctorId, clinicId, today, endDate);
-            log.debug("Found {} existing slots in range. doctorId={}", existingKeys.size(), doctorId);
+            Set<String> existingKeys = loadExistingSlotKeys(doctorId, clinicId, startDate, endDate);
+            log.debug("Pre-loaded {} existing slot keys. doctorId={}", existingKeys.size(), doctorId);
 
             List<Slot> slotsToSave = new ArrayList<>();
 
-            for (LocalDate date = today; !date.isAfter(endDate); date = date.plusDays(1)) {
+            for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
                 final LocalDate currentDate = date;
 
                 request.schedules().stream()
@@ -59,41 +65,50 @@ public class SlotGenerationServiceImpl implements SlotGenerationService {
                                         schedule.startTime(),
                                         schedule.endTime(),
                                         request.consultationDurationMinutes(),
-                                        existingKeys, slotsToSave
+                                        existingKeys,
+                                        slotsToSave
                                 )
                         );
             }
 
-            // Performance Warning for Large Batches
             if (slotsToSave.isEmpty()) {
                 log.info("No new slots to generate for the given schedule. doctorId={}", doctorId);
                 return 0;
             }
 
-            log.debug("Saving batch of {} slots. doctorId={}", slotsToSave.size(), doctorId);
             slotRepository.saveAll(slotsToSave);
 
             long duration = System.currentTimeMillis() - startTime;
-
-            log.info("Slot generation successful. doctorId={}, slotsCreated={}, duration={}ms",
+            log.info("Slot generation complete. doctorId={}, slotsCreated={}, duration={}ms",
                     doctorId, slotsToSave.size(), duration);
 
             return slotsToSave.size();
 
         } catch (Exception e) {
-            log.error("Slot generation failed. doctorId={}, clinicId={}, daysAhead={}, error={}",
-                    doctorId, clinicId, request.daysAhead(), e.getMessage(), e);
+            log.error("Slot generation failed. doctorId={}, clinicId={}, range=[{} → {}], error={}",
+                    doctorId, clinicId, startDate, endDate, e.getMessage(), e);
             throw e;
         }
     }
 
+    /**
+     * Generates slots for a single specific date.
+     * Used by the daily scheduler to extend the rolling window by one day.
+     * The past-time guard still applies if the date happens to be today.
+     */
     @Override
     @Transactional
     public void generateSlotsForDate(GenerateSlotsRequest request, LocalDate date) {
         String doctorId = request.doctorId();
         String clinicId = request.clinicId();
 
-        log.debug("Processing daily slot generation. doctorId={}, clinicId={}, date={}", doctorId, clinicId, date);
+        // Never generate for a past date
+        if (date.isBefore(LocalDate.now())) {
+            log.warn("generateSlotsForDate called with past date — skipping. doctorId={}, date={}", doctorId, date);
+            return;
+        }
+
+        log.debug("Daily slot generation for single date. doctorId={}, clinicId={}, date={}", doctorId, clinicId, date);
 
         long startTime = System.currentTimeMillis();
 
@@ -112,35 +127,32 @@ public class SlotGenerationServiceImpl implements SlotGenerationService {
                                     schedule.startTime(),
                                     schedule.endTime(),
                                     request.consultationDurationMinutes(),
-                                    existingKeys, slotsToSave
+                                    existingKeys,
+                                    slotsToSave
                             )
                     );
 
             if (slotsToSave.isEmpty()) {
-                log.info("No new slots generated for date. doctorId={}, date={}, reason=ALREADY_EXISTS_OR_NO_SCHEDULE",
-                        doctorId, date);
+                log.info("No new slots generated. doctorId={}, date={}", doctorId, date);
                 return;
             }
 
             slotRepository.saveAll(slotsToSave);
 
             long duration = System.currentTimeMillis() - startTime;
-
             log.info("Daily slots generated. doctorId={}, date={}, count={}, duration={}ms",
                     doctorId, date, slotsToSave.size(), duration);
 
         } catch (Exception e) {
-            log.error("Failed daily slot generation. doctorId={}, date={}, error={}",
+            log.error("Daily slot generation failed. doctorId={}, date={}, error={}",
                     doctorId, date, e.getMessage(), e);
             throw e;
         }
     }
 
     /**
-     * Cancel all AVAILABLE slots for a given clinic and day of the week.
-     * <b>Called when:</b> The doctor explicitly deletes a Schedule day and
-     * A schedule day's time window changes (old slots canceled, new ones generated)
-     * <p><b>Note:</b>{@code LOCKED} and {@code BOOKED} slots are not affected.</p>
+     * Cancels all AVAILABLE slots for a clinic on a given day of the week, from today onwards.
+     * LOCKED and BOOKED slots are intentionally preserved.
      */
     @Override
     @Transactional
@@ -153,17 +165,15 @@ public class SlotGenerationServiceImpl implements SlotGenerationService {
                 isoDow
         );
 
-        log.info("Cancelled {} AVAILABLE slots — clinicId: {}, dayOfWeek: {}, preserving LOCKED and BOOKED",
-                cancelled, clinicId, dayOfWeek);
-
+        log.info("Cancelled {} AVAILABLE slots — clinicId={}, dayOfWeek={}", cancelled, clinicId, dayOfWeek);
         return cancelled;
     }
 
     // Private helpers
 
     /**
-     * Loads all existing slot keys for a date range into a Set for in-memory dedup.
-     * One DB query upfront — avoids per-slot queries inside the loop.
+     * Loads all existing slot composite keys for the date range into a Set for O(1) dedup.
+     * One DB query upfront avoids N per-slot existence checks inside the loop.
      */
     private Set<String> loadExistingSlotKeys(String doctorId, String clinicId,
                                              LocalDate from, LocalDate to) {
@@ -172,21 +182,22 @@ public class SlotGenerationServiceImpl implements SlotGenerationService {
         Set<String> keys = slotRepository
                 .findByDoctorIdAndClinicIdAndSlotDateBetween(doctorId, clinicId, from, to)
                 .stream()
-                .map(slot -> buildSlotKey(slot.getClinicId(),
-                        slot.getSlotDate(), slot.getStartTime()))
+                .map(slot -> buildSlotKey(slot.getClinicId(), slot.getSlotDate(), slot.getStartTime()))
                 .collect(Collectors.toSet());
 
-        log.debug("Pre-loaded existing slot keys. doctorId={}, count={}, duration={}ms",
+        log.debug("Loaded existing slot keys. doctorId={}, count={}, duration={}ms",
                 doctorId, keys.size(), (System.currentTimeMillis() - start));
 
         return keys;
     }
 
     /**
-     * Builds slot objects for a single day and adds them to the accumulator list.
-     * Uses the in-memory existingKeys set — no DB queries inside the loop.
-     * Also adds newly created keys to existingKeys immediately to prevent duplicates within
-     * the same generation run.
+     * Builds slot objects for a single day and appends them to the accumulator.
+     * <p><b>Past-time guard:</b> When {@code date} is today, any slot whose start time
+     * is at or before the current time is skipped. This prevents creating slots for
+     * appointments that can no longer be booked.
+     * <p>New keys are added to {@code existingKeys} immediately so a second schedule entry
+     * for the same day (rare but possible) cannot produce duplicates within the same run.
      */
     private void collectSlots(String doctorId, String clinicId, LocalDate date,
                               LocalTime startTime, LocalTime endTime,
@@ -194,12 +205,31 @@ public class SlotGenerationServiceImpl implements SlotGenerationService {
                               Set<String> existingKeys,
                               List<Slot> accumulator) {
 
+        boolean isToday = date.isEqual(LocalDate.now());
+        LocalTime now = LocalTime.now();
+
         LocalTime current = startTime;
         int initialCount = accumulator.size();
-        int skippedCount = 0;
+        int skipped = 0;
+        int pastSkipped = 0;
 
-        while (!current.plusMinutes(durationMinutes).isAfter(endTime)) {
+        while (true) {
             LocalTime slotEnd = current.plusMinutes(durationMinutes);
+
+            // Stop if the slot end would exceed the window end time
+            if (slotEnd.isAfter(endTime)) {
+                break;
+            }
+
+            // --- Past-time guard ---
+            // For today: skip slots that start at or before the current wall-clock time.
+            // A slot starting "now" is also skipped because the patient has no time to book it.
+            if (isToday && !current.isAfter(now)) {
+                pastSkipped++;
+                current = slotEnd;
+                continue;
+            }
+
             String key = buildSlotKey(clinicId, date, current);
 
             if (!existingKeys.contains(key)) {
@@ -212,18 +242,24 @@ public class SlotGenerationServiceImpl implements SlotGenerationService {
                 slot.setStatus(SlotStatus.AVAILABLE);
 
                 accumulator.add(slot);
-                existingKeys.add(key);
+                existingKeys.add(key); // prevent intra-run duplicates
             } else {
-                skippedCount++;
+                skipped++;
             }
 
             current = slotEnd;
         }
 
-        if (skippedCount > 0) {
-            log.debug("Slot generation deduplication summary. date={}, created={}, skipped={}",
-                    date, (accumulator.size() - initialCount), skippedCount);
+        int created = accumulator.size() - initialCount;
+
+        if (pastSkipped > 0) {
+            log.debug("Skipped {} past-time slot(s) for today. date={}", pastSkipped, date);
         }
+        if (skipped > 0) {
+            log.debug("Dedup skipped {} existing slot(s). date={}", skipped, date);
+        }
+        log.debug("collectSlots summary. date={}, created={}, dedupSkipped={}, pastSkipped={}",
+                date, created, skipped, pastSkipped);
     }
 
     private String buildSlotKey(String clinicId, LocalDate date, LocalTime startTime) {

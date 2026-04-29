@@ -1,10 +1,10 @@
 package com.healthcare.appointment.exception.handler;
 
+import com.healthcare.appointment.enums.ErrorCode;
+import com.healthcare.appointment.exception.BaseException;
 import com.healthcare.appointment.payload.dto.error.ErrorDetail;
 import com.healthcare.appointment.payload.dto.error.ErrorResponse;
 import com.healthcare.appointment.payload.dto.error.FieldError;
-import com.healthcare.appointment.enums.ErrorCode;
-import com.healthcare.appointment.exception.BaseException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
@@ -19,14 +19,17 @@ import java.util.List;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    /**
+     * Handles all domain exceptions ({@link BaseException} subclasses).
+     */
     @ExceptionHandler(BaseException.class)
     public ResponseEntity<ErrorResponse> handleBaseException(BaseException ex,
                                                              HttpServletRequest request) {
-
-        log.warn("Base exception: [{}] - {}", ex.getErrorCode(), ex.getResolvedMessage());
+        log.warn("Domain exception: [{}] {}", ex.getErrorCode(), ex.getResolvedMessage());
 
         var errorResponse = ErrorResponse.of(ErrorDetail.builder()
                 .code(ex.getErrorCode())
+                .message(ex.getResolvedMessage())
                 .path(request.getRequestURI())
                 .build()
         );
@@ -38,14 +41,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex,
                                                                    HttpServletRequest request) {
-
-        // Extract field validation errors
         List<FieldError> fieldErrors = ex.getBindingResult().getFieldErrors()
                 .stream()
                 .map(error -> new FieldError(error.getField(), error.getDefaultMessage()))
                 .toList();
 
-        // Build API error response with field-level details
         var errorResponse = ErrorResponse.of(ErrorDetail.builder()
                 .code(ErrorCode.VALIDATION_FAILED)
                 .path(request.getRequestURI())
@@ -58,7 +58,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataAccessException.class)
     public ResponseEntity<ErrorResponse> handleDataAccess(DataAccessException ex,
                                                           HttpServletRequest request) {
-
         String rootCause = ex.getMostSpecificCause().getMessage();
         log.error("Data access failure at {}: {}", request.getRequestURI(), rootCause, ex);
 
@@ -75,7 +74,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex,
                                                           HttpServletRequest request) {
-
         log.error("Unhandled exception at {}", request.getRequestURI(), ex);
 
         var response = ErrorResponse.of(ErrorDetail.builder()

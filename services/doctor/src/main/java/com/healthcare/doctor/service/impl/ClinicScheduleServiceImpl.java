@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,12 +48,23 @@ public class ClinicScheduleServiceImpl implements ClinicScheduleService {
         Doctor doctor = doctorService.findByUserId(userId);
         Clinic clinic = findClinicOwnedByDoctor(clinicId, doctor.getId());
 
-        log.info("Processing schedule update. doctorId: {}, clinicId: {}, incomingDays: {}",
-                userId, clinicId, request.schedules().stream()
+        // Resolve date window — defaults handled here so service logic is explicit
+        LocalDate startDate = request.startDate() != null ? request.startDate() : LocalDate.now();
+        LocalDate endDate = request.endDate() != null ? request.endDate() : startDate.plusDays(30);
+
+        // Guard: endDate must not be before startDate
+        if (endDate.isBefore(startDate)) {
+            throw new ClinicException(ErrorCode.INVALID_SCHEDULE_DATE_RANGE,
+                    "End date must be on or after start date");
+        }
+
+        log.info("Processing schedule update. doctorId={}, clinicId={}, window=[{} → {}], incomingDays={}",
+                doctor.getId(), clinicId, startDate, endDate,
+                request.schedules().stream()
                         .map(s -> s.dayOfWeek().name())
                         .collect(Collectors.joining(", ")));
 
-        // Load existing schedules as a map keyed by DayOfWeek for O(1) lookup
+        // Load existing schedules keyed by DayOfWeek for O(1) lookup
         Map<DayOfWeek, ClinicSchedule> existingByDay = scheduleRepository
                 .findByClinicId(clinicId)
                 .stream()
@@ -69,8 +81,8 @@ public class ClinicScheduleServiceImpl implements ClinicScheduleService {
             ClinicSchedule existing = existingByDay.get(day);
 
             if (existing == null) {
-                // Case 1: New day - insert and generate slots
-                log.info("New schedule day detected — day: {}, clinicId: {}", day, clinicId);
+                // Case 1: New day — insert and queue for slot generation
+                log.info("New schedule day detected. day={}, clinicId={}", day, clinicId);
                 ClinicSchedule newSchedule = ClinicSchedule.builder()
                         .clinic(clinic)
                         .dayOfWeek(day)
@@ -82,160 +94,133 @@ public class ClinicScheduleServiceImpl implements ClinicScheduleService {
                 daysToGenerate.add(toScheduleEntry(newSchedule));
 
             } else if (isTimeWindowChanged(existing, newStart, newEnd)) {
-                // Case 2: Day exists but time changed — update + cancel old AVAILABLE
-                // slots + regenerate new slots
-                log.info("Schedule time changed — day: {}, clinicId: {}, old: {}–{}, new: {}–{}",
+                // Case 2: Day exists, time changed — update, cancel old AVAILABLE slots, regenerate
+                log.info("Schedule time changed. day={}, clinicId={}, old=[{} → {}], new=[{} → {}]",
                         day, clinicId, existing.getStartTime(), existing.getEndTime(), newStart, newEnd);
 
                 existing.setStartTime(newStart);
                 existing.setEndTime(newEnd);
                 savedSchedules.add(scheduleRepository.save(existing));
 
-                // Cancel AVAILABLE slots for this specific day before regenerating.
+                // Cancel AVAILABLE slots for this day before regenerating.
                 // LOCKED and BOOKED slots are deliberately preserved.
                 cancelAvailableSlotsForDay(clinicId, day);
 
                 daysToGenerate.add(toScheduleEntry(existing));
 
             } else {
-                // Case 3: Day exists, same time window — no action needed
-                log.debug("Schedule unchanged for day: {}, clinicId: {} — skipping", day, clinicId);
+                // Case 3: No change — nothing to do
+                log.debug("Schedule unchanged. day={}, clinicId={} — skipping", day, clinicId);
                 savedSchedules.add(existing);
             }
         }
 
-        // Trigger slot generation only for days that actually changed or were added.
-        // Sending only the affected days keeps the generation efficient.
+        // Only trigger generation for days that actually changed or were added
         if (!daysToGenerate.isEmpty()) {
-            triggerSlotGeneration(doctor.getUserId(), clinicId,
+            triggerSlotGeneration(
+                    doctor.getUserId(),
+                    clinicId,
                     clinic.getConsultationDurationMinutes(),
-                    daysToGenerate);
+                    daysToGenerate,
+                    startDate,
+                    endDate
+            );
         } else {
-            log.info("No schedule changes requiring slot generation — clinicId: {}", clinicId);
+            log.info("No schedule changes requiring slot generation. clinicId={}", clinicId);
         }
 
-        log.info("Schedule update complete — clinicId: {}, processedDays: {}", clinicId, savedSchedules.size());
+        log.info("Schedule update complete. clinicId={}, processedDays={}", clinicId, savedSchedules.size());
 
         return savedSchedules.stream()
                 .map(ClinicMapper::toScheduleResponse)
                 .toList();
     }
 
-    /**
-     * Delete a specific day from the schedule.
-     */
     @Override
     @Transactional
     public void deleteScheduleDay(String userId, String clinicId, DayOfWeek dayOfWeek) {
         Doctor doctor = doctorService.findByUserId(userId);
         findClinicOwnedByDoctor(clinicId, doctor.getId());
 
-        log.info("Deleting schedule day — doctorId: {}, clinicId: {}, day: {}",
-                doctor.getUserId(), clinicId, dayOfWeek);
+        log.info("Deleting schedule day. doctorId={}, clinicId={}, day={}", doctor.getUserId(), clinicId, dayOfWeek);
 
         ClinicSchedule schedule = scheduleRepository
                 .findByClinicIdAndDayOfWeek(clinicId, dayOfWeek)
                 .orElseThrow(() -> {
-                    log.warn("Schedule day not found — clinicId: {}, day: {}", clinicId, dayOfWeek);
+                    log.warn("Schedule day not found. clinicId={}, day={}", clinicId, dayOfWeek);
                     return new ClinicException(ErrorCode.CLINIC_SCHEDULE_NOT_FOUND,
                             "No schedule found for " + dayOfWeek + " at this clinic");
                 });
 
         scheduleRepository.delete(schedule);
-        log.info("Schedule row deleted — clinicId: {}, day: {}", clinicId, dayOfWeek);
+        log.info("Schedule row deleted. clinicId={}, day={}", clinicId, dayOfWeek);
 
         // Cancel all future AVAILABLE slots for this day.
         // LOCKED and BOOKED slots survive — patients in those states are unaffected.
         cancelAvailableSlotsForDay(clinicId, dayOfWeek);
 
-        log.info("Schedule day removal complete — clinicId: {}, day: {}", clinicId, dayOfWeek);
+        log.info("Schedule day removal complete. clinicId={}, day={}", clinicId, dayOfWeek);
     }
 
-    /**
-     * Get the entire schedule for a clinic.
-     *
-     * @param userId   the doctor's userId for whom to fetch the schedule
-     * @param clinicId the id of the clinic for which to fetch the schedule
-     * @return the list of schedule entries for the clinic
-     */
     @Override
     @Transactional(readOnly = true)
     public List<ClinicScheduleResponse> getSchedule(String userId, String clinicId) {
         Doctor doctor = doctorService.findByUserId(userId);
         findClinicOwnedByDoctor(clinicId, doctor.getId());
+
         return scheduleRepository.findByClinicId(clinicId)
                 .stream()
                 .map(ClinicMapper::toScheduleResponse)
                 .toList();
     }
 
-    /*
-     * Helper methods
-     */
+    // Private helpers
 
-    /**
-     * Check if the time window of an existing schedule has changed.
-     *
-     * @param existing the existing schedule
-     * @param newStart the new start time of the schedule
-     * @param newEnd   the new end time of the schedule
-     * @return true if the time window has changed, false otherwise
-     */
     private boolean isTimeWindowChanged(ClinicSchedule existing, LocalTime newStart, LocalTime newEnd) {
         return !existing.getStartTime().equals(newStart) || !existing.getEndTime().equals(newEnd);
     }
 
-    /**
-     * Calls the {@code appointment-service} to cancel all available slots for a specific day.
-     *
-     * @param clinicId  the id of the clinic for which to cancel available slots
-     * @param dayOfWeek the day for which to cancel available slots
-     */
     private void cancelAvailableSlotsForDay(String clinicId, DayOfWeek dayOfWeek) {
         try {
             appointmentServiceClient.cancelAvailableSlotsForDay(clinicId, dayOfWeek.name());
-            log.info("Available slots cancelled — clinicId: {}, day: {}", clinicId, dayOfWeek);
+            log.info("Available slots cancelled. clinicId={}, day={}", clinicId, dayOfWeek);
         } catch (Exception e) {
-            // Non-blocking — log and continue. Stale slots will not cause booking issues
-            // because slot generation is idempotent and the unique constraint prevents duplicates.
-            log.error("Failed to cancel available slots — clinicId: {}, day: {}. Error: {}",
+            // Non-blocking — stale slots are harmless; generation is idempotent
+            // and the unique constraint prevents duplicates on regeneration.
+            log.error("Failed to cancel available slots. clinicId={}, day={}, error={}",
                     clinicId, dayOfWeek, e.getMessage());
         }
     }
 
     /**
-     * Calls the {@code appointment-service} to generate appointment slots for the
-     * given schedule entries.
-     * Only called for days that were added or had their time window changed.
-     *
-     * @param doctorUserId    The id of the doctor for whom slots are being generated.
-     * @param clinicId        The id of the clinic where the slots will be created.
-     * @param durationMinutes The duration of each appointment slot in minutes.
-     * @param entries         A list of schedule entries specifying the days of the week and time ranges
-     *                        during which slots will be generated.
+     * Calls appointment-service to generate slots for the given schedule entries
+     * within the doctor-specified date window.
      */
-    private void triggerSlotGeneration(String doctorUserId, String clinicId,
+    private void triggerSlotGeneration(String doctorUserId,
+                                       String clinicId,
                                        int durationMinutes,
-                                       List<GenerateSlotsRequest.ScheduleEntry> entries) {
+                                       List<GenerateSlotsRequest.ScheduleEntry> entries,
+                                       LocalDate startDate,
+                                       LocalDate endDate) {
         try {
-            log.info("Triggering slot generation — clinicId: {}, days: {}",
-                    clinicId, entries.stream()
-                            .map(e -> e.dayOfWeek().name())
-                            .collect(Collectors.joining(", ")));
+            log.info("Triggering slot generation. clinicId={}, window=[{} → {}], days={}",
+                    clinicId, startDate, endDate,
+                    entries.stream().map(e -> e.dayOfWeek().name()).collect(Collectors.joining(", ")));
 
             appointmentServiceClient.generateSlots(GenerateSlotsRequest.builder()
                     .doctorId(doctorUserId)
                     .clinicId(clinicId)
                     .consultationDurationMinutes(durationMinutes)
                     .schedules(entries)
-                    .daysAhead(30)
+                    .startDate(startDate)
+                    .endDate(endDate)
                     .build()
             );
 
-            log.info("Slot generation triggered successfully — clinicId: {}", clinicId);
+            log.info("Slot generation triggered successfully. clinicId={}", clinicId);
 
         } catch (Exception e) {
-            log.error("Failed to trigger slot generation — clinicId: {}. Error: {}", clinicId, e.getMessage());
+            log.error("Failed to trigger slot generation. clinicId={}, error={}", clinicId, e.getMessage());
         }
     }
 

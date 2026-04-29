@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -22,12 +23,35 @@ public record GenerateSlotsRequest(
         @NotNull
         List<ScheduleEntry> schedules,
 
-        int daysAhead
+        /*
+         * Inclusive start date for slot generation.
+         * The service will not generate slots for dates before this date.
+         * This field is optional. If not provided, by default the today's date is used.
+         */
+        LocalDate startDate,
+
+        /*
+         * Inclusive end date for slot generation.
+         * The service will not generate slots for dates after this date.
+         * This field is optional. If not provided, by default the next 30 days are used.
+         */
+        LocalDate endDate
 
 ) {
     public GenerateSlotsRequest {
-        if (daysAhead == 0) {
-            daysAhead = 30;
+        LocalDate today = LocalDate.now();
+
+        if (startDate == null) {
+            startDate = today;
+        }
+
+        // Ensure start date is not in the past
+        if (startDate.isBefore(today)) {
+            startDate = today;
+        }
+
+        if (endDate == null) {
+            endDate = today.plusDays(30);
         }
     }
 

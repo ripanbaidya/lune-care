@@ -25,6 +25,7 @@ import com.healthcare.doctor.service.DoctorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -49,20 +50,14 @@ public class DoctorServiceImpl implements DoctorService {
 
     private final AuthServiceClient authServiceClient;
 
-    /**
-     * Onboarding Step 1: Create Doctor Profile
-     * Used by {@code auth-service} to create a new doctor profile.
-     *
-     * @param request the request object containing user details
-     */
     @Override
     @Transactional
     public void creteProfile(CreateDoctorProfileRequest request) {
         String userId = request.userId();
-        log.info("Creating doctor profile for userId: {}", userId);
+        log.info("Creating doctor profile. userId={}", userId);
 
         if (doctorRepository.existsByUserId(userId)) {
-            log.error("Doctor already exist with with the userId: {}", userId);
+            log.error("Doctor already exists. userId={}", userId);
             throw new DoctorException(ErrorCode.DOCTOR_ALREADY_EXISTS);
         }
 
@@ -72,41 +67,34 @@ public class DoctorServiceImpl implements DoctorService {
         doctor.setLastName(request.lastName());
         doctor.setPhoneNumber(request.phoneNumber());
 
-        // Create Doctor profile at the time of creating the Doctor
         DoctorProfile profile = new DoctorProfile();
         profile.setDoctor(doctor);
-
         doctor.setProfile(profile);
+
         doctorRepository.saveAndFlush(doctor);
-        log.debug("Doctor profile created successfully for userId: {}", doctor.getUserId());
+        log.debug("Doctor profile created. userId={}", userId);
     }
 
     @Override
     @Transactional(readOnly = true)
     public DoctorProfileResponse getProfile(String userId) {
-        log.debug("Fetching doctor profile for userId: {}", userId);
-
-        Doctor doctor = findByUserId(userId);
-        return DoctorMapper.toProfileResponse(doctor);
+        log.debug("Fetching doctor profile. userId={}", userId);
+        return DoctorMapper.toProfileResponse(findByUserId(userId));
     }
 
-    /**
-     * Onboarding Step 2: Profile Completion
-     */
     @Override
     @Transactional
     public DoctorProfileResponse completeOnboarding(String userId, OnboardingRequest request) {
-        log.info("Starting onboarding completion. userId={}, specialization={}", userId, request.specialization());
+        log.info("Completing onboarding. userId={}, specialization={}", userId, request.specialization());
 
         Doctor doctor = findByUserId(userId);
 
         if (doctor.getAccountStatus() == AccountStatus.ACTIVE) {
-            log.warn("Onboarding rejected: Already completed or Document Verified. userId={}", userId);
+            log.warn("Onboarding rejected — already completed. userId={}", userId);
             throw new DoctorException(ErrorCode.ONBOARDING_ALREADY_COMPLETED);
         }
 
         try {
-            // Update doctor profile
             DoctorProfile profile = doctor.getProfile();
             profile.setEmail(request.email());
             profile.setGender(request.gender());
@@ -117,25 +105,21 @@ public class DoctorServiceImpl implements DoctorService {
             profile.setBio(request.bio());
             profile.setLanguagesSpoken(request.languagesSpoken());
 
-            // Note: We are making the profile active immediately after profile details are submitted.
-            // We are not waiting for Document Verification. But the frontend will have the complete flow
-            // TODO: Remove this auto-activation and implement full verification flow for production. Just Uncomment the below line
-            // doctor.setAccountStatus(AccountStatus.PENDING_VERIFICATION);
-
+            // NOTE: Auto-activating for dev. For production, set PENDING_VERIFICATION
+            // and await admin approval before setting ACTIVE.
+            // TODO: Remove auto-activation — set AccountStatus.PENDING_VERIFICATION instead.
             doctor.setAccountStatus(AccountStatus.ACTIVE);
             doctor.setOnboardingCompleted(true);
 
             doctorRepository.save(doctor);
-            log.debug("Local doctor profile updated and marked as complete. userId={}", userId);
 
             syncStatusWithAuthService(userId, AccountStatus.ACTIVE);
-            log.debug("[DEV-MODE] Onboarding step completed. Doctor account auto-activated for development. userId={}, doctorId={}",
-                    userId, doctor.getId());
+            log.info("[DEV] Doctor auto-activated after onboarding. userId={}", userId);
 
             return DoctorMapper.toProfileResponse(doctor);
 
         } catch (Exception e) {
-            log.error("Onboarding failed for userId={}. Reason: {}", userId, e.getMessage(), e);
+            log.error("Onboarding failed. userId={}, error={}", userId, e.getMessage(), e);
             throw e;
         }
     }
@@ -143,7 +127,7 @@ public class DoctorServiceImpl implements DoctorService {
     @Override
     @Transactional
     public DoctorProfileResponse updateProfile(String userId, UpdateDoctorProfileRequest request) {
-        log.debug("Update profile request received. userId={}", userId);
+        log.debug("Updating profile. userId={}", userId);
 
         Doctor doctor = findByUserId(userId);
         DoctorProfile profile = doctor.getProfile();
@@ -156,23 +140,19 @@ public class DoctorServiceImpl implements DoctorService {
             if (request.gender() != null) profile.setGender(request.gender());
             if (request.dateOfBirth() != null) profile.setDateOfBirth(request.dateOfBirth());
             if (request.specialization() != null) profile.setSpecialization(request.specialization());
-
             if (StringUtils.hasText(request.qualification())) profile.setQualification(request.qualification());
             if (request.yearsOfExperience() != null) profile.setYearsOfExperience(request.yearsOfExperience());
             if (StringUtils.hasText(request.bio())) profile.setBio(request.bio());
-
             if (request.languagesSpoken() != null && !request.languagesSpoken().isEmpty())
                 profile.setLanguagesSpoken(request.languagesSpoken());
 
-            // Since you rely on Cascading, this save triggers a multi-table update
             doctorRepository.save(doctor);
 
-            log.info("Doctor profile updated successfully. userId={}, doctorId={}", userId, doctor.getId());
-
+            log.info("Doctor profile updated. userId={}, doctorId={}", userId, doctor.getId());
             return DoctorMapper.toProfileResponse(doctor);
 
         } catch (Exception e) {
-            log.error("Failed to update doctor profile. userId={}, error={}", userId, e.getMessage(), e);
+            log.error("Profile update failed. userId={}, error={}", userId, e.getMessage(), e);
             throw e;
         }
     }
@@ -180,33 +160,25 @@ public class DoctorServiceImpl implements DoctorService {
     @Override
     @Transactional
     public DoctorProfileResponse uploadProfilePhoto(String userId, MultipartFile file) {
-        log.debug("Starting profile photo upload. userId={}, fileName={}, size={} bytes, type={}",
-                userId, file.getOriginalFilename(), file.getSize(), file.getContentType());
+        log.debug("Uploading profile photo. userId={}, size={} bytes", userId, file.getSize());
 
         Doctor doctor = findByUserId(userId);
         long startTime = System.currentTimeMillis();
 
         try {
-            log.debug("Calling Cloudinary for patientId={}", doctor.getId());
             Map<String, String> cloudinaryResponse = cloudinaryService.uploadPhoto(doctor.getId(), file);
-
-            long duration = System.currentTimeMillis() - startTime;
-
-            // Capture the URL and PublicID returned to ensure the handshake worked
-            log.info("Photo uploaded to Cloudinary. userId={}, publicId={}, duration={}ms",
-                    userId, cloudinaryResponse.get("public_id"), duration);
 
             doctor.setProfilePhotoUrl(cloudinaryResponse.get("url"));
             doctor.setCloudinaryPublicId(cloudinaryResponse.get("public_id"));
-
             doctorRepository.save(doctor);
 
-            log.debug("Database updated with new photo URL. userId={}", userId);
+            log.info("Profile photo uploaded. userId={}, publicId={}, duration={}ms",
+                    userId, cloudinaryResponse.get("public_id"), System.currentTimeMillis() - startTime);
 
             return DoctorMapper.toProfileResponse(doctor);
 
         } catch (Exception e) {
-            log.error("Failed doctor photo upload. userId={}, error={}", userId, e.getMessage(), e);
+            log.error("Photo upload failed. userId={}, error={}", userId, e.getMessage(), e);
             throw e;
         }
     }
@@ -214,40 +186,46 @@ public class DoctorServiceImpl implements DoctorService {
     @Override
     @Transactional
     public DoctorProfileResponse removeProfilePhoto(String userId) {
-        log.info("Request to remove doctor profile photo. userId={}", userId);
+        log.info("Removing profile photo. userId={}", userId);
 
         Doctor doctor = findByUserId(userId);
         String publicId = doctor.getCloudinaryPublicId();
 
         if (publicId == null) {
-            log.warn("Photo removal skipped: No photo exists for doctor. userId={}", userId);
+            log.warn("Photo removal skipped — no photo exists. userId={}", userId);
             throw new DoctorException(ErrorCode.DOCTOR_PROFILE_PHOTO_NOT_FOUND);
         }
 
         try {
-            log.debug("Deleting photo from Cloudinary. publicId={}", publicId);
             cloudinaryService.deletePhoto(publicId);
-
             doctor.setProfilePhotoUrl(null);
             doctor.setCloudinaryPublicId(null);
             doctorRepository.save(doctor);
 
-            log.info("Doctor profile photo removed successfully. userId={}, deletedPublicId={}", userId, publicId);
+            log.info("Profile photo removed. userId={}, deletedPublicId={}", userId, publicId);
             return DoctorMapper.toProfileResponse(doctor);
 
         } catch (Exception e) {
-            log.error("Failed to delete doctor photo from cloud. userId={}, publicId={}, error={}",
-                    userId, publicId, e.getMessage(), e);
+            log.error("Photo deletion failed. userId={}, publicId={}, error={}", userId, publicId, e.getMessage(), e);
             throw new CloudinaryException(ErrorCode.PHOTO_DELETION_FAILED);
         }
     }
 
+    /**
+     * Searches for doctors matching the given filters.
+     * <p><b>Clinic filter behaviour:</b> When {@code city} or {@code maxFees} are provided,
+     * doctors who have no clinics matching those filters are excluded from the results.
+     * Because the primary query paginates on the doctor table and the clinic filter is applied
+     * in-memory afterwards, the returned page may contain fewer items than the requested
+     * {@code size}. This is a known trade-off documented in the TODO — a proper fix requires
+     * a JOIN in {@code DoctorRepository.search()} to push the clinic filter into SQL.
+     */
     @Override
     @Transactional(readOnly = true)
     public Page<DoctorPublicResponse> search(String name, String specialization,
                                              String city, BigDecimal maxFees,
                                              int page, int size) {
-        log.info("Doctor search initiated. name={}, spec={}, city={}, maxFees={}, page={}, size={}",
+        log.info("Doctor search. name={}, spec={}, city={}, maxFees={}, page={}, size={}",
                 name, specialization, city, maxFees, page, size);
 
         Specialization spec = null;
@@ -255,7 +233,7 @@ public class DoctorServiceImpl implements DoctorService {
             try {
                 spec = Specialization.valueOf(specialization.toUpperCase());
             } catch (IllegalArgumentException e) {
-                log.warn("Invalid specialization provided: {}. Ignoring filter.", specialization);
+                log.warn("Invalid specialization ignored. value={}", specialization);
             }
         }
 
@@ -269,37 +247,38 @@ public class DoctorServiceImpl implements DoctorService {
         try {
             Page<Doctor> doctorPage = doctorRepository.search(nameParam, spec, pageable);
             if (doctorPage.isEmpty()) {
-                log.debug("No doctors found matching primary criteria. Returning empty page.");
-                return Page.empty();
+                log.debug("No doctors found for primary criteria — returning empty page.");
+                return Page.empty(pageable);
             }
 
             List<String> doctorIds = doctorPage.getContent().stream().map(Doctor::getId).toList();
 
-            log.debug("Fetching clinics for {} doctors. city={}, maxFees={}", doctorIds.size(), cityParam, maxFees);
             List<Clinic> clinics = clinicRepository.findByDoctorIdsAndFilters(doctorIds, cityParam, maxFees);
-
             Map<String, List<Clinic>> clinicsByDoctorId = clinics.stream()
                     .collect(Collectors.groupingBy(c -> c.getDoctor().getId()));
 
-            Page<DoctorPublicResponse> responsePage = doctorPage.map(doctor -> {
-                List<Clinic> doctorClinics = clinicsByDoctorId.getOrDefault(doctor.getId(), List.of());
+            // Build response list — exclude doctors whose clinics don't satisfy the filter.
+            // We never insert null; doctors with no matching clinics are simply omitted.
+            List<DoctorPublicResponse> responses = doctorPage.getContent().stream()
+                    .map(doctor -> {
+                        List<Clinic> doctorClinics = clinicsByDoctorId.getOrDefault(doctor.getId(), List.of());
+                        if (hasClinicFilter && doctorClinics.isEmpty()) {
+                            return null; // will be filtered below
+                        }
+                        return DoctorMapper.toPublicResponse(doctor, doctorClinics);
+                    })
+                    .filter(response -> response != null)
+                    .toList();
 
-                // Note: If hasClinicFilter is true, the doctorRepository.search()
-                // should ideally handle the Join to avoid pagination issues.
-                if (hasClinicFilter && doctorClinics.isEmpty()) {
-                    return null;
-                }
-                return DoctorMapper.toPublicResponse(doctor, doctorClinics);
-            });
+            log.info("Search complete. matchedDoctors={}, totalInPage={}, duration={}ms",
+                    responses.size(), doctorPage.getTotalElements(), System.currentTimeMillis() - startTime);
 
-            long duration = System.currentTimeMillis() - startTime;
-            log.info("Search completed. resultsOnPage={}, totalResults={}, duration={}ms",
-                    responsePage.getNumberOfElements(), responsePage.getTotalElements(), duration);
-
-            return responsePage;
+            // Wrap in PageImpl so the caller still gets pagination metadata.
+            // totalElements is from the DB query; in-memory filtering may reduce content size.
+            return new PageImpl<>(responses, pageable, doctorPage.getTotalElements());
 
         } catch (Exception e) {
-            log.error("Search failed. Criteria: name={}, city={}, error={}", name, city, e.getMessage(), e);
+            log.error("Search failed. name={}, city={}, error={}", name, city, e.getMessage(), e);
             throw e;
         }
     }
@@ -307,33 +286,28 @@ public class DoctorServiceImpl implements DoctorService {
     @Override
     @Transactional(readOnly = true)
     public DoctorPublicResponse getPublicProfile(String doctorId) {
-        log.debug("Fetching public profile for doctorId: {}", doctorId);
+        log.debug("Fetching public profile. doctorId={}", doctorId);
 
         long startTime = System.currentTimeMillis();
 
         try {
-            // Fetch doctor or throw error if missing
             Doctor doctor = doctorRepository.findById(doctorId)
                     .orElseThrow(() -> {
-                        log.warn("Public profile lookup failed: Doctor not found. doctorId={}", doctorId);
+                        log.warn("Public profile not found. doctorId={}", doctorId);
                         return new DoctorException(ErrorCode.DOCTOR_NOT_FOUND);
                     });
 
-            // Fetch associated clinics
             List<Clinic> clinics = clinicRepository.findByDoctorIdAndActiveTrue(doctor.getId());
 
-            long duration = System.currentTimeMillis() - startTime;
-
             log.info("Public profile retrieved. doctorId={}, clinicCount={}, duration={}ms",
-                    doctorId, clinics.size(), duration);
+                    doctorId, clinics.size(), System.currentTimeMillis() - startTime);
 
             return DoctorMapper.toPublicResponse(doctor, clinics);
 
         } catch (DoctorException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Unexpected error retrieving public profile. doctorId={}, error={}",
-                    doctorId, e.getMessage(), e);
+            log.error("Failed to retrieve public profile. doctorId={}, error={}", doctorId, e.getMessage(), e);
             throw e;
         }
     }
@@ -347,7 +321,7 @@ public class DoctorServiceImpl implements DoctorService {
     @Override
     @Transactional(readOnly = true)
     public List<DoctorSummaryResponse> getDoctorsPendingVerification() {
-        log.debug("Fetching pending verification doctors");
+        log.debug("Fetching pending-verification doctors");
         return doctorRepository.findByAccountStatus(AccountStatus.PENDING_VERIFICATION)
                 .stream()
                 .map(DoctorMapper::toSummaryResponse)
@@ -357,43 +331,37 @@ public class DoctorServiceImpl implements DoctorService {
     @Override
     @Transactional
     public void updateVerificationStatus(String doctorId, UpdateVerificationStatusRequest request) {
-        final boolean approved = request.approved();
-        final String action = approved ? "APPROVED" : "REJECTED";
+        boolean approved = request.approved();
+        String action    = approved ? "APPROVED" : "REJECTED";
 
-        log.info("Doctor verification request received: doctorId={}, action={}", doctorId, action);
+        log.info("Verification status update. doctorId={}, action={}", doctorId, action);
 
         Doctor doctor = doctorRepository.findById(doctorId)
                 .orElseThrow(() -> new DoctorException(ErrorCode.DOCTOR_NOT_FOUND));
 
         AccountStatus previousStatus = doctor.getAccountStatus();
-        AccountStatus newStatus = approved
-                ? AccountStatus.ACTIVE
-                : AccountStatus.ONBOARDING;
+        AccountStatus newStatus = approved ? AccountStatus.ACTIVE : AccountStatus.ONBOARDING;
 
-        // Updating the Onboarding Complete Status, If Admin Rejects the document, then Doctor can
-        // start from Step 2 also
         doctor.setOnboardingCompleted(approved);
-
-        // Update doctor state
         doctor.setDocumentVerified(approved);
         doctor.setAccountStatus(newStatus);
         doctorRepository.save(doctor);
 
         syncStatusWithAuthService(doctor.getUserId(), newStatus);
 
-        log.info("Doctor verification processed: doctorId={}, action={}, previousStatus={}, newStatus={}, documentVerified={}",
+        log.info("Verification processed. doctorId={}, action={}, {} → {}, documentVerified={}",
                 doctorId, action, previousStatus, newStatus, approved);
     }
 
+    // Private helpers
+
     private void syncStatusWithAuthService(String userId, AccountStatus newStatus) {
         try {
-            log.debug("Synchronizing account status with auth-service. userId={}, status={}", userId, newStatus);
-            var updateRequest = new UpdateAccountStatusRequest(userId, newStatus);
-            authServiceClient.updateStatus(updateRequest);
-            log.info("Auth-service status synchronized. userId={}, status={}", userId, newStatus);
+            log.debug("Syncing account status with auth-service. userId={}, status={}", userId, newStatus);
+            authServiceClient.updateStatus(new UpdateAccountStatusRequest(userId, newStatus));
+            log.info("Auth-service sync successful. userId={}, status={}", userId, newStatus);
         } catch (Exception e) {
-            log.error("Auth-service status sync failed. userId={}, status={}, error={}",
-                    userId, newStatus, e.getMessage());
+            log.error("Auth-service sync failed. userId={}, status={}, error={}", userId, newStatus, e.getMessage());
             throw new DoctorException(ErrorCode.REMOTE_SERVICE_FAILURE);
         }
     }

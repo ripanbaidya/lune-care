@@ -1,6 +1,6 @@
 ## TODO
 
-### 1. Appointment Service
+### 1. Appointment Service == Done
 
 * Currently, slots are automatically generated for the next 30 days based on the provided schedule. This behavior is causing issues.
 * Introduce additional fields such as `start_date` and `end_date` from when till when slot has to generate in appointment-service to

@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -24,14 +25,11 @@ public record GenerateSlotsRequest(
         @NotNull
         List<ScheduleEntry> schedules,
 
-        int daysAhead
+        LocalDate startDate,
+
+        LocalDate endDate
 
 ) {
-    public GenerateSlotsRequest {
-        if (daysAhead == 0) {
-            daysAhead = 30;
-        }
-    }
 
     @Builder
     public record ScheduleEntry(
