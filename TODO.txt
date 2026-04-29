@@ -1,0 +1,33 @@
+TODO
+=====
+
+1. appointment-service
+
+=> slot is generated for the next 30 days by default based on provided information, but that is creating a bug.
+make sure to add additional fields like - start_date and end_date to generate slots for the schedule.
+
+2. Set up spring boot profile wrt each service
+
+=> Create application-*.yml for prod and dev profiles.
+    1. Keep them to the specific service while separating the config.
+    2. Once everything is working, push then to the git config-server and make it available to all the services.
+Verify the config-server is working and fetching the config at runtime.
+
+Add Spring Cloud Bus support for all the services along with the config-server so the we can have runtime config updates
+with /busrefresh endpoint.
+
+3. Write proper swagger documentation for all the services.
+
+4. Implement the Ressilience4j support for all the services and make sure to use the circuit breaker pattern and
+other resilience patterns wherever required wrt the services.
+
+5. Implement Redis Rate Limiter and Correlation ID support for all the services.
+
+6. Dockerize all the services and push them to docker hub.
+    Write the docker-compose file for all the services so that we can run them in a single docker container.
+
+7. Implement the Frontend for the services. (end to end implementations)
+
+8. Implement the observability and monitoring for the serviceses using prometheus and grafana.
+
+9. Deploy the entire application to kubernetes cluster.
