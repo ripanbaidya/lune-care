@@ -18,7 +18,7 @@ public class RouteConfig {
                         .uri("lb://auth")
                 )
                 .route("auth-service-user", r -> r
-                        .path("/api/user/**")
+                        .path("/api/users/**")
                         .uri("lb://auth")
                 )
 
@@ -32,6 +32,34 @@ public class RouteConfig {
                 .route("doctor", r -> r
                         .path("/api/doctor/**")
                         .uri("lb://doctor")
+                )
+
+                // appointment-service
+                .route("appointment-service", r -> r
+                        .path("/api/appointment/**")
+                        .uri("lb://appointment")
+                )
+
+                // payment-service
+                .route("payment-service", r -> r
+                        .path("/api/payment/**")
+                        .uri("lb://payment")
+                )
+
+                // notification-service
+                .route("notification-service", r -> r
+                        .path("/api/notification/**")
+                        .uri("lb://notification")
+                )
+
+                .route("feedback-service", r -> r
+                        .path("/api/feedback/**")
+                        .uri("lb://feedback")
+                )
+
+                .route("admin-service", r -> r
+                        .path("/api/admin/**")
+                        .uri("lb://admin")
                 )
 
                 .build();

@@ -10,6 +10,7 @@ import reactor.core.publisher.Mono;
 public class TokenBlacklistService {
 
     private final ReactiveStringRedisTemplate redisTemplate;
+
     private static final String BLACKLIST_PREFIX = "blacklist:";
 
     /**

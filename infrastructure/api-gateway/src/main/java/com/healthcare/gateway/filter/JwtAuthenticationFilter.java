@@ -33,8 +33,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private final TokenBlacklistService blacklistService;
 
     private static final List<String> PUBLIC_PATHS = List.of(
-            "/api/auth/register/patient", "/api/auth/register/doctor",
-            "/api/auth/login", "/api/doctor/search", "/api/doctor/*/public",
+            "/api/auth/register/patient", "/api/auth/register/doctor", "/api/auth/refresh", "/api/auth/login",
+            "/api/doctor/search", "/api/doctor/*/public",
             "/actuator/health", "/actuator/info"
     );
 
@@ -53,10 +53,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
          */
         if (path.contains("/internal/")) {
             log.warn("Blocked external attempt to access internal path: {}", path);
-            return Mono.error(new AuthException(
-                    ErrorCode.ACCESS_DENIED,
-                    "Access to internal endpoints is not allowed"
-            ));
+            return Mono.error(new AuthException(ErrorCode.ACCESS_DENIED,
+                    "Access to internal endpoints is not allowed"));
         }
 
         // Allow public paths through without authentication
@@ -100,7 +98,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         // Check Redis blacklist — handles logged-out tokens
         return blacklistService.isBlacklisted(jti)
                 .flatMap(isBlacklisted -> {
-                    if (isBlacklisted) {
+                    if (Boolean.TRUE.equals(isBlacklisted)) {
                         log.warn("Blacklisted token used — jti: {}, path: {}", jti, path);
                         return Mono.error(new JwtAuthenticationException(
                                 ErrorCode.TOKEN_INVALID,
