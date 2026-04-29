@@ -1,13 +1,12 @@
 package com.healthcare.admin.exception.handler;
 
+import com.healthcare.admin.enums.ErrorCode;
+import com.healthcare.admin.exception.BaseException;
 import com.healthcare.admin.payload.dto.error.ErrorDetail;
 import com.healthcare.admin.payload.dto.error.ErrorResponse;
 import com.healthcare.admin.payload.dto.error.FieldError;
-import com.healthcare.admin.enums.ErrorCode;
-import com.healthcare.admin.exception.BaseException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -53,23 +52,6 @@ public class GlobalExceptionHandler {
                 .build());
 
         return ResponseEntity.badRequest().body(errorResponse);
-    }
-
-    @ExceptionHandler(DataAccessException.class)
-    public ResponseEntity<ErrorResponse> handleDataAccess(DataAccessException ex,
-                                                          HttpServletRequest request) {
-
-        String rootCause = ex.getMostSpecificCause().getMessage();
-        log.error("Data access failure at {}: {}", request.getRequestURI(), rootCause, ex);
-
-        var response = ErrorResponse.of(ErrorDetail.builder()
-                .code(ErrorCode.INTERNAL_ERROR)
-                .message(rootCause)
-                .path(request.getRequestURI())
-                .build()
-        );
-
-        return ResponseEntity.internalServerError().body(response);
     }
 
     @ExceptionHandler(Exception.class)

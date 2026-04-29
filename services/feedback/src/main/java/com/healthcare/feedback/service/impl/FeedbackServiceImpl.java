@@ -156,6 +156,7 @@ public class FeedbackServiceImpl implements FeedbackService {
      * Only the patient who submitted the feedback can update it.
      */
     @Override
+    @Transactional
     public FeedbackResponse updateFeedback(String feedbackId,
                                            String patientId,
                                            UpdateFeedbackRequest request) {
@@ -163,6 +164,7 @@ public class FeedbackServiceImpl implements FeedbackService {
 
         Feedback feedback = findOwnedFeedback(feedbackId, patientId);
 
+        // TODO: Rating is not updated to the DB
         // Update only if the field is non-null
         if (request.rating() != null) feedback.setRating(request.rating());
         if (StringUtils.hasText(request.comment())) feedback.setComment(request.comment());
@@ -180,6 +182,7 @@ public class FeedbackServiceImpl implements FeedbackService {
      * can re-submit feedback for the same appointment.
      */
     @Override
+    @Transactional
     public void deleteFeedback(String feedbackId, String patientId) {
         log.debug("Feedback delete request for patientId: {}, feedbackId: {}", patientId, feedbackId);
 

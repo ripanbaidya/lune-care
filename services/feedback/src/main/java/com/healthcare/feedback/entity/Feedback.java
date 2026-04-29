@@ -48,7 +48,7 @@ public class Feedback {
      * Rating between 1 and 5 inclusive.
      * Validated at the request layer via {@code @Min(1) @Max(5)}.
      */
-    private int rating;
+    private Double rating;
 
     /**
      * Optional free-text review.

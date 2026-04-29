@@ -10,7 +10,7 @@ public record FeedbackResponse(
         String appointmentId,
         String doctorId,
         String patientId,
-        int rating,
+        double rating,
         String comment,
         Instant createdAt,
         Instant updatedAt

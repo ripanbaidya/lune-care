@@ -100,7 +100,7 @@ public class DoctorServiceImpl implements DoctorService {
 
         Doctor doctor = findByUserId(userId);
 
-        if (doctor.isOnboardingCompleted()) {
+        if (doctor.getAccountStatus() == AccountStatus.ACTIVE) {
             log.warn("Onboarding rejected: Already completed or Document Verified. userId={}", userId);
             throw new DoctorException(ErrorCode.ONBOARDING_ALREADY_COMPLETED);
         }
@@ -119,7 +119,9 @@ public class DoctorServiceImpl implements DoctorService {
 
             // Note: We are making the profile active immediately after profile details are submitted.
             // We are not waiting for Document Verification. But the frontend will have the complete flow
-            // TODO: Remove this auto-activation and implement full verification flow before production.
+            // TODO: Remove this auto-activation and implement full verification flow for production. Just Uncomment the below line
+            // doctor.setAccountStatus(AccountStatus.PENDING_VERIFICATION);
+
             doctor.setAccountStatus(AccountStatus.ACTIVE);
             doctor.setOnboardingCompleted(true);
 
@@ -366,15 +368,18 @@ public class DoctorServiceImpl implements DoctorService {
         AccountStatus previousStatus = doctor.getAccountStatus();
         AccountStatus newStatus = approved
                 ? AccountStatus.ACTIVE
-                : AccountStatus.PENDING_VERIFICATION;
+                : AccountStatus.ONBOARDING;
 
-        syncStatusWithAuthService(doctor.getUserId(), newStatus);
+        // Updating the Onboarding Complete Status, If Admin Rejects the document, then Doctor can
+        // start from Step 2 also
+        doctor.setOnboardingCompleted(approved);
 
         // Update doctor state
         doctor.setDocumentVerified(approved);
         doctor.setAccountStatus(newStatus);
-
         doctorRepository.save(doctor);
+
+        syncStatusWithAuthService(doctor.getUserId(), newStatus);
 
         log.info("Doctor verification processed: doctorId={}, action={}, previousStatus={}, newStatus={}, documentVerified={}",
                 doctorId, action, previousStatus, newStatus, approved);

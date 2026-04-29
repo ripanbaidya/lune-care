@@ -167,11 +167,13 @@ public class RazorpayPaymentGateway implements PaymentGateway {
         byte[] hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
 
         Formatter formatter = new Formatter();
-        for (byte b : hash) {
-            formatter.format("%02x", b);
+        try {
+            for (byte b : hash) {
+                formatter.format("%02x", b);
+            }
+            return formatter.toString();
+        } finally {
+            formatter.close();
         }
-
-        formatter.close();
-        return formatter.toString();
     }
 }
