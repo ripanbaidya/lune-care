@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stripe Test</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 2rem;
+            background: #f9f9f9;
+        }
+
+        input {
+            display: block;
+            width: 500px;
+            padding: 8px;
+            margin: 6px 0 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        button {
+            padding: 10px 24px;
+            background: #333;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+
+        label {
+            font-size: 13px;
+            color: #555;
+        }
+
+        pre {
+            background: #1a1a1a;
+            color: #7fff7f;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-top: 1.5rem;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            min-height: 80px;
+        }
+
+        pre.error {
+            color: #ff6b6b;
+        }
+
+        h2 {
+            font-size: 1rem;
+            margin-top: 1.5rem;
+            color: #333;
+        }
+
+        #card-element {
+            display: block;
+            width: 500px;
+            padding: 10px;
+            margin: 6px 0 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #fff;
+            box-sizing: border-box;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .note {
+            font-size: 12px;
+            color: #888;
+            margin-top: -10px;
+            margin-bottom: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<h1 style="font-size:1.2rem">Stripe Test Trigger</h1>
+
+<label>Stripe Publishable Key</label>
+<input id="pubKey" value="pk_test_51TRnmsLdP6hHddXZ6O7tYLXx9UHJH2vess2OTWDNRnSD73vO0wqAKgTzF4kHPaxvPCsqLC48MIcp1ut6dJmgptHm00fKxxfWs7"/>
+<p class="note">Get from Stripe Dashboard → Developers → API Keys</p>
+
+<label>Client Secret (from /api/payment/initiate → clientSecret)</label>
+<input id="clientSecret" placeholder="pi_xxx_secret_xxx"/>
+
+<label>Stripe PaymentIntent ID (from /api/payment/initiate → stripePaymentIntentId)</label>
+<input id="paymentIntentId" placeholder="pi_xxxxxxxxxx"/>
+
+<button onclick="initStripe()">Load Card Form</button>
+
+<div id="card-section" class="hidden" style="margin-top:1.5rem">
+    <label>Card Details (use test card: 4242 4242 4242 4242)</label>
+    <div id="card-element"></div>
+    <button id="pay-btn" onclick="pay()">Confirm Payment</button>
+</div>
+
+<h2>Step 3 — Copy these into Postman /api/payment/verify</h2>
+<pre id="output">Waiting for payment...</pre>
+
+<script>
+    let stripe, cardElement;
+
+    function initStripe() {
+        const pubKey = document.getElementById('pubKey').value.trim();
+        if (!pubKey || pubKey === 'pk_test_') {
+            alert('Enter your Stripe publishable key');
+            return;
+        }
+
+        stripe = Stripe(pubKey);
+        const elements = stripe.elements();
+
+        cardElement = elements.create('card');
+        cardElement.mount('#card-element');
+
+        document.getElementById('card-section').classList.remove('hidden');
+        document.getElementById('output').textContent = 'Card form loaded. Fill details and click Confirm Payment.';
+    }
+
+    async function pay() {
+        const clientSecret = document.getElementById('clientSecret').value.trim();
+        const paymentIntentId = document.getElementById('paymentIntentId').value.trim();
+
+        if (!clientSecret) {
+            alert('Enter the clientSecret from /api/payment/initiate response');
+            return;
+        }
+
+        const btn = document.getElementById('pay-btn');
+        btn.disabled = true;
+        btn.textContent = 'Processing...';
+        document.getElementById('output').textContent = 'Confirming payment with Stripe...';
+        document.getElementById('output').className = '';
+
+        const {paymentIntent, error} = await stripe.confirmCardPayment(clientSecret, {
+            payment_method: {card: cardElement}
+        });
+
+        btn.disabled = false;
+        btn.textContent = 'Confirm Payment';
+
+        if (error) {
+            document.getElementById('output').textContent = 'ERROR: ' + error.message;
+            document.getElementById('output').className = 'error';
+            return;
+        }
+
+        if (paymentIntent.status === 'succeeded') {
+            document.getElementById('output').textContent =
+                `stripePaymentIntentId : ${paymentIntent.id}
+status                : ${paymentIntent.status}
+
+--- POST /api/payment/verify body ---
+{
+  "appointmentId"        : "<your appointmentId>",
+  "stripePaymentIntentId": "${paymentIntent.id}"
+}`;
+        } else {
+            document.getElementById('output').textContent =
+                `Unexpected status: ${paymentIntent.status}\nPaymentIntent ID: ${paymentIntent.id}`;
+            document.getElementById('output').className = 'error';
+        }
+    }
+</script>
+</body>
+</html>
