@@ -20,6 +20,7 @@
         <spring-cloud.version>2024.0.1</spring-cloud.version>
         <springdoc.version>2.8.14</springdoc.version>
         <razorpay.version>1.4.5</razorpay.version>
+        <stripe.version>24.3.0</stripe.version>
     </properties>
 
     <dependencies>
@@ -80,6 +81,11 @@
             <groupId>com.razorpay</groupId>
             <artifactId>razorpay-java</artifactId>
             <version>${razorpay.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.stripe</groupId>
+            <artifactId>stripe-java</artifactId>
+            <version>${stripe.version}</version>
         </dependency>
 
         <dependency>

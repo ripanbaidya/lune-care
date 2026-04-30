@@ -17,11 +17,14 @@ public enum ErrorCode {
     REFUND_NOT_APPLICABLE(ErrorType.BUSINESS, "Refund is not applicable for this payment"),
     REFUND_FAILED(ErrorType.INTERNAL, "Refund processing failed"),
     RAZORPAY_ORDER_CREATION_FAILED(ErrorType.INTERNAL, "Failed to create Razorpay order"),
+    GATEWAY_NOT_AVAILABLE(ErrorType.SERVICE_UNAVAILABLE, "The selected payment gateway is not configured or disabled"),
+    STRIPE_ORDER_CREATION_FAILED(ErrorType.INTERNAL, "Failed to create Stripe payment intent"),
 
     // General
     VALIDATION_FAILED(ErrorType.VALIDATION, "One or more request fields are invalid"),
     INTERNAL_ERROR(ErrorType.INTERNAL, "An unexpected internal server error occurred"),
-    SERVICE_UNAVAILABLE(ErrorType.SERVICE_UNAVAILABLE, "The service is temporarily unavailable. Please try again later");
+
+    ;
 
     private final ErrorType type;
     private final String defaultMessage;

@@ -1,18 +1,36 @@
 package com.healthcare.payment.gateway;
 
 
+import com.healthcare.payment.enums.PaymentGatewayType;
+
 import java.math.BigDecimal;
 
-// Strategy interface — Razorpay implements this now, Stripe will implement it later.
-// PaymentServiceImpl depends only on this interface, never on a concrete class.
 public interface PaymentGateway {
 
-    // Creates a payment order and returns the gateway's order ID
-    String createOrder(String appointmentId, BigDecimal amount, String currency);
+    /**
+     * Used by the registry to build the gateway map
+     */
+    PaymentGatewayType getType();
 
-    // Verifies the payment signature — returns true if genuine
-    boolean verifyPayment(String orderId, String paymentId, String signature);
+    /**
+     * Creates a payment order / payment intent on the gateway.
+     *
+     * @return {@link OrderResult} containing the gateway order ID and optional client secret
+     */
+    OrderResult createOrder(String appointmentId, BigDecimal amount, String currency);
 
-    // Initiates a full refund and returns the refund ID
-    String refund(String paymentId, BigDecimal amount);
+    /**
+     * Verifies that a payment was genuinely completed.
+     * <br>Razorpay: HMAC-SHA256 signature check (orderId | paymentId, secret)
+     * <br>Stripe: Retrieves PaymentIntent from Stripe API and checks status == "succeeded"
+     * (gatewayPaymentId and signature are unused for Stripe — pass null)
+     */
+    boolean verifyPayment(String gatewayOrderId, String gatewayPaymentId, String signature);
+
+    /**
+     * Initiates a full refund and returns the gateway refund ID.
+     * <br>Razorpay: refunds against {@code razorpayPaymentId}
+     * <br>Stripe: refunds against {@code stripePaymentIntentId}
+     */
+    String refund(String gatewayPaymentId, BigDecimal amount);
 }

@@ -2,7 +2,9 @@ package com.healthcare.payment.gateway.impl;
 
 import com.healthcare.payment.config.properties.RazorpayProperties;
 import com.healthcare.payment.enums.ErrorCode;
+import com.healthcare.payment.enums.PaymentGatewayType;
 import com.healthcare.payment.exception.PaymentException;
+import com.healthcare.payment.gateway.OrderResult;
 import com.healthcare.payment.gateway.PaymentGateway;
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
@@ -11,6 +13,7 @@ import com.razorpay.Refund;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Mac;
@@ -24,40 +27,32 @@ import java.util.Formatter;
 
 @Slf4j
 @Component
+@ConditionalOnBean(RazorpayClient.class)
 @RequiredArgsConstructor
 public class RazorpayPaymentGateway implements PaymentGateway {
 
     private static final String HMAC_SHA256_ALGORITHM = "HmacSHA256";
-    private static final String PAISE_MULTIPLIER_KEY = "amount";
     private static final int PAISE_MULTIPLIER = 100;
 
     private final RazorpayClient razorpayClient;
     private final RazorpayProperties properties;
 
-    /**
-     * Creates a Razorpay order and returns the gateway order ID.
-     * <p>Amount is converted from rupees to paise (₹500 → 50000) because Razorpay
-     * requires the smallest currency unit.
-     *
-     * @param appointmentId internal reference, used as the receipt (max 40 chars)
-     * @param amount        amount in rupees
-     * @param currency      ISO 4217 currency code (e.g. "INR")
-     * @return Razorpay order ID
-     * @throws PaymentException if Razorpay order creation fails
-     */
     @Override
-    public String createOrder(String appointmentId, BigDecimal amount, String currency) {
+    public PaymentGatewayType getType() {
+        return PaymentGatewayType.RAZORPAY;
+    }
+
+    @Override
+    public OrderResult createOrder(String appointmentId, BigDecimal amount, String currency) {
         log.debug("Creating Razorpay order — appointmentId: {}, amount: {} {}",
                 appointmentId, amount, currency);
 
         try {
             JSONObject orderRequest = new JSONObject();
-            orderRequest.put(PAISE_MULTIPLIER_KEY, toPaise(amount));
+            orderRequest.put("amount", toPaise(amount));
             orderRequest.put("currency", currency);
-
-            // Receipt is Razorpay's internal reference — max 40 chars
             orderRequest.put("receipt", "appt_" + appointmentId.substring(0, 8));
-            orderRequest.put("payment_capture", 1); // auto-capture
+            orderRequest.put("payment_capture", 1);
 
             Order order = razorpayClient.orders.create(orderRequest);
             String orderId = order.get("id");
@@ -65,7 +60,8 @@ public class RazorpayPaymentGateway implements PaymentGateway {
             log.info("Razorpay order created — orderId: {}, appointmentId: {}, amount: {} {}",
                     orderId, appointmentId, amount, currency);
 
-            return orderId;
+            // Razorpay has no client secret — use the factory method
+            return OrderResult.of(orderId);
 
         } catch (RazorpayException e) {
             log.error("Razorpay order creation failed — appointmentId: {}, error: {}",
@@ -75,76 +71,61 @@ public class RazorpayPaymentGateway implements PaymentGateway {
         }
     }
 
-    /**
-     * Verifies the Razorpay payment signature using HMAC-SHA256.
-     * <p>Signature = HMAC-SHA256({orderId}|{paymentId}, keySecret).
-     * This ensures the callback came from Razorpay and was not tampered with.
-     *
-     * @return {@code true} if the signature is valid, {@code false} otherwise
-     */
     @Override
-    public boolean verifyPayment(String orderId, String paymentId, String signature) {
-        log.debug("Verifying payment signature — orderId: {}, paymentId: {}",
-                orderId, paymentId);
+    public boolean verifyPayment(String gatewayOrderId, String gatewayPaymentId, String signature) {
+        log.debug("Verifying Razorpay signature — orderId: {}, paymentId: {}",
+                gatewayOrderId, gatewayPaymentId);
 
         try {
-            String payload = orderId + "|" + paymentId;
+            String payload = gatewayOrderId + "|" + gatewayPaymentId;
             String generatedSignature = hmacSha256(payload, properties.keySecret());
             boolean valid = generatedSignature.equals(signature);
 
             if (valid) {
-                log.debug("Signature verification passed — orderId: {}", orderId);
+                log.debug("Razorpay signature verification passed — orderId: {}", gatewayOrderId);
             } else {
-                log.warn("Signature verification failed — orderId: {}, paymentId: {}", orderId, paymentId);
+                log.warn("Razorpay signature verification failed — orderId: {}, paymentId: {}",
+                        gatewayOrderId, gatewayPaymentId);
             }
 
             return valid;
 
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
-            log.error("Signature computation error — orderId: {}, error: {}", orderId, e.getMessage());
+            log.error("Razorpay signature computation error — orderId: {}, error: {}",
+                    gatewayOrderId, e.getMessage());
             return false;
         }
     }
 
-    /**
-     * Initiates a full refund via Razorpay and returns the refund ID.
-     *
-     * @param paymentId Razorpay payment ID to refund
-     * @param amount    amount to refund in rupees
-     * @return Razorpay refund ID
-     * @throws PaymentException if the refund API call fails
-     */
     @Override
-    public String refund(String paymentId, BigDecimal amount) {
-        log.debug("Initiating Razorpay refund — paymentId: {}, amount: {}", paymentId, amount);
+    public String refund(String gatewayPaymentId, BigDecimal amount) {
+        log.debug("Initiating Razorpay refund — paymentId: {}, amount: {}", gatewayPaymentId, amount);
 
         try {
             JSONObject refundRequest = new JSONObject();
-            refundRequest.put(PAISE_MULTIPLIER_KEY, toPaise(amount));
-            refundRequest.put("speed", "normal"); // normal = 5–7 days; optimum = instant
+            refundRequest.put("amount", toPaise(amount));
+            refundRequest.put("speed", "normal");
 
-            Refund refund = razorpayClient.payments.refund(paymentId, refundRequest);
+            Refund refund = razorpayClient.payments.refund(gatewayPaymentId, refundRequest);
             String refundId = refund.get("id");
 
             log.info("Razorpay refund initiated — refundId: {}, paymentId: {}, amount: {}",
-                    refundId, paymentId, amount);
+                    refundId, gatewayPaymentId, amount);
 
             return refundId;
 
         } catch (RazorpayException e) {
             log.error("Razorpay refund failed — paymentId: {}, amount: {}, error: {}",
-                    paymentId, amount, e.getMessage());
+                    gatewayPaymentId, amount, e.getMessage());
             throw new PaymentException(ErrorCode.REFUND_FAILED,
                     "Refund processing failed: " + e.getMessage());
         }
     }
 
-    /*
-     * Helpers
-     */
+    // Helper methods
 
     /**
-     * Converts rupees to paisee (Smallest INR unit requried by Razorpay)
+     * Converts amount in rupees to paise.
      */
     private int toPaise(BigDecimal amountInRupees) {
         return amountInRupees
@@ -154,8 +135,7 @@ public class RazorpayPaymentGateway implements PaymentGateway {
     }
 
     /**
-     * Computes HMAC-SHA256 of {@code data} using {@code secret} and returns
-     * the result as a lowercase hex string.
+     * Computes HMAC-SHA256 signature.
      */
     private String hmacSha256(String data, String secret)
             throws NoSuchAlgorithmException, InvalidKeyException {
@@ -168,9 +148,7 @@ public class RazorpayPaymentGateway implements PaymentGateway {
 
         Formatter formatter = new Formatter();
         try {
-            for (byte b : hash) {
-                formatter.format("%02x", b);
-            }
+            for (byte b : hash) formatter.format("%02x", b);
             return formatter.toString();
         } finally {
             formatter.close();

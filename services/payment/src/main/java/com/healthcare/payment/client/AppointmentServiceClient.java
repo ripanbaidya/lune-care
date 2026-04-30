@@ -21,4 +21,7 @@ public interface AppointmentServiceClient {
     // Confirm appointment after payment is verified
     @PostMapping("/confirm-payment")
     void confirmPayment(@RequestBody ConfirmPaymentRequest request);
+
+    @PostMapping("/{appointmentId}/release-slot")
+    void releaseSlotAfterRefund(@PathVariable String appointmentId);
 }

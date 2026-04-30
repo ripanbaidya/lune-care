@@ -30,7 +30,6 @@ public class PaymentRecord {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    // One appointment can only have one payment record
     @Column(name = "appointment_id", unique = true, nullable = false)
     private String appointmentId;
 
@@ -40,7 +39,6 @@ public class PaymentRecord {
     @Column(name = "doctor_id", nullable = false)
     private String doctorId;
 
-    // Amount in INR — never trusted from frontend, fetched from appointment-service
     @Column(name = "amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 
@@ -48,18 +46,32 @@ public class PaymentRecord {
     @Builder.Default
     private String currency = "INR";
 
-    // Razorpay order ID — created on initiate
+    // Razorpay fields
     @Column(name = "razorpay_order_id", unique = true)
     private String razorpayOrderId;
 
-    // Razorpay payment ID — set after successful verification
     @Column(name = "razorpay_payment_id")
     private String razorpayPaymentId;
 
-    // Razorpay refund ID — set after refund is processed
     @Column(name = "razorpay_refund_id")
     private String razorpayRefundId;
 
+    // Stripe fields
+    @Column(name = "stripe_payment_intent_id", unique = true)
+    private String stripePaymentIntentId;
+
+    /**
+     * Stripe client secret — required by Stripe.js on the frontend to complete payment.
+     * Stored for idempotency (returning INITIATED record on page-refresh).
+     * Becomes useless after the PaymentIntent reaches terminal state.
+     */
+    @Column(name = "client_secret")
+    private String clientSecret;
+
+    @Column(name = "stripe_refund_id")
+    private String stripeRefundId;
+
+    // Common fields
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     @Builder.Default

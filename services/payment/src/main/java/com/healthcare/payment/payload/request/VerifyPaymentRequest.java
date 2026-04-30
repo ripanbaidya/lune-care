@@ -7,13 +7,19 @@ public record VerifyPaymentRequest(
         @NotBlank(message = "Appointment ID is required")
         String appointmentId,
 
-        @NotBlank(message = "Razorpay payment ID is required")
+        // Razorpay fields (required when gateway = RAZORPAY)
         String razorpayPaymentId,
-
-        @NotBlank(message = "Razorpay order ID is required")
         String razorpayOrderId,
+        String razorpaySignature,
 
-        @NotBlank(message = "Razorpay signature is required")
-        String razorpaySignature
+        // Stripe fields (required when gateway = STRIPE)
+
+        /*
+         * The Stripe PaymentIntent ID (pi_...) returned by the frontend after
+         * stripe.confirmPayment() succeeds. Used to retrieve and verify the
+         * PaymentIntent status from Stripe's API.
+         */
+        String stripePaymentIntentId
+
 ) {
 }

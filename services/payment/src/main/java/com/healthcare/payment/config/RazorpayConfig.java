@@ -5,6 +5,7 @@ import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -16,12 +17,8 @@ public class RazorpayConfig {
     private final RazorpayProperties properties;
 
     @Bean
+    @ConditionalOnProperty(name = "app.payment.gateway.razorpay.enabled", havingValue = "true")
     public RazorpayClient razorpayClient() throws RazorpayException {
-        if (!properties.enabled()) {
-            log.warn("Razorpay payment gateway is disabled");
-            return null;
-        }
-
         log.info("Initializing Razorpay client");
         return new RazorpayClient(properties.keyId(), properties.keySecret());
     }

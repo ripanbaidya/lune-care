@@ -497,7 +497,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         slotRepository.findById(appointment.getSlotId()).ifPresentOrElse(
                 slot -> {
-                    if (appointment.getStatus() != AppointmentStatus.CANCELLED) {
+                    if (slot.getStatus() != SlotStatus.CANCELLED) {
                         log.warn("Slot not CANCELLED during refund release — skipping. slotId={}, status={}",
                                 slot.getId(), slot.getStatus());
                         return;
@@ -508,7 +508,6 @@ public class AppointmentServiceImpl implements AppointmentService {
                 },
                 () -> log.error("Slot not found during refund release. slotId={}, appointmentId={}",
                         appointment.getSlotId(), appointmentId)
-
         );
     }
 
