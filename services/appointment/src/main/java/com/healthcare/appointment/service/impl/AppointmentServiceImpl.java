@@ -414,9 +414,12 @@ public class AppointmentServiceImpl implements AppointmentService {
         long startTime = System.currentTimeMillis();
 
         try {
+            // Fetch only those appointments belongs to specified statueses
             List<Appointment> appointments = appointmentRepository
-                    .findByDoctorIdAndAppointmentDateAndStatusNotOrderByStartTimeAsc(
-                            doctorId, today, AppointmentStatus.CANCELLED);
+                    .findTodayAppointments(
+                            doctorId, today,
+                            List.of(AppointmentStatus.CONFIRMED, AppointmentStatus.COMPLETED, AppointmentStatus.NO_SHOW)
+                    );
 
             log.info("Today's appointments retrieved. doctorId={}, count={}, duration={}ms",
                     doctorId, appointments.size(), System.currentTimeMillis() - startTime);
@@ -476,12 +479,47 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
     }
 
+    /**
+     * Releases a slot back to AVAILABLE after payment-service confirms the refund completed.
+     * Called via internal endpoint POST /api/internal/appointment/{appointmentId}/release-slot
+     */
+    @Override
+    @Transactional
+    public void releaseSlotAfterRefund(String appointmentId) {
+        log.info("Releasing slot after refund. appointmentId={}", appointmentId);
+        Appointment appointment = findAppointmentById(appointmentId);
+
+        if (appointment.getStatus() != AppointmentStatus.REFUND_INITIATED) {
+            log.warn("releaseSlotAfterRefund called on wrong status. appointmentId: {}, status: {}",
+                    appointmentId, appointment.getStatus());
+            return;
+        }
+
+        slotRepository.findById(appointment.getSlotId()).ifPresentOrElse(
+                slot -> {
+                    if (appointment.getStatus() != AppointmentStatus.CANCELLED) {
+                        log.warn("Slot not CANCELLED during refund release — skipping. slotId={}, status={}",
+                                slot.getId(), slot.getStatus());
+                        return;
+                    }
+                    slot.setStatus(SlotStatus.AVAILABLE);
+                    slotRepository.save(slot);
+                    log.info("Slot released to AVAILABLE after refund completed. slotId={}", slot.getId());
+                },
+                () -> log.error("Slot not found during refund release. slotId={}, appointmentId={}",
+                        appointment.getSlotId(), appointmentId)
+
+        );
+    }
+
     // Private helpers
 
     /**
      * Shared cancellation logic for patient, doctor, and SAGA compensation (timeout).
-     * Sets status to REFUND_INITIATED when the appointment was CONFIRMED (money was taken),
-     * or CANCELLED otherwise.
+     * Slot behavior:
+     * {@code wasConfirmed=true}  → appointment becomes REFUND_INITIATED, slot becomes CANCELLED
+     * (held until payment-service confirms refund via releaseSlotAfterRefund)
+     * {@code wasConfirmed=false} → appointment becomes CANCELLED, slot immediately returns to AVAILABLE
      */
     private void performCancellation(Appointment appointment, String reason,
                                      CancelledBy cancelledBy, boolean wasConfirmed) {
@@ -494,9 +532,16 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         slotRepository.findById(appointment.getSlotId()).ifPresentOrElse(
                 slot -> {
-                    slot.setStatus(SlotStatus.AVAILABLE);
+                    // Hold slot, don't open until the refund is confirmed
+                    if (wasConfirmed) {
+                        slot.setStatus(SlotStatus.CANCELLED);
+                        log.debug("Slot held as CANCELLED pending refund. slotId={}", slot.getId());
+                    } else {
+                        slot.setStatus(SlotStatus.AVAILABLE);
+                        log.debug("Slot restored as AVAILABLE. slotId={}", slot.getId());
+                    }
+
                     slotRepository.save(slot);
-                    log.debug("Slot marked AVAILABLE. slotId={}", slot.getId());
                 },
                 () -> log.error("Slot not found during cancellation. slotId={}", appointment.getSlotId())
         );

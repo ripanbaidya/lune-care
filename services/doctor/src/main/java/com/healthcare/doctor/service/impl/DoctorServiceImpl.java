@@ -211,15 +211,6 @@ public class DoctorServiceImpl implements DoctorService {
         }
     }
 
-    /**
-     * Searches for doctors matching the given filters.
-     * <p><b>Clinic filter behaviour:</b> When {@code city} or {@code maxFees} are provided,
-     * doctors who have no clinics matching those filters are excluded from the results.
-     * Because the primary query paginates on the doctor table and the clinic filter is applied
-     * in-memory afterwards, the returned page may contain fewer items than the requested
-     * {@code size}. This is a known trade-off documented in the TODO — a proper fix requires
-     * a JOIN in {@code DoctorRepository.search()} to push the clinic filter into SQL.
-     */
     @Override
     @Transactional(readOnly = true)
     public Page<DoctorPublicResponse> search(String name, String specialization,
@@ -245,36 +236,31 @@ public class DoctorServiceImpl implements DoctorService {
         long startTime = System.currentTimeMillis();
 
         try {
-            Page<Doctor> doctorPage = doctorRepository.search(nameParam, spec, pageable);
+            Page<Doctor> doctorPage = doctorRepository.search(
+                    nameParam, spec, cityParam, maxFees, hasClinicFilter, pageable);
+
             if (doctorPage.isEmpty()) {
-                log.debug("No doctors found for primary criteria — returning empty page.");
+                log.debug("No doctors found — returning empty page.");
                 return Page.empty(pageable);
             }
 
+            // Clinics are already filtered by the SQL JOIN — load them per doctor
             List<String> doctorIds = doctorPage.getContent().stream().map(Doctor::getId).toList();
-
             List<Clinic> clinics = clinicRepository.findByDoctorIdsAndFilters(doctorIds, cityParam, maxFees);
             Map<String, List<Clinic>> clinicsByDoctorId = clinics.stream()
                     .collect(Collectors.groupingBy(c -> c.getDoctor().getId()));
 
-            // Build response list — exclude doctors whose clinics don't satisfy the filter.
-            // We never insert null; doctors with no matching clinics are simply omitted.
             List<DoctorPublicResponse> responses = doctorPage.getContent().stream()
-                    .map(doctor -> {
-                        List<Clinic> doctorClinics = clinicsByDoctorId.getOrDefault(doctor.getId(), List.of());
-                        if (hasClinicFilter && doctorClinics.isEmpty()) {
-                            return null; // will be filtered below
-                        }
-                        return DoctorMapper.toPublicResponse(doctor, doctorClinics);
-                    })
-                    .filter(response -> response != null)
+                    .map(doctor -> DoctorMapper.toPublicResponse(
+                            doctor,
+                            clinicsByDoctorId.getOrDefault(doctor.getId(), List.of())
+                    ))
                     .toList();
 
-            log.info("Search complete. matchedDoctors={}, totalInPage={}, duration={}ms",
-                    responses.size(), doctorPage.getTotalElements(), System.currentTimeMillis() - startTime);
+            log.info("Search complete. results={}, total={}, duration={}ms",
+                    responses.size(), doctorPage.getTotalElements(),
+                    System.currentTimeMillis() - startTime);
 
-            // Wrap in PageImpl so the caller still gets pagination metadata.
-            // totalElements is from the DB query; in-memory filtering may reduce content size.
             return new PageImpl<>(responses, pageable, doctorPage.getTotalElements());
 
         } catch (Exception e) {

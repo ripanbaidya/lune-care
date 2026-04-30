@@ -30,14 +30,12 @@ public interface AppointmentRepository extends JpaRepository<Appointment, String
 
     /**
      * Doctor views today's appointments
-     *
-     * @param doctorId      id of the doctor
-     * @param date          date of the appointment
-     * @param excludeStatus exclude appointments with this status
-     * @return list of appointments
      */
-    List<Appointment> findByDoctorIdAndAppointmentDateAndStatusNotOrderByStartTimeAsc(
-            String doctorId, LocalDate date, AppointmentStatus excludeStatus);
+    @Query("select a from Appointment a where a.doctorId=:doctorId and a.appointmentDate=:date and a.status in :statuses order by a.startTime asc")
+    List<Appointment> findTodayAppointments(
+            @Param("doctorId") String doctorId,
+            @Param("date") LocalDate date,
+            @Param("statuses") List<AppointmentStatus> statuses);
 
     /**
      * Doctor views full history

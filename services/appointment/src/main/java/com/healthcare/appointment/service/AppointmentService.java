@@ -39,4 +39,9 @@ public interface AppointmentService {
 
     List<AppointmentResponse> getDoctorTodayAppointments(String doctorId);
 
+    /**
+     * Releases the slot back to AVAILABLE after the payment-service confirms
+     * the refund for a REFUND_INITIATED appointment has completed.
+     */
+    void releaseSlotAfterRefund(String appointmentId);
 }

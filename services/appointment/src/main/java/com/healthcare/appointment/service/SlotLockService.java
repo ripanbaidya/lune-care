@@ -35,7 +35,10 @@ public class SlotLockService {
      * Acts as a lightweight distributed lock.
      */
     private static final String LOCK_PREFIX = "slot:lock:";
-    private static final int LOCK_TTL_MINUTES = 10;
+
+    // TTL Must be >= payment-timeout-minutes of payment service
+    // (set to 20 to give a small buffer over the 15-min payment window)
+    private static final int LOCK_TTL_MINUTES = 20;
     private static final Duration LOCK_TTL = Duration.ofMinutes(LOCK_TTL_MINUTES);
 
     private final StringRedisTemplate redisTemplate;
@@ -66,12 +69,16 @@ public class SlotLockService {
             return false;
 
         } catch (Exception e) {
-            // Redis down — fail open to prevent service disruption.
-            // The DB-level optimistic lock (@Version) is the final safety net.
-            log.error("Redis error during lock acquisition — slotId: {}, patientId: {}. " +
-                            "Falling back to DB-level optimistic lock. error: {}",
+            /*
+             * When Redis is down - return true (fail open) so the booking attempt continues.
+             * The DB-level optimistic lock (@Version on Slot) is the final safety net.
+             * Failing closed here would make ALL bookings fail whenever Redis is unavailable,
+             * which is worse than the small race-condition risk during a Redis outage.
+             */
+            log.error("Redis error during lock acquisition — slotId={}, patientId={}. " +
+                            "Failing open, relying on DB optimistic lock. error: {}",
                     slotId, patientId, e.getMessage());
-            return false;
+            return true;
         }
     }
 

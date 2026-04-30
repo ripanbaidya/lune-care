@@ -89,4 +89,14 @@ public class InternalAppointmentController {
 
         return ResponseEntity.ok(appointmentService.getAppointment(appointmentId));
     }
+
+    /**
+     * Called by payment-service after a refund is confirmed.
+     * Releases the held slot back to AVAILABLE.
+     */
+    @PostMapping("/{appointmentId}/release-slot")
+    public ResponseEntity<Void> releaseSlotAfterRefund(@PathVariable String appointmentId) {
+        appointmentService.releaseSlotAfterRefund(appointmentId);
+        return ResponseEntity.ok().build();
+    }
 }
