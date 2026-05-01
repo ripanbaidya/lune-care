@@ -7,9 +7,9 @@
 control the slot generation window more precisely.
 * Ensure slot generation strictly adheres to the defined date range.
 
-* It has more bugs that need to be fixed.
+* It has more bugs that need to be fixed. = Done
 
-### 2. Database Migrations
+### 2. Database Migrations = Done
 
 * Complete database migrations for all services.
 
