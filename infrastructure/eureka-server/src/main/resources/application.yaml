@@ -7,42 +7,59 @@ spring:
 
 eureka:
   instance:
+    # Hostname where the Eureka server is running
     hostname: localhost
+
   client:
-    # Eureka server will not register itself as a client and will not fetch
-    # registry information from other Eureka servers.
+    # Since this is a standalone Eureka Server:
+    # - It does NOT register itself as a client
+    # - It does NOT fetch registry information from other Eureka servers
     fetch-registry: false
     register-with-eureka: false
+
     service-url:
+      # Default zone pointing to itself (used internally by Eureka)
       defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+
   server:
-    # The time (in milliseconds) Eureka server will wait before removing a
-    # service that stopped sending heartbeat signals
+    # Interval at which Eureka checks and removes instances
+    # that have not sent heartbeat signals (eviction process)
     eviction-interval-timer-in-ms: 5000
+
 
 management:
   endpoints:
     web:
       exposure:
+        # Exposes selected actuator endpoints over HTTP
         include: health, info
+
+  endpoint:
+    health:
+      # Always display detailed health information (use cautiously in production)
+      show-details: always
+      probes:
+        # Enables liveness and readiness probes (useful for container orchestration)
+        enabled: true
+
+    info:
+      # Allows unrestricted access to application info endpoint
+      access: unrestricted
+
   health:
     liveness-state:
       enabled: true
     readiness-state:
       enabled: true
-  endpoint:
-    health:
-      show-details: always
-      probes:
-        enabled: true
-    info:
-      access: unrestricted
+
   info:
     env:
+      # Exposes environment-related details via /actuator/info
       enabled: true
+
 
 info:
   app:
-    name: "eureka-server"
-    version: "1.0.0"
-    description: "Eureka Server for service discovery in the healthcare  microservice architecture."
+    name: "LuneCare Service Registry (Eureka Server)"
+    version: "v1.0.0"
+    description: "Service discovery server responsible for registering and managing all microservices within the LuneCare healthcare ecosystem, enabling dynamic service lookup and load balancing."

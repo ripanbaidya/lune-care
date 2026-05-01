@@ -4,55 +4,77 @@ server:
 spring:
   application:
     name: admin
+
   autoconfigure:
+    # Disables default Spring Security user details autoconfiguration
+    # Useful when implementing custom authentication/authorization mechanisms
     exclude:
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
   cloud:
     openfeign:
       okhttp:
+        # Enables OkHttp as the HTTP client for OpenFeign (better performance and connection handling)
         enabled: true
 
 management:
   endpoints:
     web:
       exposure:
+        # Exposes selected actuator endpoints over HTTP
         include: health, info
+
+  endpoint:
+    health:
+      # Always display detailed health information (use cautiously in production)
+      show-details: always
+      probes:
+        # Enables liveness and readiness probes (useful for container orchestration)
+        enabled: true
+
+    info:
+      # Allows unrestricted access to application info endpoint
+      access: unrestricted
+
   health:
     liveness-state:
       enabled: true
     readiness-state:
       enabled: true
-  endpoint:
-    health:
-      show-details: always
-      probes:
-        enabled: true
-    info:
-      access: unrestricted
+
   info:
     env:
+      # Exposes environment-related details via /actuator/info
       enabled: true
+
 
 eureka:
   instance:
+    # Registers service using IP address instead of hostname
     prefer-ip-address: true
+
   client:
     register-with-eureka: true
     fetch-registry: true
+
     service-url:
       defaultZone: http://localhost:8761/eureka
 
+
 springdoc:
   api-docs:
+    # Enables OpenAPI documentation endpoint
     enabled: true
     path: /api-docs
+
   swagger-ui:
+    # Enables Swagger UI for interactive API exploration
     enabled: true
     path: /swagger-ui.html
 
+
 info:
   app:
-    name: "admin-service"
-    version: "1.0.0"
-    description: "API documentation for Admin Service for LuneCare Healthcare System"
+    name: "LuneCare Admin Service"
+    version: "v1.0.0"
+    description: "Administrative service providing API documentation, monitoring interfaces, and management capabilities for the LuneCare healthcare microservices ecosystem."

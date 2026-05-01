@@ -4,58 +4,84 @@ server:
 spring:
   application:
     name: feedback
+
   autoconfigure:
+    # Disables default Spring Security user details auto-configuration
+    # Useful when implementing custom authentication/authorization
     exclude:
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
   data:
     mongodb:
+      # MongoDB connection URI for feedback service
+      # Includes authentication database (authSource=admin)
       uri: mongodb://mongouser:mongopass@localhost:27019/feedback_db?authSource=admin
 
   rabbitmq:
+    # RabbitMQ connection configuration (message broker)
     host: localhost
     port: 5672
     username: guest
     password: guest
     virtual-host: /
 
+
 management:
   endpoints:
     web:
       exposure:
+        # Exposes selected actuator endpoints over HTTP
         include: health, info
+
+  endpoint:
+    health:
+      # Always display detailed health information (use cautiously in production)
+      show-details: always
+      probes:
+        # Enables liveness and readiness probes
+        enabled: true
+
+    info:
+      # Allows unrestricted access to application info endpoint
+      access: unrestricted
+
   health:
     liveness-state:
       enabled: true
     readiness-state:
       enabled: true
-  endpoint:
-    health:
-      show-details: always
-      probes:
-        enabled: true
-    info:
-      access: unrestricted
+
   info:
     env:
+      # Exposes environment-related details via /actuator/info
       enabled: true
+
 
 eureka:
   instance:
+    # Registers service using IP address instead of hostname
     prefer-ip-address: true
+
   client:
     register-with-eureka: true
     fetch-registry: true
+
     service-url:
       defaultZone: http://localhost:8761/eureka
 
+
 springdoc:
   api-docs:
+    # Enables OpenAPI documentation endpoint
     enabled: true
     path: /api-docs
+
   swagger-ui:
+    # Enables Swagger UI for interactive API exploration
     enabled: true
     path: /swagger-ui.html
+
+    # Advanced Swagger UI configurations
     disable-swagger-default-url: true
     display-request-duration: true
     operations-sorter: alpha
@@ -64,14 +90,19 @@ springdoc:
     filter: true
     show-actuator: true
 
+
 rabbitmq:
   exchange:
+    # Central exchange used across LuneCare services
     name: lune.care.exchange
+
   queues:
+    # Queue triggered when an appointment is completed (used for feedback processing)
     appointment-completed: feedback.appointment.completed.queue
+
 
 info:
   app:
-    name: "feedback-service"
-    version: "1.0.0"
-    description: "API documentation for Feedback Service for LuneCare Healthcare System"
+    name: "LuneCare Feedback Service"
+    version: "v1.0.0"
+    description: "Service responsible for collecting, managing, and processing patient feedback and reviews within the LuneCare healthcare microservices ecosystem."

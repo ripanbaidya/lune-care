@@ -4,7 +4,9 @@ server:
 spring:
   application:
     name: api-gateway
+
   autoconfigure:
+    # Disables default reactive security autoconfiguration (used when custom security is implemented)
     exclude: org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration
 
   data:
@@ -17,44 +19,62 @@ spring:
     gateway:
       discovery:
         locator:
-          enabled: false # disable the default gateway route provider
+          # Disables automatic route creation using service discovery
+          enabled: false
+          # Ensures service IDs are normalized to lowercase for routing consistency
           lower-case-service-id: true
-      # This configures the Netty-based Http client used internally by gateway to call downstream services
+
+      # Configuration of the Netty-based HTTP client used internally by Spring Cloud Gateway
       httpclient:
-        # Time taken to establish a TCP connection, if exceeded gateway then throws connection timeout error
-        # In our case, if any service doesn't accept a connection within 5s, it'll fail and throws an error
-        connect-timeout: 5000 # 5s
-        # Time taken to get a response from the server, if exceeded gateway then throws read timeout error
+        # Maximum time allowed to establish a TCP connection with downstream services
+        # If exceeded, a connection timeout exception is thrown
+        connect-timeout: 5000 # 5 seconds
+
+        # Maximum time to wait for a response after connection is established
+        # If exceeded, a read timeout exception is triggered
         response-timeout: 10s
-  # WebFlux codec configuration (serialization/deserialization layer)
-  # Maximum size of request/response body kept in memory
-  # must match or exceed multipart size limit
+
+  # WebFlux codec configuration (handles serialization/deserialization)
+  # Defines the maximum in-memory buffer size for request/response payloads
+  # Must be aligned with or greater than multipart upload size limits
   codec:
     max-in-memory-size: 10MB
+
 
 management:
   endpoints:
     web:
       exposure:
+        # Exposes only selected actuator endpoints over HTTP
         include: health, info
+
+  endpoint:
+    health:
+      # Always show detailed health information (use carefully in production)
+      show-details: always
+      probes:
+        # Enables Kubernetes-style liveness and readiness probes
+        enabled: true
+
+    info:
+      # Allows unrestricted access to the info endpoint
+      access: unrestricted
+
   health:
     liveness-state:
       enabled: true
     readiness-state:
       enabled: true
-  endpoint:
-    health:
-      show-details: always
-      probes:
-        enabled: true
-    info:
-      access: unrestricted
+
   info:
     env:
+      # Exposes environment-related information via /actuator/info
       enabled: true
+
 
 eureka:
   instance:
+    # Registers service using IP address instead of hostname
     prefer-ip-address: true
   client:
     register-with-eureka: true
@@ -62,15 +82,19 @@ eureka:
     service-url:
       defaultZone: http://localhost:8761/eureka
 
+
 app:
   security:
     jwt:
       issuer: "LuneCare"
+
     rsa:
+      # Path to RSA public key used for JWT verification
       public-key-path: secrets/keys/public_key.pem
+
 
 info:
   app:
-    name: "api-gateway"
-    version: "1.0.0"
-    description: "API Gateway in the healthcare microservice architecture."
+    name: "LuneCare API Gateway Service"
+    version: "v1.0.0"
+    description: "Centralized API Gateway responsible for routing, filtering, and securing requests within the LuneCare healthcare microservices ecosystem."

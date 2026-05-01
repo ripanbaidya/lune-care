@@ -4,66 +4,112 @@ server:
 spring:
   application:
     name: patient
+
   autoconfigure:
+    # Disables default Spring Security user details auto-configuration
+    # Useful when implementing custom authentication/authorization
     exclude:
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+
   servlet:
     multipart:
+      # Enables file upload support
       enabled: true
+
+      # Maximum allowed file size for a single upload
       max-file-size: 5MB
+
+      # Maximum allowed size for a multipart request
       max-request-size: 5MB
-      
+
+  flyway:
+    # Enables Flyway for database schema versioning and migration
+    enabled: true
+
+    # Location of migration scripts inside the classpath
+    locations: classpath:db/migration
+
+    # Allows Flyway to baseline an existing database (useful for legacy DB integration)
+    baseline-on-migrate: true
+
   datasource:
+    # PostgreSQL database configuration for patient service
     url: jdbc:postgresql://localhost:5434/patient_db
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
+
   jpa:
     hibernate:
-      ddl-auto: update
+      # Validates schema against entities (does NOT modify DB structure)
+      ddl-auto: validate
+
+    # Logs SQL queries for debugging purposes
     show-sql: true
+
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        # Formats SQL queries for better readability
         format_sql: true
+
 
 management:
   endpoints:
     web:
       exposure:
+        # Exposes selected actuator endpoints over HTTP
         include: health, info
+
+  endpoint:
+    health:
+      # Always display detailed health information (use cautiously in production)
+      show-details: always
+      probes:
+        # Enables liveness and readiness probes
+        enabled: true
+
+    info:
+      # Allows unrestricted access to application info endpoint
+      access: unrestricted
+
   health:
     liveness-state:
       enabled: true
     readiness-state:
       enabled: true
-  endpoint:
-    health:
-      show-details: always
-      probes:
-        enabled: true
-    info:
-      access: unrestricted
+
   info:
     env:
+      # Exposes environment-related details via /actuator/info
       enabled: true
+
 
 eureka:
   instance:
+    # Registers service using IP address instead of hostname
     prefer-ip-address: true
+
   client:
     register-with-eureka: true
     fetch-registry: true
+
     service-url:
       defaultZone: http://localhost:8761/eureka
 
+
 springdoc:
   api-docs:
+    # Enables OpenAPI documentation endpoint
     enabled: true
     path: /api-docs
+
   swagger-ui:
+    # Enables Swagger UI for interactive API exploration
     enabled: true
     path: /swagger-ui.html
+
+    # Advanced Swagger UI configurations
     disable-swagger-default-url: true
     display-request-duration: true
     operations-sorter: alpha
@@ -72,16 +118,21 @@ springdoc:
     filter: true
     show-actuator: true
 
+
 app:
   integration:
     cloudinary:
+      # Enables Cloudinary integration for media storage
       enabled: true
+
+      # Cloudinary account configuration (can be overridden via environment variables)
       cloud-name: ${CLOUDINARY_CLOUD_NAME:dkpchjv9f}
       api-key: ${CLOUDINARY_API_KEY:697347722321417}
       api-secret: ${CLOUDINARY_API_SECRET:QJLHEzehXhW-OxCe_8C7qsyK3Sg}
 
+
 info:
   app:
-    name: "patient-service"
-    version: "1.0.0"
-    description: "API documentation for Patient Service for LuneCare Healthcare System"
+    name: "LuneCare Patient Service"
+    version: "v1.0.0"
+    description: "Service responsible for managing patient profiles, medical information, and related healthcare data within the LuneCare microservices ecosystem."

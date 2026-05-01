@@ -1,82 +1,126 @@
 server:
   port: 8084
 
+
 spring:
   application:
     name: appointment
+
   autoconfigure:
+    # Disables default Spring Security user details auto-configuration
+    # Useful when implementing custom authentication/authorization
     exclude:
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
   cloud:
     openfeign:
       okhttp:
+        # Enables OkHttp as the HTTP client for OpenFeign
         enabled: true
 
+  flyway:
+    # Enables Flyway for database schema versioning and migration
+    enabled: true
+
+    # Location of migration scripts inside the classpath
+    locations: classpath:db/migration
+
+    # Allows Flyway to baseline an existing database (useful for legacy DB integration)
+    baseline-on-migrate: true
+
   datasource:
+    # PostgreSQL database configuration for appointment service
     url: jdbc:postgresql://localhost:5436/appointment_db
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
+
   jpa:
     hibernate:
-      ddl-auto: update
+      # Validates schema against entities (does NOT modify DB structure)
+      ddl-auto: validate
+
+    # Logs SQL queries in the console (useful for debugging)
     show-sql: true
+
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        # Formats SQL queries for better readability in logs
         format_sql: true
 
   data:
     redis:
+      # Redis configuration for caching or distributed data handling
       host: localhost
       port: 6379
       database: 0
 
   rabbitmq:
+    # RabbitMQ connection configuration (message broker)
     host: localhost
     port: 5672
     username: guest
     password: guest
     virtual-host: /
 
+
 management:
   endpoints:
     web:
       exposure:
+        # Exposes selected actuator endpoints over HTTP
         include: health, info
+
+  endpoint:
+    health:
+      # Always display detailed health information (use cautiously in production)
+      show-details: always
+      probes:
+        # Enables liveness and readiness probes
+        enabled: true
+
+    info:
+      # Allows unrestricted access to application info endpoint
+      access: unrestricted
+
   health:
     liveness-state:
       enabled: true
     readiness-state:
       enabled: true
-  endpoint:
-    health:
-      show-details: always
-      probes:
-        enabled: true
-    info:
-      access: unrestricted
+
   info:
     env:
+      # Exposes environment-related details via /actuator/info
       enabled: true
+
 
 eureka:
   instance:
+    # Registers service using IP address instead of hostname
     prefer-ip-address: true
+
   client:
     register-with-eureka: true
     fetch-registry: true
+
     service-url:
       defaultZone: http://localhost:8761/eureka
 
+
 springdoc:
   api-docs:
+    # Enables OpenAPI documentation endpoint
     enabled: true
     path: /api-docs
+
   swagger-ui:
+    # Enables Swagger UI for interactive API exploration
     enabled: true
     path: /swagger-ui.html
+
+    # Advanced Swagger UI configurations
     disable-swagger-default-url: true
     display-request-duration: true
     operations-sorter: alpha
@@ -85,20 +129,31 @@ springdoc:
     filter: true
     show-actuator: true
 
+
 rabbitmq:
   exchange:
+    # Central exchange for LuneCare messaging
     name: lune.care.exchange
+
   queues:
+    # Queue for sending appointment-related notifications
     notification: appointment.notification.queue
+
+    # Queue for handling payment-related events
     payment: appointment.payment.queue
+
 
 app:
   appointment:
+    # Time (in hours) before appointment after which cancellation is not allowed
     cancellation-cutoff-hours: 2
+
+    # Time (in minutes) allowed to complete payment before expiration
     payment-timeout-minutes: 15
+
 
 info:
   app:
-    name: "appointment-service"
-    version: "1.0.0"
-    description: "API documentation for Appointment Service for LuneCare Healthcare System"
+    name: "LuneCare Appointment Service"
+    version: "v1.0.0"
+    description: "Service responsible for managing appointment scheduling, coordination, and related workflows within the LuneCare healthcare microservices ecosystem."

@@ -5,51 +5,74 @@ spring:
   application:
     name: config-server
 
-  # Reading environment variables from .env file
-  config:
-    import: optional:file:../../.env[.properties]
-
   cloud:
     config:
       server:
         git:
+          # Remote Git repository containing centralized configuration files
           uri: ${GIT_URI:https://github.com/ripanbaidya/lune-care-config.git}
-#          username: ${GIT_USERNAME}
-#          password: ${GIT_PASSWORD}
-          default-label: main # default branch is "main", if main branch is not available, then master branch will be used
+
+          #          username: ${GIT_USERNAME}
+          #          password: ${GIT_PASSWORD}
+
+          # Specifies the default branch to read configurations from
+          # Falls back to 'master' if 'main' is unavailable
+          default-label: main
+
+          # Maximum time allowed fetching configuration from Git
           timeout: 10 # 10 seconds (default is 5 seconds)
-          force-pull: true # force to pull the latest changes from the remote repository
+
+          # Forces pulling the latest changes from the remote repository on each request
+          force-pull: true
+
+          # Clones the repository during application startup instead of lazy loading
           clone-on-start: true
-          refresh-rate: 30 # fetch the latest changes in every 30 second (default is 0 seconds)
+
+          # Interval (in seconds) to refresh and fetch latest changes from Git
+          # 0 means no periodic refresh (only fetch on demand)
+          refresh-rate: 30
+
+          # Defines locations within the repo to search for configuration files
           search-paths:
-            - "." # root, picks up global application.yml
-            - "services/{application}" # services/auth
-            - "infrastructure/{application}" # infrastructure/api-gateway
+            - "." # Root directory → loads global application.yml
+            - "services/{application}" # Example: services/auth
+            - "infrastructure/{application}" # Example: infrastructure/api-gateway
+
 
 management:
   endpoints:
     web:
-      exposure:
-        include: health, info
       base-path: /actuator
+      exposure:
+        # Exposes selected actuator endpoints over HTTP
+        include: health, info
+
+  endpoint:
+    health:
+      # Always display detailed health information (use cautiously in production)
+      show-details: always
+      probes:
+        # Enables liveness and readiness probes (Kubernetes-friendly)
+        enabled: true
+
+    info:
+      # Allows unrestricted access to application info endpoint
+      access: unrestricted
+
   health:
     liveness-state:
       enabled: true
     readiness-state:
       enabled: true
-  endpoint:
-    health:
-      show-details: always
-      probes:
-        enabled: true
-    info:
-      access: unrestricted
+
   info:
     env:
+      # Exposes environment details via /actuator/info
       enabled: true
+
 
 info:
   app:
-    name: "config-server"
-    version: "1.0.0"
-    description: "Spring Cloud Config Server for centralized configuration management in microservices architecture"
+    name: "LuneCare Configuration Server"
+    version: "v1.0.0"
+    description: "Centralized configuration service powered by Spring Cloud Config, managing and distributing externalized settings across the LuneCare microservices ecosystem."
