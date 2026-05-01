@@ -9,6 +9,14 @@ spring:
     # Disables default reactive security autoconfiguration (used when custom security is implemented)
     exclude: org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration
 
+  # Enables Spring Cloud Config support
+  config:
+    import: "optional:configserver:http://localhost:8888"
+
+  # Activate the dev profile by default
+  profiles:
+    active: dev
+
   data:
     redis:
       host: localhost
@@ -34,21 +42,37 @@ spring:
         # If exceeded, a read timeout exception is triggered
         response-timeout: 10s
 
+    # Enables Spring Cloud Stream support for /busrefresh using RabbitMQ
+    bus:
+      enabled: true
+      # This acts as a unique name tag for each running instance of your microservice
+      id: ${spring.application.name}:${server.port}
+
   # WebFlux codec configuration (handles serialization/deserialization)
   # Defines the maximum in-memory buffer size for request/response payloads
   # Must be aligned with or greater than multipart upload size limits
   codec:
     max-in-memory-size: 10MB
 
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    connection-timeout: 5000
 
 management:
   endpoints:
     web:
       exposure:
         # Exposes only selected actuator endpoints over HTTP
-        include: health, info
+        include: health, info, refresh, busrefresh
 
+  # Enabling the /busrefresh endpoint for runtime refreshing of configuration
   endpoint:
+    busrefresh:
+      access: unrestricted
+
     health:
       # Always show detailed health information (use carefully in production)
       show-details: always
