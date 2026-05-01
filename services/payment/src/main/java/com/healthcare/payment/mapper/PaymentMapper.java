@@ -1,5 +1,6 @@
 package com.healthcare.payment.mapper;
 
+import com.healthcare.payment.entity.PaymentGatewayDetail;
 import com.healthcare.payment.entity.PaymentRecord;
 import com.healthcare.payment.payload.response.PaymentResponse;
 
@@ -13,7 +14,7 @@ public final class PaymentMapper {
      */
     public static PaymentResponse toResponse(PaymentRecord paymentRecord) {
         return toResponseBuilder(paymentRecord)
-                .clientSecret(paymentRecord.getClientSecret())
+                .clientSecret(paymentRecord.getGatewayDetail().getClientSecret())
                 .build();
     }
 
@@ -26,6 +27,7 @@ public final class PaymentMapper {
     }
 
     private static PaymentResponse.PaymentResponseBuilder toResponseBuilder(PaymentRecord paymentRecord) {
+        PaymentGatewayDetail detail = paymentRecord.getGatewayDetail();
         return PaymentResponse.builder()
                 .id(paymentRecord.getId())
                 .appointmentId(paymentRecord.getAppointmentId())
@@ -35,8 +37,8 @@ public final class PaymentMapper {
                 .gateway(paymentRecord.getGateway())
                 .status(paymentRecord.getStatus())
                 .createdAt(paymentRecord.getCreatedAt())
-                .razorpayOrderId(paymentRecord.getRazorpayOrderId())
-                .razorpayPaymentId(paymentRecord.getRazorpayPaymentId())
-                .stripePaymentIntentId(paymentRecord.getStripePaymentIntentId());
+                .razorpayOrderId(detail.getRazorpayOrderId())
+                .razorpayPaymentId(detail.getRazorpayPaymentId())
+                .stripePaymentIntentId(detail.getStripePaymentIntentId());
     }
 }

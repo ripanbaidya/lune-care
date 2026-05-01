@@ -46,30 +46,9 @@ public class PaymentRecord {
     @Builder.Default
     private String currency = "INR";
 
-    // Razorpay fields
-    @Column(name = "razorpay_order_id", unique = true)
-    private String razorpayOrderId;
-
-    @Column(name = "razorpay_payment_id")
-    private String razorpayPaymentId;
-
-    @Column(name = "razorpay_refund_id")
-    private String razorpayRefundId;
-
-    // Stripe fields
-    @Column(name = "stripe_payment_intent_id", unique = true)
-    private String stripePaymentIntentId;
-
-    /**
-     * Stripe client secret — required by Stripe.js on the frontend to complete payment.
-     * Stored for idempotency (returning INITIATED record on page-refresh).
-     * Becomes useless after the PaymentIntent reaches terminal state.
-     */
-    @Column(name = "client_secret")
-    private String clientSecret;
-
-    @Column(name = "stripe_refund_id")
-    private String stripeRefundId;
+    @OneToOne(mappedBy = "paymentRecord", cascade = CascadeType.ALL,
+            fetch = FetchType.LAZY, optional = false)
+    private PaymentGatewayDetail gatewayDetail;
 
     // Common fields
     @Enumerated(EnumType.STRING)

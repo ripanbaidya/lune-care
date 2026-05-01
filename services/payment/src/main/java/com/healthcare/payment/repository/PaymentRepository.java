@@ -16,6 +16,4 @@ public interface PaymentRepository extends JpaRepository<PaymentRecord, String> 
     boolean existsByAppointmentId(String appointmentId);
 
     Page<PaymentRecord> findByPatientIdOrderByCreatedAtDesc(String patientId, Pageable pageable);
-
-    Optional<PaymentRecord> findByRazorpayOrderId(String razorpayOrderId);
 }

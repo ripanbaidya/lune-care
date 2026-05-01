@@ -1,6 +1,7 @@
 package com.healthcare.payment.service.impl;
 
 import com.healthcare.payment.client.AppointmentServiceClient;
+import com.healthcare.payment.entity.PaymentGatewayDetail;
 import com.healthcare.payment.entity.PaymentRecord;
 import com.healthcare.payment.enums.ErrorCode;
 import com.healthcare.payment.enums.PaymentGatewayType;
@@ -137,8 +138,7 @@ public class PaymentServiceImpl implements PaymentService {
             gatewayPaymentId = request.razorpayPaymentId();
             signature = request.razorpaySignature();
         } else {
-            // Stripe
-            // It verify retrieves the PaymentIntent directly — no signature needed
+            // Stripe - It verify retrieves the PaymentIntent directly — no signature needed
             gatewayOrderId = request.stripePaymentIntentId();
             gatewayPaymentId = null;
             signature = null;
@@ -159,7 +159,7 @@ public class PaymentServiceImpl implements PaymentService {
         // Update record with success state + gateway-specific confirmed payment ID
         paymentRecord.setStatus(PaymentStatus.SUCCESS);
         if (gatewayType == PaymentGatewayType.RAZORPAY) {
-            paymentRecord.setRazorpayPaymentId(request.razorpayPaymentId());
+            paymentRecord.getGatewayDetail().setRazorpayPaymentId(request.razorpayPaymentId());
         }
         // Stripe: stripePaymentIntentId was already stored during initiatePayment
 
@@ -307,21 +307,26 @@ public class PaymentServiceImpl implements PaymentService {
                                              AppointmentDetails appointment,
                                              PaymentGatewayType gatewayType,
                                              OrderResult orderResult) {
-        PaymentRecord.PaymentRecordBuilder builder = PaymentRecord.builder()
+        PaymentRecord paymentRecord = PaymentRecord.builder()
                 .appointmentId(appointmentId)
                 .patientId(patientId)
                 .doctorId(appointment.doctorId())
                 .amount(appointment.consultationFees())
-                .gateway(gatewayType);
+                .gateway(gatewayType)
+                .build();
+
+        PaymentGatewayDetail.PaymentGatewayDetailBuilder detailBuilder =
+                PaymentGatewayDetail.builder().paymentRecord(paymentRecord);
 
         if (gatewayType == PaymentGatewayType.RAZORPAY) {
-            builder.razorpayOrderId(orderResult.gatewayOrderId());
-        } else { // STRIPE
-            builder.stripePaymentIntentId(orderResult.gatewayOrderId())
+            detailBuilder.razorpayOrderId(orderResult.gatewayOrderId());
+        } else if (gatewayType == PaymentGatewayType.STRIPE) {
+            detailBuilder.stripePaymentIntentId(orderResult.gatewayOrderId())
                     .clientSecret(orderResult.clientSecret());
         }
 
-        return builder.build();
+        paymentRecord.setGatewayDetail(detailBuilder.build());
+        return paymentRecord;
     }
 
     /**
@@ -329,8 +334,8 @@ public class PaymentServiceImpl implements PaymentService {
      */
     private String resolveConfirmedPaymentId(PaymentRecord record) {
         return record.getGateway() == PaymentGatewayType.RAZORPAY
-                ? record.getRazorpayPaymentId()
-                : record.getStripePaymentIntentId();
+                ? record.getGatewayDetail().getRazorpayPaymentId()
+                : record.getGatewayDetail().getStripePaymentIntentId();
     }
 
     /**
@@ -338,8 +343,8 @@ public class PaymentServiceImpl implements PaymentService {
      */
     private String resolvePaymentIdForRefund(PaymentRecord record) {
         return record.getGateway() == PaymentGatewayType.RAZORPAY
-                ? record.getRazorpayPaymentId()
-                : record.getStripePaymentIntentId();
+                ? record.getGatewayDetail().getRazorpayPaymentId()
+                : record.getGatewayDetail().getStripePaymentIntentId();
     }
 
     /**
@@ -347,9 +352,9 @@ public class PaymentServiceImpl implements PaymentService {
      */
     private void storeRefundId(PaymentRecord record, String refundId) {
         if (record.getGateway() == PaymentGatewayType.RAZORPAY) {
-            record.setRazorpayRefundId(refundId);
+            record.getGatewayDetail().setRazorpayRefundId(refundId);
         } else {
-            record.setStripeRefundId(refundId);
+            record.getGatewayDetail().setStripeRefundId(refundId);
         }
     }
 
