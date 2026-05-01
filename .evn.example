@@ -1,0 +1,65 @@
+# .env.example
+# Copy this to .env and fill in real values, and make sure to add .evn to .gitignore.
+# NOTE: DO NOT COMMIT YOUR .ENV FILE TO PRODUCTION.
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+# Razorpay
+RAZORPAY_KEY_ID=your_razorpay_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_key_secret
+
+# Stripe
+STRIPE_SECRET_KEY=your_stripe_secret_key
+STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
+
+# JWT
+JWT_ACCESS_TOKEN_EXPIRY=3600000
+JWT_REFRESH_TOKEN_EXPIRY=604800000
+
+# Git Config Repo (for config-server prod)─
+GIT_URI=https://github.com/ripanbaidya/lune-care-config.git
+GIT_USERNAME=your_github_username
+GIT_PASSWORD=your_github_pat   # GitHub Personal Access Token
+
+# Prod DB URLs (only needed in prod)
+AUTH_DB_URL=jdbc:postgresql://prod-host:5432/auth_db
+AUTH_DB_USERNAME=prod_user
+AUTH_DB_PASSWORD=prod_password
+
+DOCTOR_DB_URL=jdbc:postgresql://prod-host:5432/doctor_db
+DOCTOR_DB_USERNAME=prod_user
+DOCTOR_DB_PASSWORD=prod_password
+
+PATIENT_DB_URL=jdbc:postgresql://prod-host:5432/patient_db
+PATIENT_DB_USERNAME=prod_user
+PATIENT_DB_PASSWORD=prod_password
+
+APPOINTMENT_DB_URL=jdbc:postgresql://prod-host:5432/appointment_db
+APPOINTMENT_DB_USERNAME=prod_user
+APPOINTMENT_DB_PASSWORD=prod_password
+
+PAYMENT_DB_URL=jdbc:postgresql://prod-host:5432/payment_db
+PAYMENT_DB_USERNAME=prod_user
+PAYMENT_DB_PASSWORD=prod_password
+
+# Prod MongoDB
+NOTIFICATION_MONGODB_URI=mongodb://user:pass@host:27017/notification_db?authSource=admin
+FEEDBACK_MONGODB_URI=mongodb://user:pass@host:27017/feedback_db?authSource=admin
+
+# Prod Redis
+REDIS_HOST=prod-redis-host
+REDIS_PORT=6379
+REDIS_PASSWORD=prod_redis_password
+
+# Prod RabbitMQ
+RABBITMQ_HOST=prod-rabbitmq-host
+RABBITMQ_PORT=5672
+RABBITMQ_USERNAME=prod_user
+RABBITMQ_PASSWORD=prod_password
+
+# Prod Eureka
+EUREKA_DEFAULT_ZONE=http://prod-eureka-host:8761/eureka
+EUREKA_HOSTNAME=prod-eureka-host
