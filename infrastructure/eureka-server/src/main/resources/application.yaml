@@ -5,6 +5,14 @@ spring:
   application:
     name: eureka-server
 
+  # Enables Spring Cloud Config support
+  config:
+    import: "optional:configserver:http://localhost:8888"
+
+  # Activate the dev profile by default
+  profiles:
+    active: dev
+
 eureka:
   instance:
     # Hostname where the Eureka server is running

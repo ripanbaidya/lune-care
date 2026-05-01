@@ -12,6 +12,21 @@ spring:
     exclude:
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
+  # Enables Spring Cloud Config support
+  config:
+    import: "optional:configserver:http://localhost:8888"
+
+  # Activate the dev profile by default
+  profiles:
+    active: dev
+
+  cloud:
+
+    # Enable Spring Cloud Bus for event-driven communication
+    bus:
+      enabled: true
+      id: ${spring.application.name}:${server.port}
+
   flyway:
     # Enables Flyway for database schema versioning and migration
     enabled: true
@@ -50,15 +65,25 @@ spring:
       port: 6379
       database: 0
 
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    connection-timeout: 5000
 
 management:
   endpoints:
     web:
       exposure:
         # Exposes selected actuator endpoints over HTTP
-        include: health, info
+        include: health, info, refresh, busrefresh
 
   endpoint:
+    # Allows unrestricted access to actuator endpoints
+    busrefresh:
+      access: unrestricted
+
     health:
       # Always display detailed health information (use cautiously in production)
       show-details: always

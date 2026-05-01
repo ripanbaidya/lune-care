@@ -22,6 +22,14 @@ spring:
       # Maximum allowed size for a multipart request
       max-request-size: 5MB
 
+  # Enables Spring Cloud Config support
+  config:
+    import: "optional:configserver:http://localhost:8888"
+
+  # Activate the dev profile by default
+  profiles:
+    active: dev
+
   flyway:
     # Enables Flyway for database schema versioning and migration
     enabled: true
@@ -53,15 +61,31 @@ spring:
         # Formats SQL queries for better readability
         format_sql: true
 
+  # RabbitMQ configuration for asynchronous communication
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    connection-timeout: 5000
+
+  cloud:
+    # Enables Spring Cloud Stream for event-driven communication
+    bus:
+      enabled: true
+      id: ${spring.application.name}:${server.port}
 
 management:
   endpoints:
     web:
       exposure:
         # Exposes selected actuator endpoints over HTTP
-        include: health, info
+        include: health, info, refresh, busrefresh
 
   endpoint:
+    # Allows unrestricted access to actuator endpoints
+    busrefresh:
+      access: unrestricted
     health:
       # Always display detailed health information (use cautiously in production)
       show-details: always
@@ -116,8 +140,6 @@ springdoc:
     tags-sorter: alpha
     doc-expansion: none
     filter: true
-    show-actuator: true
-
 
 app:
   integration:

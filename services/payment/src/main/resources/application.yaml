@@ -17,6 +17,20 @@ spring:
       okhttp:
         # Enables OkHttp as the HTTP client for OpenFeign
         enabled: true
+
+    # Enables Spring Cloud Stream support
+    bus:
+      enabled: true
+      id: ${spring.application.name}:${server.port}
+
+  # Enables Spring Cloud Config support
+  config:
+    import: "optional:configserver:http://localhost:8888"
+
+  # Activate the dev profile by default
+  profiles:
+    active: dev
+
   flyway:
     # Enables Flyway for database schema versioning and migration
     enabled: true
@@ -48,23 +62,25 @@ spring:
         # Formats SQL queries for better readability
         format_sql: true
 
+  # RabbitMQ connection configuration
   rabbitmq:
-    # RabbitMQ connection configuration (message broker)
     host: localhost
     port: 5672
     username: guest
     password: guest
-    virtual-host: /
-
+    connection-timeout: 5000
 
 management:
   endpoints:
     web:
       exposure:
         # Exposes selected actuator endpoints over HTTP
-        include: health, info
+        include: health, info, refresh, busrefresh
 
   endpoint:
+    # Enables unrestricted access to actuator endpoints
+    busrefresh:
+      access: unrestricted
     health:
       # Always display detailed health information (use cautiously in production)
       show-details: always

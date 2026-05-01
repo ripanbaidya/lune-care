@@ -11,29 +11,45 @@ spring:
     exclude:
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
+  # Enables Spring Cloud Config support
+  config:
+    import: "optional:configserver:http://localhost:8888"
+
+  # Activate the dev profile by default
+  profiles:
+    active: dev
+
+  # RabbitMQ connection configuration (message broker)
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    connection-timeout: 5000
+
+  cloud:
+    # Enables Spring Cloud Stream support
+    bus:
+      enabled: true
+      id: ${spring.application.name}:${server.port}
+
   data:
     mongodb:
       # MongoDB connection URI for feedback service
       # Includes authentication database (authSource=admin)
       uri: mongodb://mongouser:mongopass@localhost:27019/feedback_db?authSource=admin
 
-  rabbitmq:
-    # RabbitMQ connection configuration (message broker)
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
-    virtual-host: /
-
-
 management:
   endpoints:
     web:
       exposure:
         # Exposes selected actuator endpoints over HTTP
-        include: health, info
+        include: health, info, refresh, busrefresh
 
   endpoint:
+    # Enables unrestricted access to busrefresh endpoints
+    busrefresh:
+      access: unrestricted
     health:
       # Always display detailed health information (use cautiously in production)
       show-details: always
@@ -88,8 +104,6 @@ springdoc:
     tags-sorter: alpha
     doc-expansion: none
     filter: true
-    show-actuator: true
-
 
 rabbitmq:
   exchange:

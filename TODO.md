@@ -1,19 +1,18 @@
 ## TODO
 
-### 1. Appointment Service == Done
+### 1. Appointment Service - Completed
 
 * Currently, slots are automatically generated for the next 30 days based on the provided schedule. This behavior is causing issues.
 * Introduce additional fields such as `start_date` and `end_date` from when till when slot has to generate in appointment-service to
 control the slot generation window more precisely.
 * Ensure slot generation strictly adheres to the defined date range.
+* It has more bugs that need to be fixed.
 
-* It has more bugs that need to be fixed. = Done
-
-### 2. Database Migrations = Done
+### 2. Database Migrations - Completed
 
 * Complete database migrations for all services.
 
-### 3. Spring Boot Profiles & Config Server
+### 3. Spring Boot Profiles & Config Server - 01.05.2026
 
 * Create environment-specific configuration files:
 
@@ -29,17 +28,17 @@ control the slot generation window more precisely.
   * Config Server is running correctly.
   * Services are fetching configurations dynamically at runtime.
 
-### 4. Spring Cloud Bus Integration
+### 4. Spring Cloud Bus Integration - 01.05.2026
 
 * Integrate **Spring Cloud Bus** across all services and the Config Server:
 * Enable runtime configuration refresh using the `/busrefresh` endpoint.
 
-### 5. API Documentation
+### 5. API Documentation - 01.05.2026
 
 * Implement comprehensive Swagger/OpenAPI documentation for all services.
 * Ensure all endpoints, request/response schemas, and error cases are properly documented.
 
-### 6. Resilience Implementation
+### 6. Resilience Implementation - 01.05.2026
 
 * Integrate **Resilience4j** across all services.
 * Apply appropriate resilience patterns:
