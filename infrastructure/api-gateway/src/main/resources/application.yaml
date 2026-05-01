@@ -68,8 +68,8 @@ management:
         # Exposes only selected actuator endpoints over HTTP
         include: health, info, refresh, busrefresh
 
-  # Enabling the /busrefresh endpoint for runtime refreshing of configuration
   endpoint:
+    # Enabling the /busrefresh endpoint for runtime refreshing of configuration
     busrefresh:
       access: unrestricted
 
