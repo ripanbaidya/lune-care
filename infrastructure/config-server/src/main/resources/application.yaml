@@ -5,6 +5,14 @@ spring:
   application:
     name: config-server
 
+  # RabbitMQ configuration for bus-refresh
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    connection-timeout: 5000
+
   cloud:
     config:
       server:
@@ -38,6 +46,10 @@ spring:
             - "services/{application}" # Example: services/auth
             - "infrastructure/{application}" # Example: infrastructure/api-gateway
 
+    # Enables Spring Cloud Bus for distributed configuration management
+    bus:
+      enabled: true
+      id: ${spring.application.name}:${server.port}
 
 management:
   endpoints:
@@ -45,9 +57,12 @@ management:
       base-path: /actuator
       exposure:
         # Exposes selected actuator endpoints over HTTP
-        include: health, info
+        include: health, info, refresh, busrefresh
 
   endpoint:
+    busrefresh:
+      access: unrestricted
+
     health:
       # Always display detailed health information (use cautiously in production)
       show-details: always
