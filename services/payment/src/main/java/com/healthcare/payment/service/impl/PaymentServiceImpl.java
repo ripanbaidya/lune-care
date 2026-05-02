@@ -19,6 +19,8 @@ import com.healthcare.payment.payload.request.VerifyPaymentRequest;
 import com.healthcare.payment.payload.response.PaymentResponse;
 import com.healthcare.payment.repository.PaymentRepository;
 import com.healthcare.payment.service.PaymentService;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -65,10 +67,9 @@ public class PaymentServiceImpl implements PaymentService {
             return PaymentMapper.toResponse(existingRecord);
         }
 
-        // Fetch authoritative amount — NEVER trust frontend for amount
-        AppointmentDetails appointment = appointmentClient.getAppointmentDetails(appointmentId);
-        log.debug("Fetched appointment details — appointmentId: {}, fees: {}",
-                appointmentId, appointment.consultationFees());
+        // CB + Retry applied
+        // Amount must come from the appointment-service, never trusted from frontend
+        AppointmentDetails appointment = fetchAppointmentDetails(appointmentId);
 
         PaymentGateway gateway = gatewayRegistry.getGateway(gatewayType);
         OrderResult orderResult = gateway.createOrder(
@@ -144,7 +145,9 @@ public class PaymentServiceImpl implements PaymentService {
             signature = null;
         }
 
-        boolean isValid = gateway.verifyPayment(gatewayOrderId, gatewayPaymentId, signature);
+        // CB applied - separate instance per gateway type
+        boolean isValid = verifyGatewayPayment(gatewayType, gateway, gatewayOrderId,
+                gatewayPaymentId, signature);
 
         if (!isValid) {
             paymentRecord.setStatus(PaymentStatus.FAILED);
@@ -161,6 +164,7 @@ public class PaymentServiceImpl implements PaymentService {
         if (gatewayType == PaymentGatewayType.RAZORPAY) {
             paymentRecord.getGatewayDetail().setRazorpayPaymentId(request.razorpayPaymentId());
         }
+
         // Stripe: stripePaymentIntentId was already stored during initiatePayment
 
         paymentRepository.saveAndFlush(paymentRecord); // flush before external Feign call
@@ -169,6 +173,9 @@ public class PaymentServiceImpl implements PaymentService {
             log.info("Confirming appointment after payment — appointmentId: {}, gateway: {}",
                     appointmentId, gatewayType);
 
+            // CRITICAL: No @Retry - money already captured
+            // If this fails, transaction rolls back, record reverts to INITIATED,
+            // Patient can safely retry verifyPayment.
             appointmentClient.confirmPayment(new ConfirmPaymentRequest(
                     appointmentId,
                     resolveConfirmedPaymentId(paymentRecord)
@@ -263,7 +270,8 @@ public class PaymentServiceImpl implements PaymentService {
             log.debug("Calling gateway refund — gateway: {}, paymentId: {}, amount: {}",
                     gatewayType, gatewayPaymentId, paymentRecord.getAmount());
 
-            String refundId = gateway.refund(gatewayPaymentId, paymentRecord.getAmount());
+            // CB applied on gateway refund - separate instance per gateway
+            String refundId = processGatewayRefund(gatewayType, gateway, gatewayPaymentId, paymentRecord);
 
             paymentRecord.setStatus(PaymentStatus.REFUNDED);
             storeRefundId(paymentRecord, refundId);
@@ -289,15 +297,194 @@ public class PaymentServiceImpl implements PaymentService {
                     appointmentId, gatewayType, gatewayPaymentId, e.getMessage());
         }
 
-        // Notify appointment-service to release the held slot
-        try {
-            appointmentClient.releaseSlotAfterRefund(appointmentId);
-            log.info("Slot release triggered — appointmentId: {}", appointmentId);
-        } catch (Exception e) {
-            // Non-blocking — stale CANCELLED slot is operationally harmless
-            log.error("Slot release failed after refund — appointmentId: {}, error: {}. " +
-                    "Slot may need manual release.", appointmentId, e.getMessage());
-        }
+        // Retry - slot release is non-blocking but should be retried on transient failure
+        releaseSlotAfterRefundWithRetry(appointmentId);
+    }
+
+    // Resilience wrapped private methods
+
+    /**
+     * CB + Retry on appointment-service and appointment-service-read
+     */
+    @CircuitBreaker(name = "appointment-service", fallbackMethod = "fetchAppointmentDetailsFallback")
+    @Retry(name = "appointment-service-read")
+    private AppointmentDetails fetchAppointmentDetails(String appointmentId) {
+        return appointmentClient.getAppointmentDetails(appointmentId);
+    }
+
+    @SuppressWarnings("unused")
+    private AppointmentDetails fetchAppointmentDetailsFallback(String appointmentId, Exception e) {
+        log.error("CB OPEN or retries exhausted — appointment-service unavailable. " +
+                "appointmentId: {}, cause: {}", appointmentId, e.getMessage());
+        throw new PaymentException(ErrorCode.GATEWAY_NOT_AVAILABLE,
+                "Payment service is temporarily unavailable. Please try again shortly.");
+    }
+
+    /**
+     * CB + Retry on Razorpay order creation
+     */
+    @CircuitBreaker(name = "razorpay", fallbackMethod = "createRazorpayOrderFallback")
+    @Retry(name = "payment-gateway")
+    private OrderResult createRazorpayOrder(String appointmentId, AppointmentDetails appointment,
+                                            PaymentGateway gateway) {
+        return gateway.createOrder(appointmentId, appointment.consultationFees(), "INR");
+    }
+
+    @SuppressWarnings("unused")
+    private OrderResult createRazorpayOrderFallback(String appointmentId, AppointmentDetails appointment,
+                                                    PaymentGateway gateway, Exception e) {
+        log.error("Razorpay CB OPEN — gateway unavailable. appointmentId: {}, cause: {}",
+                appointmentId, e.getMessage());
+        throw new PaymentException(ErrorCode.GATEWAY_NOT_AVAILABLE,
+                "Razorpay is temporarily unavailable. Please try again shortly.");
+    }
+
+    /**
+     * CB + Retry on Stripe order creation
+     */
+    @CircuitBreaker(name = "stripe", fallbackMethod = "createStripeOrderFallback")
+    @Retry(name = "payment-gateway")
+    private OrderResult createStripeOrder(String appointmentId, AppointmentDetails appointment,
+                                          PaymentGateway gateway) {
+        return gateway.createOrder(appointmentId, appointment.consultationFees(), "INR");
+    }
+
+    @SuppressWarnings("unused")
+    private OrderResult createStripeOrderFallback(String appointmentId, AppointmentDetails appointment,
+                                                  PaymentGateway gateway,
+                                                  Exception e) {
+        log.error("Stripe CB OPEN — gateway unavailable. appointmentId: {}, cause: {}",
+                appointmentId, e.getMessage());
+        throw new PaymentException(ErrorCode.GATEWAY_NOT_AVAILABLE,
+                "Stripe is temporarily unavailable. Please try again shortly.");
+    }
+
+    /**
+     * Routes to the correct CB-wrapped gateway order creation method.
+     */
+    private OrderResult createGatewayOrder(PaymentGatewayType gatewayType, String appointmentId,
+                                           AppointmentDetails appointment, PaymentGateway gateway) {
+
+        return switch (gatewayType) {
+            case RAZORPAY -> createRazorpayOrder(appointmentId, appointment, gateway);
+            case STRIPE -> createStripeOrder(appointmentId, appointment, gateway);
+        };
+    }
+
+    /**
+     * CB on razorpay payment verification
+     */
+    @CircuitBreaker(name = "razorpay", fallbackMethod = "verifyRazorpayFallback")
+    private boolean verifyRazorpay(PaymentGateway gateway, String gatewayOrderId,
+                                   String gatewayPaymentId, String signature) {
+        return gateway.verifyPayment(gatewayOrderId, gatewayPaymentId, signature);
+    }
+
+    @SuppressWarnings("unused")
+    private boolean verifyRazorpayFallback(PaymentGateway gateway, String gatewayOrderId,
+                                           String gatewayPaymentId, String signature,
+                                           Exception e) {
+        log.error("Razorpay verification CB OPEN — orderId: {}, cause: {}",
+                gatewayOrderId, e.getMessage());
+        throw new PaymentException(ErrorCode.GATEWAY_NOT_AVAILABLE,
+                "Razorpay is temporarily unavailable. Please retry verification.");
+    }
+
+    /**
+     * CB on razorpay stripe verification
+     */
+    @CircuitBreaker(name = "stripe", fallbackMethod = "verifyStripeFallback")
+    private boolean verifyStripe(PaymentGateway gateway, String gatewayOrderId,
+                                 String gatewayPaymentId, String signature) {
+        return gateway.verifyPayment(gatewayOrderId, gatewayPaymentId, signature);
+    }
+
+    @SuppressWarnings("unused")
+    private boolean verifyStripeFallback(PaymentGateway gateway, String gatewayOrderId,
+                                         String gatewayPaymentId, String signature,
+                                         Exception e) {
+        log.error("Stripe verification CB OPEN — paymentIntentId: {}, cause: {}",
+                gatewayOrderId, e.getMessage());
+        throw new PaymentException(ErrorCode.GATEWAY_NOT_AVAILABLE,
+                "Stripe is temporarily unavailable. Please retry verification.");
+    }
+
+    /**
+     * Routes to correct CB-wrapped gateway verification method.
+     */
+    private boolean verifyGatewayPayment(PaymentGatewayType gatewayType, PaymentGateway gateway,
+                                         String gatewayOrderId, String gatewayPaymentId,
+                                         String signature) {
+        return switch (gatewayType) {
+            case RAZORPAY -> verifyRazorpay(gateway, gatewayOrderId, gatewayPaymentId, signature);
+            case STRIPE -> verifyStripe(gateway, gatewayOrderId, gatewayPaymentId, signature);
+        };
+    }
+
+    /**
+     * CB + Retry on Razorpay refund
+     */
+    @CircuitBreaker(name = "razorpay", fallbackMethod = "refundRazorpayFallback")
+    @Retry(name = "payment-gateway")
+    private String refundRazorpay(PaymentGateway gateway, String gatewayPaymentId,
+                                  PaymentRecord record) {
+        return gateway.refund(gatewayPaymentId, record.getAmount());
+    }
+
+    @SuppressWarnings("unused")
+    private String refundRazorpayFallback(PaymentGateway gateway, String gatewayPaymentId,
+                                          PaymentRecord record, Exception e) {
+        log.error("Razorpay refund CB OPEN — paymentId: {}, cause: {}",
+                gatewayPaymentId, e.getMessage());
+        throw new PaymentException(ErrorCode.REFUND_FAILED,
+                "Razorpay refund gateway is currently unavailable. manual_action_required=true");
+    }
+
+    /**
+     * CB + Retry on Stripe refund
+     */
+    @CircuitBreaker(name = "stripe", fallbackMethod = "refundStripeFallback")
+    @Retry(name = "payment-gateway")
+    private String refundStripe(PaymentGateway gateway, String gatewayPaymentId,
+                                PaymentRecord record) {
+        return gateway.refund(gatewayPaymentId, record.getAmount());
+    }
+
+    @SuppressWarnings("unused")
+    private String refundStripeFallback(PaymentGateway gateway, String gatewayPaymentId,
+                                        PaymentRecord record, Exception e) {
+        log.error("Stripe refund CB OPEN — paymentIntentId: {}, cause: {}",
+                gatewayPaymentId, e.getMessage());
+        throw new PaymentException(ErrorCode.REFUND_FAILED,
+                "Stripe refund gateway is currently unavailable. manual_action_required=true");
+    }
+
+    /**
+     * Route to the correct CB-wrapped gateway refund method.
+     */
+    private String processGatewayRefund(PaymentGatewayType gatewayType, PaymentGateway gateway,
+                                        String gatewayPaymentId, PaymentRecord record) {
+        return switch (gatewayType) {
+            case RAZORPAY -> refundRazorpay(gateway, gatewayPaymentId, record);
+            case STRIPE -> refundStripe(gateway, gatewayPaymentId, record);
+        };
+    }
+
+    /**
+     * Retry on slot release - non-blocking, the best effort.
+     */
+    @Retry(name = "release-slot", fallbackMethod = "releaseSlotFallback")
+    private void releaseSlotAfterRefundWithRetry(String appointmentId) {
+        appointmentClient.releaseSlotAfterRefund(appointmentId);
+        log.info("Slot release triggered — appointmentId: {}", appointmentId);
+    }
+
+    @SuppressWarnings("unused")
+    private void releaseSlotFallback(String appointmentId, Exception e) {
+        // Matches existing intent — stale CANCELLED slot is operationally harmless.
+        // Slot can be manually released or cleaned up by a future reconciliation job.
+        log.error("Slot release failed after retries — appointmentId: {}, error: {}. " +
+                "Slot may need manual release.", appointmentId, e.getMessage());
     }
 
     // helpers
