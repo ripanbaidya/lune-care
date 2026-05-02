@@ -22,6 +22,7 @@ import com.healthcare.auth.security.JwtService;
 import com.healthcare.auth.service.AuthService;
 import com.healthcare.auth.service.TokenBlacklistService;
 import feign.FeignException;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -291,6 +292,7 @@ public class AuthServiceImpl implements AuthService {
      * the identity is already saved, and the profile can be created via a
      * retry or reconciliation job. All failures are logged for alerting.
      */
+    @Retry(name = "profile-creation", fallbackMethod = "createPatientProfileFallback")
     private void createPatientProfile(User user, PatientRegisterRequest request) {
         try {
             var profileRequest = CreatePatientProfileRequest.builder()
@@ -303,6 +305,7 @@ public class AuthServiceImpl implements AuthService {
             log.debug("Patient profile created via patient-service — userId='{}'.", user.getId());
 
         } catch (FeignException.Conflict ex) {
+            // Conflict is business exception that means the profile already exists, Ignore.
             log.warn("Patient profile already exists in patient-service — userId='{}'. " +
                     "This may be a duplicate registration attempt. Skipping.", user.getId());
         } catch (FeignException ex) {
@@ -317,9 +320,20 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
+     * Fallback for createPatientProfile
+     */
+    @SuppressWarnings("unused")
+    protected void createPatientProfileFallback(User user, PatientRegisterRequest request, Exception e) {
+        log.error("ALERT: patient-service unreachable after retries — userId='{}'. " +
+                        "Profile creation skipped. Manual reconciliation required. error={}",
+                user.getId(), e.getMessage());
+    }
+
+    /**
      * Calls the {@code doctor-service} to create the doctor's profile record.
      * See {@link #createPatientProfile} for the error-handling rationale.
      */
+    @Retry(name = "profile-creation", fallbackMethod = "createDoctorProfileFallback")
     private void createDoctorProfile(User user, DoctorRegisterRequest request) {
         try {
             var profileRequest = CreateDoctorProfileRequest.builder()
@@ -343,5 +357,15 @@ public class AuthServiceImpl implements AuthService {
                             "Identity is saved; profile creation will need manual reconciliation.",
                     user.getId(), ex.getMessage());
         }
+    }
+
+    /**
+     * Fallback for createDoctorProfile
+     */
+    @SuppressWarnings("unused")
+    protected void createDoctorProfileFallback(User user, DoctorRegisterRequest request, Exception e) {
+        log.error("ALERT: doctor-service unreachable after retries — userId='{}'. " +
+                        "Profile creation skipped. Manual reconciliation required. error={}",
+                user.getId(), e.getMessage());
     }
 }
