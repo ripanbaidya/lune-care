@@ -1,7 +1,7 @@
 package com.healthcare.admin.exception.handler;
 
 import com.healthcare.admin.enums.ErrorCode;
-import com.healthcare.admin.exception.BaseException;
+import com.healthcare.admin.exception.BusinessException;
 import com.healthcare.admin.payload.dto.error.ErrorDetail;
 import com.healthcare.admin.payload.dto.error.ErrorResponse;
 import com.healthcare.admin.payload.dto.error.FieldError;
@@ -18,8 +18,8 @@ import java.util.List;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(BaseException.class)
-    public ResponseEntity<ErrorResponse> handleBaseException(BaseException ex,
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ErrorResponse> handleBaseException(BusinessException ex,
                                                              HttpServletRequest request) {
 
         log.warn("Base exception: [{}] - {}", ex.getErrorCode(), ex.getResolvedMessage());

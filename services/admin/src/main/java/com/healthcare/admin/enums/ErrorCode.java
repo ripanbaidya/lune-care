@@ -17,7 +17,8 @@ public enum ErrorCode {
     PHOTO_UPLOAD_FAILED(ErrorType.INTERNAL, "Failed to upload the photo. Please try again later"),
 
     VALIDATION_FAILED(ErrorType.VALIDATION, "One or more request fields are invalid"),
-    INTERNAL_ERROR(ErrorType.INTERNAL, "An unexpected internal server error occurred");
+    INTERNAL_ERROR(ErrorType.INTERNAL, "An unexpected internal server error occurred"),
+    SERVICE_UNAVAILABLE(ErrorType.SERVICE_UNAVAILABLE, "The service is temporarily unavailable. Please try again later" );
 
     private final ErrorType type;
     private final String defaultMessage;
