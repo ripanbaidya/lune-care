@@ -1,0 +1,8 @@
+Why feign-okhttp: Java's built-in HttpURLConnection does not support the PATCH method.
+OkHttp replaces it as the underlying Feign HTTP client and supports all HTTP methods including
+PATCH, DELETE with a request body.
+
+<dependency>
+  <groupId>io.github.openfeign</groupId>
+    <artifactId>feign-okhttp</artifactId>
+</dependency>
