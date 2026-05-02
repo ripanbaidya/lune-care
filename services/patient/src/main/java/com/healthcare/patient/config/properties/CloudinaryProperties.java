@@ -2,7 +2,7 @@ package com.healthcare.patient.config.properties;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "app.integration.cloudinary")
+@ConfigurationProperties(prefix = "app.integrations.cloudinary")
 public record CloudinaryProperties(
         boolean enabled,
         String cloudName,

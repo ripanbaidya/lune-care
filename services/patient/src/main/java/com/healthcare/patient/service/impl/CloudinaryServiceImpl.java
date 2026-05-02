@@ -13,16 +13,30 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class CloudinaryServiceImpl implements CloudinaryService {
 
     private static final String PATIENT_FOLDER = "lune-care/patients/profile-photos";
     private static final String PUBLIC_ID = "public_id";
 
     private final Cloudinary cloudinary;
+
+    // It handles the case where cloudinary enabled=false
+    public CloudinaryServiceImpl(Optional<Cloudinary> cloudinary) {
+        this.cloudinary = cloudinary.orElse(null);
+    }
+
+    private Cloudinary getCloudinary() {
+        if (cloudinary == null) {
+            log.error("Cloudinary is not configured or disabled. Unable to upload files.");
+            throw new CloudinaryException(ErrorCode.PHOTO_UPLOAD_FAILED,
+                    "Cloudinary is not configured or disabled. Unable to upload files.");
+        }
+        return cloudinary;
+    }
 
     @Override
     public Map<String, String> uploadPhoto(String patientId, MultipartFile file) {
