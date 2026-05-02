@@ -33,7 +33,7 @@ control the slot generation window more precisely.
 * Integrate **Spring Cloud Bus** across all services and the Config Server:
 * Enable runtime configuration refresh using the `/busrefresh` endpoint.
 
-### 5. API Documentation - 01.05.2026
+### 5. API Documentation - 01.05.2026 - done
 
 * Implement comprehensive Swagger/OpenAPI documentation for all services.
 * Ensure all endpoints, request/response schemas, and error cases are properly documented.

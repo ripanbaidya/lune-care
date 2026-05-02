@@ -7,7 +7,7 @@
 **/*.war
 **/*.ear
 
-# ID
+# IDE
 .idea/
 .vscode/
 *.iml
@@ -27,7 +27,7 @@ desktop.ini
 .Spotlight-V100
 
 # Secrets & keys
-# Make sure do not commit the secrets to production
+# Development phase: secrets are intentionally tracked for team collaboration
 # secrets/
 # *.pem
 *.key
@@ -39,6 +39,9 @@ desktop.ini
 **/.env
 **/.env.*
 !**/.env.example
+!.evn.example
+.env
+encrypted-config.yml
 
 # Spring Boot/Java
 HELP.md
@@ -47,23 +50,9 @@ logs/
 spring-shell.log
 
 # Docker / Infrastructure
-**/*.tfstate
-**/*.tfstate.backup
-.terraform.lock.hcl
-kubeconfig
-**/kubeconfig.*
-
-# Test & coverage reports
-**/surefire-reports/
-**/failsafe-reports/
-jacoco.exec
-**/jacoco/
-**/coverage/
 
 # Generated sources
 **/generated-sources/
 **/generated-test-sources/
 
-# Project specific
-CLAUDE.md
-public/docs/APIs.md
+# Project Specific
