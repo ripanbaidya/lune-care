@@ -122,6 +122,12 @@
             <artifactId>resilience4j-spring-boot3</artifactId>
         </dependency>
 
+        <!-- AOP - Required for @Retry to work -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
         <!-- Developer Tools -->
         <dependency>
             <groupId>org.projectlombok</groupId>
