@@ -4,23 +4,23 @@ import com.healthcare.admin.enums.ErrorCode;
 import lombok.Getter;
 
 @Getter
-public abstract class BaseException extends RuntimeException {
+public abstract class BusinessException extends RuntimeException {
     private final ErrorCode errorCode;
     private final String customMessage;
 
-    protected BaseException(ErrorCode errorCode) {
+    protected BusinessException(ErrorCode errorCode) {
         super(errorCode.getDefaultMessage());
         this.errorCode = errorCode;
         this.customMessage = null;
     }
 
-    protected BaseException(ErrorCode errorCode, String customMessage) {
+    protected BusinessException(ErrorCode errorCode, String customMessage) {
         super(customMessage);
         this.errorCode = errorCode;
         this.customMessage = customMessage;
     }
 
-    protected BaseException(ErrorCode errorCode, String customMessage, Throwable cause) {
+    protected BusinessException(ErrorCode errorCode, String customMessage, Throwable cause) {
         super(customMessage, cause);
         this.errorCode = errorCode;
         this.customMessage = customMessage;
