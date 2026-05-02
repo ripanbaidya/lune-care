@@ -5,23 +5,13 @@ spring:
   application:
     name: config-server
 
-  # RabbitMQ configuration for bus-refresh
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
-    connection-timeout: 5000
+  profiles:
+    active: dev
 
   cloud:
     config:
       server:
         git:
-          # Remote Git repository containing centralized configuration files
-          uri: ${GIT_URI:https://github.com/ripanbaidya/lune-care-config.git}
-
-          #          username: ${GIT_USERNAME}
-          #          password: ${GIT_PASSWORD}
 
           # Specifies the default branch to read configurations from
           # Falls back to 'master' if 'main' is unavailable
@@ -50,6 +40,14 @@ spring:
     bus:
       enabled: true
       id: ${spring.application.name}:${server.port}
+
+  # RabbitMQ configuration for bus-refresh
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    connection-timeout: 5000
 
 management:
   endpoints:
@@ -85,6 +83,12 @@ management:
       # Exposes environment details via /actuator/info
       enabled: true
 
+# Using Spring Cloud Config Encryption so that sensitive data stays encrypted in the repository to avoid
+# leaking it in plain text.
+# Note: Use strong key to encrypt/decrypt the data and never expose the key in the configuration.
+# Reference: https://docs.spring.io/spring-cloud-config/reference/server/encryption-and-decryption.html
+encrypt:
+  key: ${ENCRYPT_KEY}
 
 info:
   app:

@@ -5,69 +5,8 @@ spring:
   application:
     name: eureka-server
 
-  # Enables Spring Cloud Config support
   config:
     import: "optional:configserver:http://localhost:8888"
 
-  # Activate the dev profile by default
   profiles:
     active: dev
-
-eureka:
-  instance:
-    # Hostname where the Eureka server is running
-    hostname: localhost
-
-  client:
-    # Since this is a standalone Eureka Server:
-    # - It does NOT register itself as a client
-    # - It does NOT fetch registry information from other Eureka servers
-    fetch-registry: false
-    register-with-eureka: false
-
-    service-url:
-      # Default zone pointing to itself (used internally by Eureka)
-      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
-
-  server:
-    # Interval at which Eureka checks and removes instances
-    # that have not sent heartbeat signals (eviction process)
-    eviction-interval-timer-in-ms: 5000
-
-
-management:
-  endpoints:
-    web:
-      exposure:
-        # Exposes selected actuator endpoints over HTTP
-        include: health, info
-
-  endpoint:
-    health:
-      # Always display detailed health information (use cautiously in production)
-      show-details: always
-      probes:
-        # Enables liveness and readiness probes (useful for container orchestration)
-        enabled: true
-
-    info:
-      # Allows unrestricted access to application info endpoint
-      access: unrestricted
-
-  health:
-    liveness-state:
-      enabled: true
-    readiness-state:
-      enabled: true
-
-  info:
-    env:
-      # Exposes environment-related details via /actuator/info
-      enabled: true
-
-
-info:
-  app:
-    name: "LuneCare Service Registry (Eureka Server)"
-    version: "v1.0.0"
-    description: "Service discovery server responsible for registering and managing all microservices within the LuneCare healthcare ecosystem, enabling dynamic service lookup and load balancing."
