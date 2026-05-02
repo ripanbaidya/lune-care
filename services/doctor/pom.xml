@@ -157,7 +157,7 @@
                     <to>
                         <image>${dockerhub.account.name}/${app.name}-${project.artifactId}</image>
                         <tags>
-                            <tag>${version}</tag>
+                            <tag>${project.version}</tag>
                             <tag>latest</tag>
                         </tags>
                     </to>
