@@ -14,6 +14,7 @@ import com.healthcare.doctor.repository.ClinicRepository;
 import com.healthcare.doctor.repository.ClinicScheduleRepository;
 import com.healthcare.doctor.service.ClinicScheduleService;
 import com.healthcare.doctor.service.DoctorService;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -174,28 +175,45 @@ public class ClinicScheduleServiceImpl implements ClinicScheduleService {
                 .toList();
     }
 
-    // Private helpers
+    // Private helpers - Resilience-protected outbound calls
 
-    private boolean isTimeWindowChanged(ClinicSchedule existing, LocalTime newStart, LocalTime newEnd) {
-        return !existing.getStartTime().equals(newStart) || !existing.getEndTime().equals(newEnd);
-    }
-
+    /**
+     * Cancels available slots for a day when the schedule changes.
+     * Retrying 2 times, 300ms wait.
+     * Non-blocking by design — stale AVAILABLE slots are harmless since slot generation
+     * is idempotent and the DB unique constraint prevents duplicates on regeneration.
+     * Fallback logs a warning and continues — schedule update is NOT blocked.
+     */
+    @Retry(name = "appointment-service", fallbackMethod = "cancelAvailableSlotsForDayFallback")
     private void cancelAvailableSlotsForDay(String clinicId, DayOfWeek dayOfWeek) {
         try {
             appointmentServiceClient.cancelAvailableSlotsForDay(clinicId, dayOfWeek.name());
             log.info("Available slots cancelled. clinicId={}, day={}", clinicId, dayOfWeek);
         } catch (Exception e) {
-            // Non-blocking — stale slots are harmless; generation is idempotent
-            // and the unique constraint prevents duplicates on regeneration.
             log.error("Failed to cancel available slots. clinicId={}, day={}, error={}",
                     clinicId, dayOfWeek, e.getMessage());
         }
     }
 
     /**
-     * Calls appointment-service to generate slots for the given schedule entries
-     * within the doctor-specified date window.
+     * Fallback for cancelAvailableSlotsForDay — non-fatal, logs and continues.
+     * Stale AVAILABLE slots will simply not appear in patient search (they'll be in the future
+     * but appointment-service filters by status=AVAILABLE anyway; CANCELLED ones are excluded).
      */
+    @SuppressWarnings("unused")
+    protected void cancelAvailableSlotsForDayFallback(String clinicId, DayOfWeek dayOfWeek, Exception ex) {
+        log.warn("RETRY EXHAUSTED: Failed to cancel available slots. " +
+                        "clinicId={}, day={}. Stale slots may exist — they are harmless. error={}",
+                clinicId, dayOfWeek, ex.getMessage());
+    }
+
+    /**
+     * Triggers slot generation in appointment-service.
+     * Retrying 2 times, 300ms wait.
+     * Fallback logs error — slot generation failure is non-blocking for schedule update.
+     * Slots can be generated manually or via the rolling daily scheduler.
+     */
+    @Retry(name = "appointment-service", fallbackMethod = "triggerSlotGenerationFallback")
     private void triggerSlotGeneration(String doctorUserId,
                                        String clinicId,
                                        int durationMinutes,
@@ -222,6 +240,29 @@ public class ClinicScheduleServiceImpl implements ClinicScheduleService {
         } catch (Exception e) {
             log.error("Failed to trigger slot generation. clinicId={}, error={}", clinicId, e.getMessage());
         }
+    }
+
+    /**
+     * Fallback for triggerSlotGeneration — non-fatal.
+     * Schedule is saved, slots can be generated later by the daily rolling scheduler.
+     */
+    @SuppressWarnings("unused")
+    protected void triggerSlotGenerationFallback(String doctorUserId,
+                                                 String clinicId,
+                                                 int durationMinutes,
+                                                 List<GenerateSlotsRequest.ScheduleEntry> entries,
+                                                 LocalDate startDate,
+                                                 LocalDate endDate,
+                                                 Exception ex) {
+        log.error("RETRY EXHAUSTED: Slot generation failed. clinicId={}, window=[{} → {}]. " +
+                        "Schedule is saved. Daily scheduler will generate slots. error={}",
+                clinicId, startDate, endDate, ex.getMessage());
+    }
+
+    // Utility
+
+    private boolean isTimeWindowChanged(ClinicSchedule existing, LocalTime newStart, LocalTime newEnd) {
+        return !existing.getStartTime().equals(newStart) || !existing.getEndTime().equals(newEnd);
     }
 
     private GenerateSlotsRequest.ScheduleEntry toScheduleEntry(ClinicSchedule schedule) {
