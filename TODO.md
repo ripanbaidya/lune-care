@@ -12,7 +12,7 @@ control the slot generation window more precisely.
 
 * Complete database migrations for all services.
 
-### 3. Spring Boot Profiles & Config Server - 01.05.2026
+### 3. Spring Boot Profiles & Config Server - 01.05.2026 - done
 
 * Create environment-specific configuration files:
 
@@ -28,7 +28,7 @@ control the slot generation window more precisely.
   * Config Server is running correctly.
   * Services are fetching configurations dynamically at runtime.
 
-### 4. Spring Cloud Bus Integration - 01.05.2026
+### 4. Spring Cloud Bus Integration - 01.05.2026 - done
 
 * Integrate **Spring Cloud Bus** across all services and the Config Server:
 * Enable runtime configuration refresh using the `/busrefresh` endpoint.
