@@ -22,6 +22,8 @@ import com.healthcare.doctor.repository.ClinicRepository;
 import com.healthcare.doctor.repository.DoctorRepository;
 import com.healthcare.doctor.service.CloudinaryService;
 import com.healthcare.doctor.service.DoctorService;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -341,6 +343,18 @@ public class DoctorServiceImpl implements DoctorService {
 
     // Private helpers
 
+    /**
+     * Calls auth-service to sync account status.
+     * Circuit breaker will Open after 50% failure in 10 calls and stays open for the 30s,
+     * then half-open with 3 probe calls.
+     * Retry Up to 3 attempts with 500ms wait on network errors.
+     * For the {@code DoctorException} we won't retry — domain errors don't retry.
+     * Fallback {@code throws DoctorException(REMOTE_SERVICE_FAILURE)} so the transaction rolls back and
+     * the caller gets a 500. Status sync is critical — we must NOT silently succeed if auth-service can't
+     * be reached after all retries.
+     */
+    @CircuitBreaker(name = "auth-service", fallbackMethod = "syncStatusWithAuthServiceFallback")
+    @Retry(name = "auth-service")
     private void syncStatusWithAuthService(String userId, AccountStatus newStatus) {
         try {
             log.debug("Syncing account status with auth-service. userId={}, status={}", userId, newStatus);
@@ -348,7 +362,19 @@ public class DoctorServiceImpl implements DoctorService {
             log.info("Auth-service sync successful. userId={}, status={}", userId, newStatus);
         } catch (Exception e) {
             log.error("Auth-service sync failed. userId={}, status={}, error={}", userId, newStatus, e.getMessage());
-            throw new DoctorException(ErrorCode.REMOTE_SERVICE_FAILURE);
+            throw e; // Let the Resilience4j handle the exception.
         }
+    }
+
+    /**
+     * Fallback for syncStatusWithAuthService — called when CB is open OR all retries are exhausted.
+     * This is a critical operation — we throw to roll back the transaction.
+     */
+    @SuppressWarnings("unused") // invoked by Resilience4j via reflection
+    protected void syncStatusWithAuthServiceFallback(String userId, AccountStatus newStatus, Exception e) {
+        log.error("CIRCUIT OPEN / RETRIES EXHAUSTED: auth-service unreachable. " +
+                "userId={}, targetStatus={}, error={}", userId, newStatus, e.getMessage());
+        throw new DoctorException(ErrorCode.REMOTE_SERVICE_FAILURE,
+                "Unable to sync account status with auth-service. Please try again later.");
     }
 }
