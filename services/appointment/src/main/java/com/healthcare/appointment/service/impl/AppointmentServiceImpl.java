@@ -23,6 +23,8 @@ import com.healthcare.appointment.repository.SlotRepository;
 import com.healthcare.appointment.schedular.AppointmentTimeoutScheduler;
 import com.healthcare.appointment.service.AppointmentService;
 import com.healthcare.appointment.service.SlotLockService;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -116,7 +118,9 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         try {
             long fetchStart = System.currentTimeMillis();
-            BigDecimal consultationFees = doctorServiceClient.getClinicFees(slot.getClinicId());
+
+            // CB + Retry - falls back to ZERO if doctor-service is down
+            BigDecimal consultationFees = fetchClinicFees(slot.getClinicId());
             log.debug("Fetched consultation fees={} in {}ms", consultationFees,
                     System.currentTimeMillis() - fetchStart);
 
@@ -165,7 +169,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Transactional
     public AppointmentResponse confirmPayment(ConfirmPaymentRequest request) {
         String appointmentId = request.appointmentId();
-        String paymentId     = request.paymentId();
+        String paymentId = request.paymentId();
 
         log.info("Processing payment confirmation. appointmentId={}, paymentId={}", appointmentId, paymentId);
 
@@ -509,6 +513,29 @@ public class AppointmentServiceImpl implements AppointmentService {
                 () -> log.error("Slot not found during refund release. slotId={}, appointmentId={}",
                         appointment.getSlotId(), appointmentId)
         );
+    }
+
+    // Resilience-wrapped private methods
+
+    /**
+     * CB + Retry on doctor-service clinic fees fetch.
+     * Fallback returns BigDecimal.ZERO - booking proceeds rather than failing.
+     * Rationale: a zero-fee appointment is recoverable (admin can correct it);
+     * a failed booking during doctor-service downtime is a poor user experience
+     * and breaks the entire booking flow for all patients simultaneously.
+     */
+    @CircuitBreaker(name = "doctor-service", fallbackMethod = "fetchClinicFeesFallback")
+    @Retry(name = "doctor-service")
+    private BigDecimal fetchClinicFees(String clinicId) {
+        return doctorServiceClient.getClinicFees(clinicId);
+    }
+
+    @SuppressWarnings("unused")
+    private BigDecimal fetchClinicFeesFallback(String clinicId, Throwable t) {
+        log.error("CB OPEN or retries exhausted — doctor-service unavailable for " +
+                        "clinic fees. clinicId: {}, cause: {}. Proceeding with ZERO fees.",
+                clinicId, t.getMessage());
+        return BigDecimal.ZERO;
     }
 
     // Private helpers
