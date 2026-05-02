@@ -1,0 +1,12 @@
+spring:
+  cloud:
+    config:
+      server:
+        git:
+          uri: ${GIT_URI}
+          username: ${GIT_USERNAME}
+          password: ${GIT_PASSWORD}
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
