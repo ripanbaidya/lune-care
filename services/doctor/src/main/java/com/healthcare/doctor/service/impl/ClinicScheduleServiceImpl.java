@@ -186,13 +186,8 @@ public class ClinicScheduleServiceImpl implements ClinicScheduleService {
      */
     @Retry(name = "appointment-service", fallbackMethod = "cancelAvailableSlotsForDayFallback")
     private void cancelAvailableSlotsForDay(String clinicId, DayOfWeek dayOfWeek) {
-        try {
-            appointmentServiceClient.cancelAvailableSlotsForDay(clinicId, dayOfWeek.name());
-            log.info("Available slots cancelled. clinicId={}, day={}", clinicId, dayOfWeek);
-        } catch (Exception e) {
-            log.error("Failed to cancel available slots. clinicId={}, day={}, error={}",
-                    clinicId, dayOfWeek, e.getMessage());
-        }
+        appointmentServiceClient.cancelAvailableSlotsForDay(clinicId, dayOfWeek.name());
+        log.info("Available slots cancelled. clinicId={}, day={}", clinicId, dayOfWeek);
     }
 
     /**
@@ -220,26 +215,22 @@ public class ClinicScheduleServiceImpl implements ClinicScheduleService {
                                        List<GenerateSlotsRequest.ScheduleEntry> entries,
                                        LocalDate startDate,
                                        LocalDate endDate) {
-        try {
-            log.info("Triggering slot generation. clinicId={}, window=[{} → {}], days={}",
-                    clinicId, startDate, endDate,
-                    entries.stream().map(e -> e.dayOfWeek().name()).collect(Collectors.joining(", ")));
+        log.info("Triggering slot generation. clinicId={}, window=[{} → {}], days={}",
+                clinicId, startDate, endDate,
+                entries.stream().map(e -> e.dayOfWeek().name()).collect(Collectors.joining(", ")));
 
-            appointmentServiceClient.generateSlots(GenerateSlotsRequest.builder()
-                    .doctorId(doctorUserId)
-                    .clinicId(clinicId)
-                    .consultationDurationMinutes(durationMinutes)
-                    .schedules(entries)
-                    .startDate(startDate)
-                    .endDate(endDate)
-                    .build()
-            );
+        appointmentServiceClient.generateSlots(GenerateSlotsRequest.builder()
+                .doctorId(doctorUserId)
+                .clinicId(clinicId)
+                .consultationDurationMinutes(durationMinutes)
+                .schedules(entries)
+                .startDate(startDate)
+                .endDate(endDate)
+                .build()
+        );
 
-            log.info("Slot generation triggered successfully. clinicId={}", clinicId);
+        log.info("Slot generation triggered successfully. clinicId={}", clinicId);
 
-        } catch (Exception e) {
-            log.error("Failed to trigger slot generation. clinicId={}, error={}", clinicId, e.getMessage());
-        }
     }
 
     /**

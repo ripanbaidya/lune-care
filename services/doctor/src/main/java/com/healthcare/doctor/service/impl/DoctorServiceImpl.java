@@ -320,7 +320,7 @@ public class DoctorServiceImpl implements DoctorService {
     @Transactional
     public void updateVerificationStatus(String doctorId, UpdateVerificationStatusRequest request) {
         boolean approved = request.approved();
-        String action    = approved ? "APPROVED" : "REJECTED";
+        String action = approved ? "APPROVED" : "REJECTED";
 
         log.info("Verification status update. doctorId={}, action={}", doctorId, action);
 
@@ -356,21 +356,16 @@ public class DoctorServiceImpl implements DoctorService {
     @CircuitBreaker(name = "auth-service", fallbackMethod = "syncStatusWithAuthServiceFallback")
     @Retry(name = "auth-service")
     private void syncStatusWithAuthService(String userId, AccountStatus newStatus) {
-        try {
-            log.debug("Syncing account status with auth-service. userId={}, status={}", userId, newStatus);
-            authServiceClient.updateStatus(new UpdateAccountStatusRequest(userId, newStatus));
-            log.info("Auth-service sync successful. userId={}, status={}", userId, newStatus);
-        } catch (Exception e) {
-            log.error("Auth-service sync failed. userId={}, status={}, error={}", userId, newStatus, e.getMessage());
-            throw e; // Let the Resilience4j handle the exception.
-        }
+        log.debug("Syncing account status with auth-service. userId={}, status={}", userId, newStatus);
+        authServiceClient.updateStatus(new UpdateAccountStatusRequest(userId, newStatus));
+        log.info("Auth-service sync successful. userId={}, status={}", userId, newStatus);
     }
 
     /**
      * Fallback for syncStatusWithAuthService — called when CB is open OR all retries are exhausted.
      * This is a critical operation — we throw to roll back the transaction.
      */
-    @SuppressWarnings("unused") // invoked by Resilience4j via reflection
+    @SuppressWarnings("unused")
     protected void syncStatusWithAuthServiceFallback(String userId, AccountStatus newStatus, Exception e) {
         log.error("CIRCUIT OPEN / RETRIES EXHAUSTED: auth-service unreachable. " +
                 "userId={}, targetStatus={}, error={}", userId, newStatus, e.getMessage());
