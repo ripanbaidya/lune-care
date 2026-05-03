@@ -1,6 +1,6 @@
 ## TODO
 
-### 1. Appointment Service - Completed
+### 1. Appointment Service
 
 * Currently, slots are automatically generated for the next 30 days based on the provided schedule. This behavior is causing issues.
 * Introduce additional fields such as `start_date` and `end_date` from when till when slot has to generate in appointment-service to
@@ -8,11 +8,11 @@ control the slot generation window more precisely.
 * Ensure slot generation strictly adheres to the defined date range.
 * It has more bugs that need to be fixed.
 
-### 2. Database Migrations - Completed
+### 2. Database Migrations
 
 * Complete database migrations for all services.
 
-### 3. Spring Boot Profiles & Config Server - 01.05.2026 - done
+### 3. Spring Boot Profiles & Config Server
 
 * Create environment-specific configuration files:
 
@@ -28,17 +28,17 @@ control the slot generation window more precisely.
   * Config Server is running correctly.
   * Services are fetching configurations dynamically at runtime.
 
-### 4. Spring Cloud Bus Integration - 01.05.2026 - done
+### 4. Spring Cloud Bus Integration
 
 * Integrate **Spring Cloud Bus** across all services and the Config Server:
 * Enable runtime configuration refresh using the `/busrefresh` endpoint.
 
-### 5. API Documentation - 01.05.2026 - done
+### 5. API Documentation
 
 * Implement comprehensive Swagger/OpenAPI documentation for all services.
 * Ensure all endpoints, request/response schemas, and error cases are properly documented.
 
-### 6. Resilience Implementation - 01.05.2026
+### 6. Resilience Implementation
 
 * Integrate **Resilience4j** across all services.
 * Apply appropriate resilience patterns:
@@ -62,12 +62,7 @@ control the slot generation window more precisely.
   * Run all services together
   * Ensure proper networking and dependencies
 
-### 9. Frontend Implementation
-
-* Build the frontend application.
-* Ensure complete end-to-end integration with backend services.
-
-### 10. Observability & Monitoring
+### 9. Observability & Monitoring
 
 * Set up monitoring using:
 
@@ -79,10 +74,15 @@ control the slot generation window more precisely.
   * All services expose metrics
   * Dashboards are configured for system insights
 
+### 10. Frontend Implementation
+
+* Build the frontend application.
+* Ensure complete end-to-end integration with backend services.
+
 ### 11. Deployment
 
 * Deploy the entire system to a Kubernetes cluster.
-* Ensure proper configuration of:
+* Ensure the proper configuration of:
 
   * Deployments
   * Services

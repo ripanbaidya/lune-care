@@ -1,0 +1,34 @@
+# DEV OVERLAY — Databases
+# Exposes all DB ports so you can connect via DBeaver, TablePlus, mongosh etc.
+
+name: lunecare
+
+services:
+
+  auth-db:
+    ports:
+      - "5433:5432"   # jdbc:postgresql://localhost:5433/auth_db
+
+  patient-db:
+    ports:
+      - "5434:5432"   # jdbc:postgresql://localhost:5434/patient_db
+
+  doctor-db:
+    ports:
+      - "5435:5432"   # jdbc:postgresql://localhost:5435/doctor_db
+
+  appointment-db:
+    ports:
+      - "5436:5432"   # jdbc:postgresql://localhost:5436/appointment_db
+
+  payment-db:
+    ports:
+      - "5437:5432"   # jdbc:postgresql://localhost:5437/payment_db
+
+  notification-db:
+    ports:
+      - "27018:27017" # mongodb://mongouser:mongopass@localhost:27018/notification_db?authSource=admin
+
+  feedback-db:
+    ports:
+      - "27019:27017" # mongodb://mongouser:mongopass@localhost:27019/feedback_db?authSource=admin

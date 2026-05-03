@@ -1,4 +1,3 @@
-# =============================================================================
 # LuneCare — Docker Compose Makefile
 # All compose operations go through here. Never run compose files directly.
 #
@@ -7,7 +6,6 @@
 #   make dev-up         → start full dev stack
 #   make dev-infra      → start infra+DBs only (run services via IDE)
 #   make prod-up        → start full prod stack
-# =============================================================================
 
 SHELL := /bin/bash
 

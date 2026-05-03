@@ -1,0 +1,70 @@
+# base - infrastructure services
+# Redis, RabbitMQ shared base config.
+# Override ports/volumes/restart in dev/prod overlay files.
+
+name: lunecare
+
+services:
+
+  # REDIS
+  # Used by: api-gateway (rate limiting), auth (token blacklist), appointment (cache)
+  redis:
+    image: redis:7.2-alpine
+    container_name: lunecare-redis
+    command: >
+      sh -c '
+        if [ -n "$$REDIS_PASSWORD" ]; then
+          redis-server --requirepass $$REDIS_PASSWORD
+        else
+          redis-server
+        fi
+      '
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    volumes:
+      - redis_data:/data
+    networks:
+      - lunecare_network
+    healthcheck:
+      test: >
+        sh -c '
+          if [ -n "$$REDIS_PASSWORD" ]; then
+            redis-cli -a $$REDIS_PASSWORD ping
+          else
+            redis-cli ping
+          fi
+        '
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  # RABBITMQ
+  # Used by: Spring Cloud Bus (config refresh) + all async messaging queues (exchange: lune.care.exchange)
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: lunecare-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - lunecare_network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_node"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+networks:
+  lunecare_network:
+    name: lunecare_network
+    driver: bridge
+
+volumes:
+  redis_data:
+    name: lunecare_redis_data
+  rabbitmq_data:
+    name: lunecare_rabbitmq_data

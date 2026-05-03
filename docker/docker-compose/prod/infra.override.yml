@@ -1,0 +1,44 @@
+# =============================================================================
+# PROD OVERLAY — Infrastructure
+# - No exposed ports (all traffic internal via lunecare_network)
+# - restart: unless-stopped (survive VM reboots)
+# - Resource limits sized for single VM with 8+ GB RAM
+#   Adjust deploy.resources based on your actual VM spec.
+# K8s migration: deploy.resources maps to resources.requests/limits in pod spec.
+# =============================================================================
+
+name: lunecare
+
+services:
+
+  redis:
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  rabbitmq:
+    restart: unless-stopped
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.2'
+          memory: 256M
+
+volumes:
+  redis_data:
+    name: lunecare_redis_data
+  rabbitmq_data:
+    name: lunecare_rabbitmq_data

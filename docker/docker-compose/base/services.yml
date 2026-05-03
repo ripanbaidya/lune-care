@@ -1,0 +1,346 @@
+# BASE — Application Services
+# Boot order enforced via depends_on + condition: service_healthy.
+#
+# Tier 1: config-server  (needs RabbitMQ for Cloud Bus)
+# Tier 2: eureka-server  (needs config-server)
+# Tier 3: microservices  (need config-server + eureka + own DB)
+# Tier 4: api-gateway    (needs eureka + redis + auth to be healthy)
+#
+# ENCRYPT_KEY: injected ONLY into config-server.
+# Decryption of {cipher} values happens inside config-server before serving
+# config to other services. Individual services receive plain-text values.
+#
+# Image format: ripanbaidya/lunecare-<artifactId>:${IMAGE_TAG}
+
+name: lunecare
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # TIER 1 — Config Server
+  # Source of truth for all service configuration.
+  # Needs RabbitMQ healthy first (Spring Cloud Bus uses it for /busrefresh).
+  # Does NOT register with Eureka — services discover it via CONFIG_SERVER_URL.
+  # ---------------------------------------------------------------------------
+  config-server:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/${APP_NAME:-lunecare}-config-server:${IMAGE_TAG:-latest}
+    container_name: lunecare-config-server
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      # ENCRYPT_KEY is ONLY needed here — config-server decrypts {cipher} values
+      # before serving config to all other services.
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
+      GIT_URI: ${GIT_URI}
+      GIT_USERNAME: ${GIT_USERNAME:-}
+      GIT_PASSWORD: ${GIT_PASSWORD:-}
+      SPRING_RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+      SPRING_RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8888/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 40s
+
+  # ---------------------------------------------------------------------------
+  # TIER 2 — Eureka Server
+  # Service registry. Fetches its own config from config-server on startup.
+  # ---------------------------------------------------------------------------
+  eureka-server:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/${APP_NAME:-lunecare}-eureka-server:${IMAGE_TAG:-latest}
+    container_name: lunecare-eureka-server
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SPRING_CONFIG_IMPORT: optional:configserver:${CONFIG_SERVER_URL:-http://config-server:8888}
+      SPRING_RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+      SPRING_RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      EUREKA_HOSTNAME: ${EUREKA_HOSTNAME:-eureka-server}
+    depends_on:
+      config-server:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8761/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 50s
+
+  # ---------------------------------------------------------------------------
+  # TIER 3 — Microservices
+  # All share the same common env block. No ENCRYPT_KEY — they receive
+  # already-decrypted values from config-server.
+  # ---------------------------------------------------------------------------
+
+  auth-service:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/${APP_NAME:-lunecare}-auth:${IMAGE_TAG:-latest}
+    container_name: lunecare-auth
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SPRING_CONFIG_IMPORT: optional:configserver:${CONFIG_SERVER_URL:-http://config-server:8888}
+      SPRING_RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+      SPRING_RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE:-http://eureka-server:8761/eureka}
+      JWT_ACCESS_TOKEN_EXPIRY: ${JWT_ACCESS_TOKEN_EXPIRY:-3600000}
+      JWT_REFRESH_TOKEN_EXPIRY: ${JWT_REFRESH_TOKEN_EXPIRY:-604800000}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      auth-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  patient-service:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/${APP_NAME:-lunecare}-patient:${IMAGE_TAG:-latest}
+    container_name: lunecare-patient
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SPRING_CONFIG_IMPORT: optional:configserver:${CONFIG_SERVER_URL:-http://config-server:8888}
+      SPRING_RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+      SPRING_RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE:-http://eureka-server:8761/eureka}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      patient-db:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8082/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  doctor-service:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/${APP_NAME:-lunecare}-doctor:${IMAGE_TAG:-latest}
+    container_name: lunecare-doctor
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SPRING_CONFIG_IMPORT: optional:configserver:${CONFIG_SERVER_URL:-http://config-server:8888}
+      SPRING_RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+      SPRING_RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE:-http://eureka-server:8761/eureka}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      doctor-db:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8083/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  appointment-service:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/${APP_NAME:-lunecare}-appointment:${IMAGE_TAG:-latest}
+    container_name: lunecare-appointment
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SPRING_CONFIG_IMPORT: optional:configserver:${CONFIG_SERVER_URL:-http://config-server:8888}
+      SPRING_RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+      SPRING_RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE:-http://eureka-server:8761/eureka}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      appointment-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8084/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  payment-service:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/${APP_NAME:-lunecare}-payment:${IMAGE_TAG:-latest}
+    container_name: lunecare-payment
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SPRING_CONFIG_IMPORT: optional:configserver:${CONFIG_SERVER_URL:-http://config-server:8888}
+      SPRING_RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+      SPRING_RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE:-http://eureka-server:8761/eureka}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      payment-db:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8085/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  notification-service:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/${APP_NAME:-lunecare}-notification:${IMAGE_TAG:-latest}
+    container_name: lunecare-notification
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SPRING_CONFIG_IMPORT: optional:configserver:${CONFIG_SERVER_URL:-http://config-server:8888}
+      SPRING_RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+      SPRING_RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE:-http://eureka-server:8761/eureka}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      notification-db:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8086/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  feedback-service:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/${APP_NAME:-lunecare}-feedback:${IMAGE_TAG:-latest}
+    container_name: lunecare-feedback
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SPRING_CONFIG_IMPORT: optional:configserver:${CONFIG_SERVER_URL:-http://config-server:8888}
+      SPRING_RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+      SPRING_RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE:-http://eureka-server:8761/eureka}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      feedback-db:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8087/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  admin-service:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/${APP_NAME:-lunecare}-admin:${IMAGE_TAG:-latest}
+    container_name: lunecare-admin
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SPRING_CONFIG_IMPORT: optional:configserver:${CONFIG_SERVER_URL:-http://config-server:8888}
+      SPRING_RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+      SPRING_RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE:-http://eureka-server:8761/eureka}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8088/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  # ---------------------------------------------------------------------------
+  # TIER 4 — API Gateway
+  # Last to start — needs services registered in Eureka for routing rules.
+  # Only service with an externally exposed port (defined in dev/prod overlays).
+  # ---------------------------------------------------------------------------
+  api-gateway:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/${APP_NAME:-lunecare}-api-gateway:${IMAGE_TAG:-latest}
+    container_name: lunecare-api-gateway
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SPRING_CONFIG_IMPORT: optional:configserver:${CONFIG_SERVER_URL:-http://config-server:8888}
+      SPRING_RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+      SPRING_RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_DEFAULT_ZONE:-http://eureka-server:8761/eureka}
+      # Gateway reads Redis directly — not via config-server for connection bootstrap
+      SPRING_DATA_REDIS_HOST: ${REDIS_HOST:-redis}
+      SPRING_DATA_REDIS_PORT: ${REDIS_PORT:-6379}
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 70s
+
+networks:
+  lunecare_network:
+    name: lunecare_network
+    driver: bridge

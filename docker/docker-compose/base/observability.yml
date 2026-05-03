@@ -1,0 +1,69 @@
+# BASE — Observability Stack
+# Prometheus + Grafana — reserved, not wired to services yet.
+# To activate: add this file to the -f chain in dev or prod entrypoint.
+#
+# When ready to wire:
+#   1. Add a prometheus/prometheus.yml scrape config referencing each service
+#      actuator endpoint: http://<service>:<port>/actuator/prometheus
+#   2. Enable management.endpoints.web.exposure.include=prometheus in config repo
+#   3. Add micrometer-registry-prometheus dependency to each service POM
+#   4. Import Grafana dashboard JSON for Spring Boot (dashboard ID: 12900)
+
+name: lunecare
+
+services:
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: lunecare-prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - lunecare_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: lunecare-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -q 'ok'"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+networks:
+  lunecare_network:
+    name: lunecare_network
+    driver: bridge
+
+volumes:
+  prometheus_data:
+    name: lunecare_prometheus_data
+  grafana_data:
+    name: lunecare_grafana_data

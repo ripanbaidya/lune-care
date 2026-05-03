@@ -1,0 +1,26 @@
+# DEV OVERLAY — Infrastructure
+# Exposes all infra ports to localhost for direct DB/broker access during dev.
+# Adds named volumes for persistence across restarts.
+
+name: lunecare
+
+services:
+
+  redis:
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  rabbitmq:
+    ports:
+      - "5672:5672"
+      - "15672:15672"   # Management UI → http://localhost:15672
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+volumes:
+  redis_data:
+    name: lunecare_redis_data
+  rabbitmq_data:
+    name: lunecare_rabbitmq_data

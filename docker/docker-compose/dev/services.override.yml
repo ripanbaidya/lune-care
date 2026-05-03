@@ -1,0 +1,63 @@
+# DEV OVERLAY — Application Services
+# - Exposes all service ports for direct Swagger/actuator access
+# - No resource limits (use full machine capacity in dev)
+# - restart: no (fail fast, don't mask errors with auto-restart)
+
+name: lunecare
+
+services:
+
+  config-server:
+    ports:
+      - "8888:8888"
+    restart: "no"
+
+  eureka-server:
+    ports:
+      - "8761:8761"
+    restart: "no"
+
+  auth-service:
+    ports:
+      - "8081:8081"
+    restart: "no"
+
+  patient-service:
+    ports:
+      - "8082:8082"
+    restart: "no"
+
+  doctor-service:
+    ports:
+      - "8083:8083"
+    restart: "no"
+
+  appointment-service:
+    ports:
+      - "8084:8084"
+    restart: "no"
+
+  payment-service:
+    ports:
+      - "8085:8085"
+    restart: "no"
+
+  notification-service:
+    ports:
+      - "8086:8086"
+    restart: "no"
+
+  feedback-service:
+    ports:
+      - "8087:8087"
+    restart: "no"
+
+  admin-service:
+    ports:
+      - "8088:8088"
+    restart: "no"
+
+  api-gateway:
+    ports:
+      - "8080:8080"
+    restart: "no"
