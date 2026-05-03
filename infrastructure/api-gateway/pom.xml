@@ -135,6 +135,9 @@
                             <tag>latest</tag>
                         </tags>
                     </to>
+                    <container>
+                        <workingDirectory>/app</workingDirectory>
+                    </container>
                 </configuration>
             </plugin>
 
