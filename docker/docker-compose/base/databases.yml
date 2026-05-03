@@ -104,7 +104,7 @@ services:
 
   # MongoDB — Notification Service  (maps to localhost:27018 in dev)
   notification-db:
-    image: mongo:8.0
+    image: mongo:8.2
     container_name: lunecare-notification-db
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-mongouser}
@@ -123,7 +123,7 @@ services:
 
   # MongoDB — Feedback Service  (maps to localhost:27019 in dev)
   feedback-db:
-    image: mongo:8.0
+    image: mongo:8.2
     container_name: lunecare-feedback-db
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-mongouser}

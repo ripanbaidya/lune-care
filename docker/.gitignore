@@ -4,4 +4,6 @@
 
 # Prometheus config (generated locally, may contain internal IPs)
 docker-compose/base/prometheus/
-docker-compose/base/grafana/provisi1oning/
+
+# Grafana provisioning (may contain datasource credentials)
+docker-compose/base/grafana/provisioning/

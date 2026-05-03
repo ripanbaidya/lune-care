@@ -21,6 +21,8 @@ services:
     ports:
       - "8081:8081"
     restart: "no"
+    volumes:
+      - ${PROJECT_ROOT}/secrets/keys:/app/secrets/keys:ro
 
   patient-service:
     ports:
@@ -61,3 +63,5 @@ services:
     ports:
       - "8080:8080"
     restart: "no"
+    volumes:
+      - ${PROJECT_ROOT}/secrets/keys:/app/secrets/keys:ro

@@ -52,7 +52,7 @@ services:
     networks:
       - lunecare_network
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "check_node"]
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 15s
       timeout: 10s
       retries: 5
