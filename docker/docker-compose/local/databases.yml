@@ -1,0 +1,52 @@
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: lunecare-postgres
+    mem_limit: 512m
+    mem_reservation: 256m
+    environment:
+      POSTGRES_DB: lunecare
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ../../../init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - lunecare_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d lunecare" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  mongodb:
+    image: mongo:8.2
+    container_name: lunecare-mongodb
+    environment:
+      MONGO_INITDB_DATABASE: lunecare
+      MONGO_INITDB_ROOT_USERNAME: mongouser
+      MONGO_INITDB_ROOT_PASSWORD: mongopass
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - lunecare_network
+    healthcheck:
+      test: [ "CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok" ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  pg_data:
+  mongo_data:
+
+networks:
+  lunecare_network:
+    driver: bridge

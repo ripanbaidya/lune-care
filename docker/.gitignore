@@ -1,9 +1,3 @@
 .env.dev
 .env.prod
 !.env.example
-
-# Prometheus config (generated locally, may contain internal IPs)
-docker-compose/base/prometheus/
-
-# Grafana provisioning (may contain datasource credentials)
-docker-compose/base/grafana/provisioning/
