@@ -3,6 +3,7 @@ package com.healthcare.gateway.config;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import reactor.core.publisher.Mono;
 
@@ -23,6 +24,7 @@ public class RateLimiterConfig {
      * - Aligns with how your JWT filter already injects X-User-Id
      */
     @Bean
+    @Primary
     public KeyResolver userIdKeyResolve() {
         return exchange -> {
             String userId = exchange.getRequest().getHeaders()
