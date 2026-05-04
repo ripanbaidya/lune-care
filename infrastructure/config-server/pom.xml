@@ -66,6 +66,14 @@
         <plugins>
 
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <parameters>true</parameters>
+                </configuration>
+            </plugin>
+
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
@@ -78,7 +86,6 @@
                 </configuration>
             </plugin>
 
-            <!-- google jib: docker image -->
             <plugin>
                 <groupId>com.google.cloud.tools</groupId>
                 <artifactId>jib-maven-plugin</artifactId>
@@ -91,7 +98,6 @@
                         <image>${dockerhub.account.name}/${app.name}-${project.artifactId}</image>
                         <tags>
                             <tag>${project.version}</tag>
-                            <tag>latest</tag>
                         </tags>
                     </to>
                 </configuration>
