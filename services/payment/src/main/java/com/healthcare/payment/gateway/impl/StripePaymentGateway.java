@@ -23,7 +23,7 @@ import java.math.RoundingMode;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "app.payment.gateway.stripe.enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "app.payment.gateway.stripe", name = "enabled", havingValue = "true")
 public class StripePaymentGateway implements PaymentGateway {
 
     private static final int CURRENCY_MULTIPLIER = 100; // paise (INR)
