@@ -1,3 +1,4 @@
-.env.dev
-.env.prod
+docker-compose/dev/.env.dev
+docker-compose/prod/.env.prod
+
 !.env.example
