@@ -1,0 +1,251 @@
+# dev/services.yaml
+#
+# Profile strategy: SPRING_PROFILES_ACTIVE=dev,docker
+# Why? dev owns the config. docker only patches the hostnames. You need both.
+#
+# Load order (last wins):
+# application.yml
+# → application-dev.yml (localhost refs)
+# → application-docker.yml (overrides localhost → docker hostnames)
+# → services/<name>/application.yml
+# → services/<name>/application-dev.yml (localhost DB/redis)
+# → services/<name>/application-docker.yml (overrides → docker hostnames)
+#
+# Config pull: all services fetch config from config-server
+# via SPRING_CONFIG_IMPORT=http://config-server:8888
+#
+# Boot order: infra → databases → config-server → eureka → services → api-gateway
+
+services:
+
+  # Config Server - must start first; all services depend on it
+  # Pulls configs from public GitHub repo (no auth needed in dev)
+  config-server:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-config-server:${IMAGE_TAG:-latest}
+    container_name: lunecare-config-server
+    ports:
+      - "8888:8888"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_CLOUD_CONFIG_SERVER_GIT_URI: ${GIT_URI}
+      # Symmetric key used to decrypt {cipher} values in config repo
+      # Must match the key used during encryption - loaded as Spring property
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
+    networks:
+      - lunecare_network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -sf http://localhost:8888/actuator/health/readiness | grep -q UP || exit 1" ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Eureka Server - service registry
+  # Depends on config-server for its configuration
+  eureka-server:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-eureka-server:${IMAGE_TAG:-latest}
+    container_name: lunecare-eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev,docker}
+      SPRING_APPLICATION_NAME: eureka-server
+      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
+    depends_on:
+      config-server:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -sf http://localhost:8761/actuator/health/readiness | grep -q UP || exit 1" ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  # Auth Service — port 8081
+  # PostgreSQL (lunecare DB, schema: auth) + Redis
+  auth:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-auth:${IMAGE_TAG:-latest}
+    container_name: lunecare-auth
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_APPLICATION_NAME: auth
+      SPRING_PROFILES_ACTIVE: dev,docker
+      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
+    volumes:
+      # Mount RSA keys from host into container at the exact relative path the app expects
+      # app.security.rsa.private-key-path: secrets/keys/private_key.pem & public_key.pem
+      # Working dir inside container is /app, so /app/secrets/keys/ must have the PEM files
+      - ../../../secrets/keys:/app/secrets/keys:ro
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+
+  # Patient Service - port 8082
+  # PostgreSQL (lunecare DB, schema: patient)
+  patient:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-patient:${IMAGE_TAG:-latest}
+    container_name: lunecare-patient
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_APPLICATION_NAME: patient
+      SPRING_PROFILES_ACTIVE: dev,docker
+      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+
+  # Doctor Service - port 8083
+  # PostgreSQL (lunecare DB, schema: doctor)
+  doctor:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-doctor:${IMAGE_TAG:-latest}
+    container_name: lunecare-doctor
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_APPLICATION_NAME: doctor
+      SPRING_PROFILES_ACTIVE: dev,docker
+      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+
+  # Appointment Service - port 8084
+  # PostgreSQL (lunecare DB, schema: appointment) + Redis
+  appointment:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-appointment:${IMAGE_TAG:-latest}
+    container_name: lunecare-appointment
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_APPLICATION_NAME: appointment
+      SPRING_PROFILES_ACTIVE: dev,docker
+      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+
+  # Payment Service - port 8085
+  # PostgreSQL (lunecare DB, schema: payment)
+  payment:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-payment:${IMAGE_TAG:-latest}
+    container_name: lunecare-payment
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_APPLICATION_NAME: payment
+      SPRING_PROFILES_ACTIVE: dev,docker
+      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+
+  # Notification Service - port 8086
+  # MongoDB (notification_db)
+  notification:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-notification:${IMAGE_TAG:-latest}
+    container_name: lunecare-notification
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_APPLICATION_NAME: notification
+      SPRING_PROFILES_ACTIVE: dev,docker
+      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+
+  # Feedback Service - port 8087
+  # MongoDB (feedback_db)
+  feedback:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-feedback:${IMAGE_TAG:-latest}
+    container_name: lunecare-feedback
+    ports:
+      - "8087:8087"
+    environment:
+      SPRING_APPLICATION_NAME: feedback
+      SPRING_PROFILES_ACTIVE: dev,docker
+      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+
+  # Admin Service - port 8088
+  # No DB; aggregates via Feign (doctor-service, auth-service)
+  admin:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-admin:${IMAGE_TAG:-latest}
+    container_name: lunecare-admin
+    ports:
+      - "8088:8088"
+    environment:
+      SPRING_APPLICATION_NAME: admin
+      SPRING_PROFILES_ACTIVE: dev,docker
+      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+
+  # API Gateway - port 8080
+  # Entry point for all external traffic
+  # Depends on eureka for service discovery + redis for rate limiting
+  # Start last — after all services are up
+  api-gateway:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-api-gateway:${IMAGE_TAG:-latest}
+    container_name: lunecare-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_APPLICATION_NAME: api-gateway
+      SPRING_PROFILES_ACTIVE: dev,docker
+      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
+    volumes:
+      # API Gateway only needs the public key for JWT verification
+      # app.security.rsa.public-key-path: secrets/keys/public_key.pem
+      - ../../../secrets/keys:/app/secrets/keys:ro
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+
+networks:
+  lunecare_network:
+    name: lunecare_network
+    driver: bridge

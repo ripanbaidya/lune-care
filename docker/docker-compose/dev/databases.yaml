@@ -1,0 +1,74 @@
+# dev/databases.yaml
+# Contains database services for PostgreSQL and MongoDB
+# NOTE: If you change the database or configuration, you must also update the service
+# configurations accordingly
+#
+# Strategy: Schema per service
+# Single PostgreSQL instance with multiple schemas: auth, patient, doctor, appointment, payment
+# This saves memory and resources. You can also use separate databases per service if needed.
+# Just update the service configurations to match.
+#
+# MongoDB: Single instance with two databases
+# notification → notification_db
+# feedback → feedback_db
+
+services:
+
+  # PostgreSQL: single instance with multiple schemas
+  # Connect using: ?currentSchema=<schema_name>
+  # Place init-db.sql in the project root or adjust the volume mount as needed
+  postgres:
+    image: postgres:16-alpine
+    container_name: lunecare-postgres
+    mem_limit: 512m
+    mem_reservation: 256m
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-lunecare}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ../../../init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - lunecare_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d lunecare" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # MongoDB — single instance
+  # Each service uses its own database. Auth is handled via authSource=admin
+  mongodb:
+    image: mongo:8.2
+    container_name: lunecare-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-mongouser}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-mongopass}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-lunecare}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - lunecare_network
+    healthcheck:
+      test: [ "CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok" ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  pg_data:
+    name: lunecare_pg_data
+  mongo_data:
+    name: lunecare_mongo_data
+
+networks:
+  lunecare_network:
+    name: lunecare_network
+    driver: bridge
