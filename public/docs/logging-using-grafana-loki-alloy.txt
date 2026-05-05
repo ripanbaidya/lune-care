@@ -1,0 +1,109 @@
+Logging with Grafana Loki and Alloy
+===================================
+
+Why do we need distributed logging?
+
+In a distributed system, many microservices run in different containers. As a developer, it becomes hard to check logs one by one for each service. This takes time and makes debugging slower.
+
+Distributed logging solves this problem by collecting logs from all services in one place. This makes it easier to search, compare, and understand what is happening in the system.
+
+The solution
+
+We can use Grafana Loki and Alloy to collect and view logs from a distributed system.
+
+Grafana Loki stores and queries the logs.
+Grafana Alloy collects the logs and sends them to Loki.
+
+Official documentation:
+https://grafana.com/docs/loki/latest/get-started/quick-start/quick-start/
+
+How I added logging to my application
+
+I added logging for the Docker development environment. In development, all services run inside Docker containers, so this is a good place to test logging.
+
+The official Grafana documentation provides some example files. I used those files and changed them for my project.
+
+The example files are:
+
+```
+wget https://raw.githubusercontent.com/grafana/loki/main/examples/getting-started/loki-config.yaml -O loki-config.yaml
+wget https://raw.githubusercontent.com/grafana/loki/main/examples/getting-started/alloy-local-config.yaml -O alloy-local-config.yaml
+wget https://raw.githubusercontent.com/grafana/loki/main/examples/getting-started/docker-compose.yaml -O docker-compose.yaml
+```
+
+Setup steps
+
+1. Go to the project root.
+2. Create the `observability` folder in the project root if it does not already exist.
+
+```
+mkdir observability
+```
+
+3. Go into the `observability` folder.
+
+```
+cd observability
+```
+
+4. Create two folders inside it: `loki` and `alloy`.
+
+```
+mkdir loki
+mkdir alloy
+```
+
+5. Go inside the `loki` folder and download the Loki config file.
+
+```
+cd loki
+wget https://raw.githubusercontent.com/grafana/loki/main/examples/getting-started/loki-config.yaml -O loki-config.yaml
+```
+
+Do not change this file unless you know what you are doing. The default config is enough for a simple setup.
+
+6. Go inside the `alloy` folder and download the Alloy config file.
+
+```
+cd ../alloy
+wget https://raw.githubusercontent.com/grafana/loki/main/examples/getting-started/alloy-local-config.yaml -O alloy-local-config.yaml
+```
+
+Do not change this file unless you need custom behavior.
+
+7. Move to the `dev` folder inside `docker/docker-compose`.
+
+```
+cd ../../docker/docker-compose/dev
+```
+
+8. Download the Docker Compose file for logging and save it as `logging.config.yaml`.
+
+```
+wget https://raw.githubusercontent.com/grafana/loki/main/examples/getting-started/docker-compose.yaml -O logging.config.yaml
+```
+
+9. Edit `logging.config.yaml` and make these changes:
+
+- Set the correct network name for your application.
+- Remove the default `flog` service if you do not need it.
+- Make sure the paths for the Loki and Alloy config files point to your local files.
+- Check that the container names and service names match your project setup.
+
+10. Start the containers.
+
+```
+docker-compose -f your-docker-compose-file.yaml -f logging.config.yaml up -d
+```
+
+After everything starts, open Grafana in your browser:
+
+http://localhost:3000
+
+Open the Explore tab, choose the log source, select a container, and run a query. You should then see the logs for that container.
+
+Notes
+
+- This setup is useful for development and testing.
+- If your project uses a different folder structure, update the file paths accordingly.
+- If you add new services later, make sure they send logs to the same logging setup.
