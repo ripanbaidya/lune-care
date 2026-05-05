@@ -1,4 +1,5 @@
 docker-compose/dev/.env.dev
 docker-compose/prod/.env.prod
+docker-compose/*/.data  #Log data from Minio
 
 !.env.example

@@ -6,7 +6,7 @@
 
 ENV_FILE     := .env.dev
 COMPOSE_BASE := docker compose --env-file $(ENV_FILE)
-COMPOSE_ALL  := $(COMPOSE_BASE) -f infra.yaml -f databases.yaml -f services.yaml
+COMPOSE_ALL  := $(COMPOSE_BASE) -f infra.yaml -f databases.yaml -f services.yaml -f logging.yaml
 COMPOSE_INFRA := $(COMPOSE_BASE) -f infra.yaml
 COMPOSE_DB    := $(COMPOSE_BASE) -f infra.yaml -f databases.yaml
 
