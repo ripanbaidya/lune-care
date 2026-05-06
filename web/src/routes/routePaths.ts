@@ -1,6 +1,4 @@
-/**
- * Centralized route paths
- */
+/* Centralized route paths */
 
 export const PUBLIC_ROUTES = {
     home: '/',
@@ -10,6 +8,10 @@ export const PUBLIC_ROUTES = {
 
 export const PATIENT_ROUTES = {
     patientDashboard: '/patient/dashboard',
+    patientProfile: '/patient/profile',
+    patientAddress: '/patient/address',
+    patientAppointments: '/patient/appointments',
+    patientNotifications: '/patient/notifications',
 } as const;
 
 export const DOCTOR_ROUTES = {
