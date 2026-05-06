@@ -12,6 +12,7 @@ import {
 } from '../types/doctor.clinic.types';
 import {AppError} from '../../../shared/utils/errorParser';
 import {toast} from 'sonner';
+import ClinicSchedulePanel from '../components/ClinicSchedulePanel';
 
 const CLINIC_TYPES = ['IN_PERSON', 'ONLINE', 'PRIVATE_CLINIC', 'HOSPITAL', 'CLINIC'] as const;
 
@@ -228,6 +229,12 @@ const ClinicForm: React.FC<ClinicFormProps> = ({
                     {isPending ? <Spinner size="sm"/> : <Check size={14}/>}
                     Save Clinic
                 </button>
+            </div>
+            <div className="px-5 pb-4">
+                <ClinicSchedulePanel
+                    clinicId={clinic.id}
+                    hasExistingSchedule={clinic.schedules.length > 0}
+                />
             </div>
         </div>
     );

@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { useAuthStore } from "../../../store/authStore";
 import { ACCOUNT_STATUS } from "../../auth/auth.types";
 import { ROUTES } from "../../../routes/routePaths";
+import {useAccountStatusPoller} from '../../../shared/hooks/useAccountStatus';
 
 type Step = 1 | 2 | 3;
 
@@ -95,7 +96,6 @@ const DoctorOnboardingPage: React.FC = () => {
     useState<DocumentType>("MEDICAL_LICENSE");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [uploadDone, setUploadDone] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (
@@ -180,7 +180,7 @@ const DoctorOnboardingPage: React.FC = () => {
       {
         onSuccess: () => {
           toast.success("Document uploaded successfully!");
-          setUploadDone(true);
+          // setUploadDone(true);
           setStep(3);
         },
         onError: (err: AppError) => setUploadError(err.message),
@@ -191,6 +191,9 @@ const DoctorOnboardingPage: React.FC = () => {
   const handleSkipDocument = () => {
     setStep(3);
   };
+
+  // TODO: Make sure this place is correct for placing the hook
+  useAccountStatusPoller();
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-10">
@@ -524,40 +527,56 @@ const DoctorOnboardingPage: React.FC = () => {
           </div>
         )}
 
-        {/* Step 3 — Under Review */}
+        {/* Step 3 — Under Review / Status feedback */}
         {step === 3 && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center">
-            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Clock size={28} className="text-amber-600" />
-            </div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">
-              Application Under Review
-            </h2>
-            <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
-              Your onboarding details have been submitted successfully. Our
-              admin team will review your application and credentials. You'll be
-              notified once your account is activated.
-            </p>
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center">
+              {user?.status === 'ACTIVE' ? (
+                  // Shouldn't normally render — poller will redirect, but just in case
+                  <>
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle2 size={28} className="text-green-600"/>
+                    </div>
+                    <h2 className="text-lg font-semibold text-gray-900 mb-2">Account Approved!</h2>
+                    <p className="text-sm text-gray-500 mb-6">
+                      Your account has been approved. Redirecting to dashboard...
+                    </p>
+                    <Spinner size="md"/>
+                  </>
+              ) : (
+                  <>
+                    <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Clock size={28} className="text-amber-600"/>
+                    </div>
+                    <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                      Application Under Review
+                    </h2>
+                    <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+                      Your onboarding details have been submitted successfully. Our
+                      admin team will review your application and credentials. You'll be
+                      notified once your account is activated.
+                    </p>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-left mb-6">
-              <p className="text-xs font-medium text-amber-800 mb-1">
-                What happens next?
-              </p>
-              <ul className="text-xs text-amber-700 space-y-1">
-                <li>
-                  • Admin reviews your submitted documents and credentials
-                </li>
-                <li>
-                  • You'll receive a notification on approval or rejection
-                </li>
-                <li>• Once approved, you can access all doctor features</li>
-              </ul>
-            </div>
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-left mb-4">
+                      <p className="text-xs font-medium text-amber-800 mb-1">
+                        What happens next?
+                      </p>
+                      <ul className="text-xs text-amber-700 space-y-1">
+                        <li>• Admin reviews your submitted documents and credentials</li>
+                        <li>• You'll receive a notification on approval or rejection</li>
+                        <li>• Once approved, you can access all doctor features</li>
+                      </ul>
+                    </div>
 
-            <p className="text-xs text-gray-400">
-              Typical review time: 24–48 hours
-            </p>
-          </div>
+                    {/* Live polling indicator */}
+                    <div className="flex items-center justify-center gap-2 text-xs text-gray-400 mb-4">
+                      <Spinner size="sm"/>
+                      <span>Checking approval status automatically...</span>
+                    </div>
+
+                    <p className="text-xs text-gray-400">Typical review time: 24–48 hours</p>
+                  </>
+              )}
+            </div>
         )}
       </div>
     </div>

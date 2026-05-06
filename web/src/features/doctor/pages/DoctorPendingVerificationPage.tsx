@@ -4,6 +4,8 @@ import {useNavigate} from 'react-router-dom';
 import {useAuthStore} from '../../../store/authStore';
 import {authService} from '../../auth/authService.ts';
 import {ROUTES} from '../../../routes/routePaths';
+import {useAccountStatusPoller} from '../../../shared/hooks/useAccountStatus';
+import Spinner from "../../../shared/components/ui/Spinner.tsx";
 
 const DoctorPendingVerificationPage: React.FC = () => {
     const {clearAuth, refreshToken} = useAuthStore();
@@ -19,6 +21,8 @@ const DoctorPendingVerificationPage: React.FC = () => {
             navigate(ROUTES.login, {replace: true});
         }
     };
+
+    useAccountStatusPoller();
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
@@ -42,7 +46,7 @@ const DoctorPendingVerificationPage: React.FC = () => {
                     via the platform once your verification is complete.
                 </p>
 
-                <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-left mb-6">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-left mb-4">
                     <p className="text-xs font-medium text-amber-800 mb-2">What to expect</p>
                     <ul className="text-xs text-amber-700 space-y-1.5">
                         <li>• Admin reviews your submitted credentials and documents</li>
@@ -52,12 +56,17 @@ const DoctorPendingVerificationPage: React.FC = () => {
                     </ul>
                 </div>
 
+                <div className="flex items-center justify-center gap-2 text-xs text-gray-400 mb-6">
+                    <Spinner size="sm"/>
+                    <span>Checking approval status automatically...</span>
+                </div>
+
                 <button
                     onClick={handleLogout}
                     className="flex items-center gap-2 mx-auto text-sm text-gray-500 hover:text-red-600 transition-colors"
                 >
                     <LogOut size={14}/>
-                    Sign Out
+                    Logout
                 </button>
             </div>
         </div>

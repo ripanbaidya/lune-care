@@ -22,10 +22,20 @@ export function useLogin() {
             const {user, token} = res.data;
             setAuth(user, token.accessToken, token.refreshToken);
 
-            // Role-based redirect
-            // Doctor → onboarding (will be replaced with proper check when doctor service is built)
             if (user.role === 'ROLE_DOCTOR') {
-                navigate(ROUTES.doctorOnboarding, {replace: true});
+                // Status-aware routing
+                switch (user.status) {
+                    case 'ACTIVE':
+                        navigate(ROUTES.doctorDashboard, {replace: true});
+                        break;
+                    case 'PENDING_VERIFICATION':
+                        navigate(ROUTES.doctorPending, {replace: true});
+                        break;
+                    case 'ONBOARDING':
+                    default:
+                        navigate(ROUTES.doctorOnboarding, {replace: true});
+                        break;
+                }
             } else if (user.role === 'ROLE_ADMIN') {
                 navigate(ROUTES.adminDashboard, {replace: true});
             } else {
