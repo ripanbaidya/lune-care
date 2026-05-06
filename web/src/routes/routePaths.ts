@@ -16,7 +16,12 @@ export const PATIENT_ROUTES = {
 
 export const DOCTOR_ROUTES = {
     doctorOnboarding: '/doctor/onboarding',
+    doctorPending: '/doctor/pending',
     doctorDashboard: '/doctor/dashboard',
+    doctorProfile: '/doctor/profile',
+    doctorClinics: '/doctor/clinics',
+    doctorAppointments: '/doctor/appointments',
+    doctorNotifications: '/doctor/notifications',
 } as const;
 
 export const ADMIN_ROUTES = {
