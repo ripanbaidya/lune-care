@@ -1,3 +1,6 @@
+// Silent refresh on 401 — refresh endpoint: POST /api/auth/refresh
+// Serializes concurrent 401s so only one refresh is fired.
+
 import axios, {
     type AxiosError,
     type AxiosRequestConfig,
@@ -5,9 +8,6 @@ import axios, {
 } from 'axios';
 import {parseError} from '../shared/utils/errorUtils';
 import {useAuthStore} from '../store/authStore';
-
-// Silent refresh on 401 — refresh endpoint: POST /api/auth/refresh
-// Serializes concurrent 401s so only one refresh is fired.
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api';
 
@@ -62,7 +62,7 @@ apiClient.interceptors.response.use(
             return Promise.reject(parseError(error));
         }
 
-        // TODO: Need to fix: setAuth is declared but its value is never read
+        // TODO: setAuth is declared but its value is never read [Might Need Fix]
         // const {refreshToken, setAuth, clearAuth} = useAuthStore.getState();
         const {refreshToken, clearAuth} = useAuthStore.getState();
 
@@ -93,7 +93,7 @@ apiClient.interceptors.response.use(
 
         try {
             const response = await axios.post(
-                `${apiClient.defaults.baseURL}/api/auth/refresh`,
+                `${apiClient.defaults.baseURL}/auth/refresh`,
                 {refreshToken},
                 {headers: {'Content-Type': 'application/json'}},
             );
