@@ -1,9 +1,22 @@
-export default function App() {
-    return (
-        <div className="h-screen bg-black flex items-center justify-center">
-            <h1 className="text-4xl text-yellow-400 font-bold">
-                Tailwind is working
-            </h1>
-        </div>
-    )
-}
+import {useEffect} from "react";
+import {useNavigate} from "react-router-dom";
+import {useAuthStore} from "./store/authStore";
+import AppRoutes from "./routes/AppRoutes.tsx";
+
+const App: React.FC = () => {
+    const navigate = useNavigate();
+    const {clearAuth} = useAuthStore();
+
+    useEffect(() => {
+        const handler = () => {
+            clearAuth();
+            navigate("/login", {replace: true});
+        };
+        window.addEventListener("auth:unauthorized", handler);
+        return () => window.removeEventListener("auth:unauthorized", handler);
+    }, []);
+
+    return <AppRoutes/>;
+};
+
+export default App;
