@@ -1,0 +1,115 @@
+## Microservices Architecture
+
+| Service              | HTTP Port | DB Port | Database   | Description                                                                                      |
+|----------------------|-----------|---------|------------|--------------------------------------------------------------------------------------------------|
+| config-server        | 8888      |         | —          | Centralized configuration for all microservices                                                  |
+| eureka-server        | 8761      |         | —          | Service registry and discovery                                                                   |
+| api-gateway          | 8080      |         | —          | Single entry point, JWT validation, routing, rate limiting                                       |
+| auth-service         | 8081      | 5433    | PostgreSQL | Identity provider — handles register, login, logout, refresh token, JWT issuance                 |
+| patient-service      | 8082      | 5434    | PostgreSQL | Patient registration via Feign Call from auth-service, profile management, profile photo upload  |
+| doctor-service       | 8083      | 5435    | PostgreSQL | Doctor registration via Feign Call, onboarding, clinic info (multiple), department/fees and info |
+| appointment-service  | 8084      | 5436    | PostgreSQL | Slot management, booking with concurrency control, SAGA orchestration                            |
+| payment-service      | 8085      | 5437    | PostgreSQL | Razorpay + Stripe via strategy pattern, payment history, cash automation                         |
+| notification-service | 8086      | 27018   | MongoDB    | WebSocket real-time notifications, Kafka consumer, notification history                          |
+| feedback-service     | 8087      | 27019   | MongoDB    | Patient and doctor feedback, ratings, category-based reviews                                     |
+| admin-service        | 8088      |         | PostgreSQL | Doctor verification (future), platform-wide search, analytics                                    |
+
+## List of API's
+
+### Auth (/api/auth, /api/users)
+
+POST /api/auth/register/patient — Register new patient
+POST /api/auth/register/doctor — Register new doctor
+POST /api/auth/login — Login (patient/doctor/admin)
+POST /api/auth/refresh — Refresh access token
+POST /api/users/logout — Logout user
+GET /api/users/me — Get current user basic info
+
+### Patient - Profile (/api/patient)
+
+GET /api/patient/profile — Fetch patient profile
+PUT /api/patient/profile — Update patient profile
+PATCH /api/patient/profile/upload-photo — Upload profile photo
+DELETE /api/patient/profile/remove-photo — Remove profile photo
+
+Patient - Address (/api/patient/addresses)
+
+POST /api/patient/addresses — Add address
+GET /api/patient/addresses — Get address
+PATCH /api/patient/addresses — Update address
+DELETE /api/patient/addresses — Delete address
+
+### Doctor - Profile (/api/doctor)
+
+GET /api/doctor/profile — Fetch doctor profile
+PUT /api/doctor/profile — Update doctor profile
+PATCH /api/doctor/profile/upload-photo — Upload profile photo
+DELETE /api/doctor/profile/remove-photo — Remove profile photo
+
+Doctor - Onboarding
+
+POST /api/doctor/onboarding/complete — Complete onboarding (Step 1)
+PATCH /api/doctor/documents/upload?documentType=MEDICAL_LICENSE — Upload document (Step 2)
+
+Doctor - Clinics (/api/doctor/clinics)
+
+POST /api/doctor/clinics — Add clinic
+GET /api/doctor/clinics — Get all clinics
+PUT /api/doctor/clinics/:clinicId — Update clinic info
+DELETE /api/doctor/clinics/:clinicId — Delete clinic
+
+Doctor - Schedule (/api/doctor/clinics/:clinicId/schedule)
+
+POST /api/doctor/clinics/:clinicId/schedule — Set schedule for clinic
+GET /api/doctor/clinics/:clinicId/schedule — Get schedules
+PUT /api/doctor/clinics/:clinicId/schedule — Update schedule
+DELETE /api/doctor/clinics/:clinicId/schedule/:day — Delete specific day schedule
+
+Doctor - Search (public)
+
+GET /api/doctor/search — Search doctors by name/specialization/city/maxFees
+GET /api/doctor/:doctorId/public — Get doctor public details
+
+### Appointment (/api/appointment)
+
+GET /api/appointment/slots/:doctorId/:clinicId?date= — Get available slots
+POST /api/appointment/book — Book an appointment
+GET /api/appointment/:appointmentId — Fetch appointment details
+GET /api/appointment/patient/history — Patient's appointment history
+GET /api/appointment/doctor/history — Doctor's appointment history
+GET /api/appointment/doctor/today — Doctor's today's appointments
+PATCH /api/appointment/:appointmentId/complete — Mark complete (doctor)
+PATCH /api/appointment/:appointmentId/cancel — Cancel appointment
+PATCH /api/appointment/:appointmentId/no-show — Mark no-show (doctor)
+
+### Payment (/api/payment)
+
+POST /api/payment/initiate — Initiate payment (Razorpay/Stripe)
+POST /api/payment/verify — Verify payment
+GET /api/payment/history — Patient payment history
+GET /api/payment/appointment/:appointmentId — Payment for specific appointment
+
+### Notification (/api/notification)
+
+GET /api/notification — Fetch all notifications
+PATCH /api/notification/read-all — Mark all read
+PATCH /api/notification/:notificationId/read — Read one
+DELETE /api/notification/all — Delete all
+DELETE /api/notification/:notificationId — Delete one
+GET /api/notification/unread-count — Unread count
+
+### Feedback (/api/feedback)
+
+POST /api/feedback/doctor/:doctorId — Submit feedback
+GET /api/feedback/doctor/:doctorId — Get doctor's feedbacks (public)
+GET /api/feedback/doctor/my — Doctor's received feedback
+GET /api/feedback/patient/my — Patient's submitted feedback
+PUT /api/feedback/:feedbackId — Update feedback
+DELETE /api/feedback/:feedbackId — Delete feedback
+
+### Admin (/api/admin)
+
+GET /api/admin/doctors/pending — Pending doctor verifications
+PATCH /api/admin/doctors/:doctorId/verify — Approve doctor
+PATCH /api/admin/doctors/:doctorId/reject — Reject doctor
+GET /api/admin/analytics/overview — Analytics overview
