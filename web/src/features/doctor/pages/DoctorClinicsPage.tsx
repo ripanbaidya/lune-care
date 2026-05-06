@@ -230,12 +230,9 @@ const ClinicForm: React.FC<ClinicFormProps> = ({
                     Save Clinic
                 </button>
             </div>
-            <div className="px-5 pb-4">
-                <ClinicSchedulePanel
-                    clinicId={clinic.id}
-                    hasExistingSchedule={clinic.schedules.length > 0}
-                />
-            </div>
+
+
+
         </div>
     );
 };
@@ -247,6 +244,7 @@ const ClinicCard: React.FC<{
     isDeleting: boolean;
 }> = ({clinic, onEdit, onDelete, isDeleting}) => (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        {/* Header */}
         <div className="flex items-start justify-between px-5 py-4 border-b border-gray-100">
             <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -278,6 +276,8 @@ const ClinicCard: React.FC<{
                 </button>
             </div>
         </div>
+
+        {/* Info grid */}
         <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="flex items-center gap-2">
                 <IndianRupee size={13} className="text-teal-500 flex-shrink-0"/>
@@ -312,21 +312,14 @@ const ClinicCard: React.FC<{
                     {clinic.country && <p className="text-xs text-gray-500">{clinic.country}</p>}
                 </div>
             </div>
-            {clinic.schedules.length > 0 && (
-                <div className="sm:col-span-3">
-                    <p className="text-xs text-gray-500 mb-1.5">Schedule</p>
-                    <div className="flex flex-wrap gap-1.5">
-                        {clinic.schedules.map((s) => (
-                            <span
-                                key={s.id}
-                                className={`text-xs px-2 py-1 rounded-full font-medium ${s.active ? 'bg-teal-50 text-teal-700' : 'bg-gray-100 text-gray-400 line-through'}`}
-                            >
-                                {s.dayOfWeek.slice(0, 3)} {s.startTime.slice(0, 5)}–{s.endTime.slice(0, 5)}
-                            </span>
-                        ))}
-                    </div>
-                </div>
-            )}
+        </div>
+
+        {/* Schedule panel — replaces the old static badges */}
+        <div className="px-5 pb-5">
+            <ClinicSchedulePanel
+                clinicId={clinic.id}
+                hasExistingSchedule={clinic.schedules.length > 0}
+            />
         </div>
     </div>
 );

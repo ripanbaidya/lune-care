@@ -40,15 +40,19 @@ export function useAccountStatusPoller() {
                     clearInterval(intervalRef.current!);
                     navigate(ROUTES.doctorOnboarding, {replace: true});
                 }
-            } catch {
+            } catch (error) {
+                console.error("Poller error:", error);
                 // Silent — network errors shouldn't crash the page
             }
         };
+
+        // Poll immediately on mount
+        poll();
 
         intervalRef.current = setInterval(poll, POLL_INTERVAL_MS);
 
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
         };
-    }, [user?.status]);
+    }, [user?.status, user?.role, navigate, updateUser]);
 }

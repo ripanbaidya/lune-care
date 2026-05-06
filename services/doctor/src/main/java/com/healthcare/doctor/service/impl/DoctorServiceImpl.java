@@ -109,13 +109,14 @@ public class DoctorServiceImpl implements DoctorService {
 
             // NOTE: Auto-activating for dev. For production, set PENDING_VERIFICATION
             // and await admin approval before setting ACTIVE.
-            // TODO: Remove auto-activation — set AccountStatus.PENDING_VERIFICATION instead.
-            doctor.setAccountStatus(AccountStatus.ACTIVE);
+            // doctor.setAccountStatus(AccountStatus.ACTIVE); // DEV
+            doctor.setAccountStatus(AccountStatus.PENDING_VERIFICATION); // PROD
             doctor.setOnboardingCompleted(true);
 
             doctorRepository.save(doctor);
 
-            syncStatusWithAuthService(userId, AccountStatus.ACTIVE);
+            // syncStatusWithAuthService(userId, AccountStatus.ACTIVE); // DEV
+            syncStatusWithAuthService(userId, AccountStatus.PENDING_VERIFICATION); // PROD
             log.info("[DEV] Doctor auto-activated after onboarding. userId={}", userId);
 
             return DoctorMapper.toProfileResponse(doctor);

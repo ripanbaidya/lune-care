@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import {
   CheckCircle2,
@@ -30,7 +30,7 @@ import { toast } from "sonner";
 import { useAuthStore } from "../../../store/authStore";
 import { ACCOUNT_STATUS } from "../../auth/auth.types";
 import { ROUTES } from "../../../routes/routePaths";
-import {useAccountStatusPoller} from '../../../shared/hooks/useAccountStatus';
+import { useAccountStatusPoller } from "../../../shared/hooks/useAccountStatus";
 
 type Step = 1 | 2 | 3;
 
@@ -65,31 +65,21 @@ const EMPTY_STEP1: Step1Form = {
 const DoctorOnboardingPage: React.FC = () => {
   const { user, updateUser } = useAuthStore();
 
-  // Redirect ACTIVE doctors away from this page
-  if (user?.status === ACCOUNT_STATUS.ACTIVE) {
-    return <Navigate to={ROUTES.doctorDashboard} replace />;
-  }
+  // Derive initial step from persisted status so page refresh lands correctly:
+  //   PENDING_VERIFICATION → step 3 (waiting for approval)
+  //   ONBOARDING / anything else → step 1
+  const [step, setStep] = useState<Step>(() =>
+    user?.status === ACCOUNT_STATUS.PENDING_VERIFICATION ? 3 : 1,
+  );
 
-  // Derive the initial step from the persisted user status so the correct
-  // screen is shown after a page refresh:
-  //   PENDING_VERIFICATION → step 3 (Under Review)
-  //   ONBOARDING           → step 1 (Professional Info)
-  const getInitialStep = (): Step => {
-    if (user?.status === ACCOUNT_STATUS.PENDING_VERIFICATION) return 3;
-    return 1;
-  };
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [step, setStep] = useState<Step>(getInitialStep);
-
-  // Step 1
+  // Step 1 — Professional Info
   const { mutate: completeOnboarding, isPending: isOnboarding } =
     useCompleteOnboarding();
   const [form, setForm] = useState<Step1Form>(EMPTY_STEP1);
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  // Step 2
+  // Step 2 — Document Upload
   const { mutate: uploadDocument, isPending: isUploading } =
     useUploadDocument();
   const [selectedDocType, setSelectedDocType] =
@@ -98,6 +88,37 @@ const DoctorOnboardingPage: React.FC = () => {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Step 3 — Status polling.
+  // The hook internally guards: it only polls when user.status === PENDING_VERIFICATION.
+  // However we have a secondary guard here: we only want it active on step 3.
+  // We achieve this by NOT updating user.status to PENDING_VERIFICATION until
+  // the doctor reaches step 3 (see handleStep1Submit and handleStep2Submit below).
+  // This means the poller stays dormant on steps 1 and 2.
+  useAccountStatusPoller();
+
+  // Handle Admin Rejection
+  // If the admin rejects the application, the backend status reverts to ONBOARDING.
+  // The poller will pick this up and update the store. When the store updates,
+  // this effect runs, resets the step, and notifies the user.
+  useEffect(() => {
+    if (step === 3 && user?.status === ACCOUNT_STATUS.ONBOARDING) {
+      setStep(1);
+      toast.error(
+        "Your application was rejected by the admin. Please review your details and submit again.",
+        { duration: 8000 }
+      );
+    }
+  }, [user?.status, step]);
+
+  // Conditional redirect AFTER all hooks
+  // If admin approves while the doctor is on this page, the poller calls
+  // updateUser({ status: ACTIVE }) which triggers a re-render and hits this guard.
+  if (user?.status === ACCOUNT_STATUS.ACTIVE) {
+    return <Navigate to={ROUTES.doctorDashboard} replace />;
+  }
+
+  // Handlers
+
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -105,6 +126,7 @@ const DoctorOnboardingPage: React.FC = () => {
   ) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    // Clear individual field error on change
     if (fieldErrors[name]) setFieldErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
@@ -116,13 +138,14 @@ const DoctorOnboardingPage: React.FC = () => {
       errors.specialization = "Specialization is required";
     if (!form.qualification.trim())
       errors.qualification = "Qualification is required";
-    if (!form.yearsOfExperience)
+    if (!form.yearsOfExperience) {
       errors.yearsOfExperience = "Years of experience is required";
-    else if (
+    } else if (
       Number(form.yearsOfExperience) < 0 ||
       Number(form.yearsOfExperience) > 60
-    )
+    ) {
       errors.yearsOfExperience = "Must be between 0 and 60";
+    }
     if (form.bio && form.bio.length > 250)
       errors.bio = "Bio cannot exceed 250 characters";
     setFieldErrors(errors);
@@ -152,8 +175,9 @@ const DoctorOnboardingPage: React.FC = () => {
     completeOnboarding(payload, {
       onSuccess: () => {
         toast.success("Professional details saved!");
-        // Persist the new status so step 3 survives a page refresh
-        updateUser({ status: ACCOUNT_STATUS.PENDING_VERIFICATION });
+        // Do NOT update user.status here — we move to step 2 (document upload).
+        // Status is updated to PENDING_VERIFICATION only after the doctor
+        // reaches step 3, so the poller does not fire prematurely on step 2.
         setStep(2);
       },
       onError: (err: AppError) => {
@@ -166,6 +190,7 @@ const DoctorOnboardingPage: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) setSelectedFile(file);
+    // Reset input so the same file can be re-selected after removal
     e.target.value = "";
   };
 
@@ -180,7 +205,8 @@ const DoctorOnboardingPage: React.FC = () => {
       {
         onSuccess: () => {
           toast.success("Document uploaded successfully!");
-          // setUploadDone(true);
+          // Now persist PENDING_VERIFICATION — activates the poller on step 3
+          updateUser({ status: ACCOUNT_STATUS.PENDING_VERIFICATION });
           setStep(3);
         },
         onError: (err: AppError) => setUploadError(err.message),
@@ -188,12 +214,13 @@ const DoctorOnboardingPage: React.FC = () => {
     );
   };
 
+  // Doctor can skip document upload — status still moves to PENDING_VERIFICATION
   const handleSkipDocument = () => {
+    updateUser({ status: ACCOUNT_STATUS.PENDING_VERIFICATION });
     setStep(3);
   };
 
-  // TODO: Make sure this place is correct for placing the hook
-  useAccountStatusPoller();
+  // Render
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-10">
@@ -228,21 +255,25 @@ const DoctorOnboardingPage: React.FC = () => {
                   {step > s.num ? <CheckCircle2 size={14} /> : s.num}
                 </div>
                 <span
-                  className={`text-xs font-medium hidden sm:inline ${step === s.num ? "text-teal-700" : "text-gray-400"}`}
+                  className={`text-xs font-medium hidden sm:inline ${
+                    step === s.num ? "text-teal-700" : "text-gray-400"
+                  }`}
                 >
                   {s.label}
                 </span>
               </div>
               {idx < STEPS.length - 1 && (
                 <div
-                  className={`h-px w-8 sm:w-12 ${step > s.num ? "bg-teal-400" : "bg-gray-200"}`}
+                  className={`h-px w-8 sm:w-12 ${
+                    step > s.num ? "bg-teal-400" : "bg-gray-200"
+                  }`}
                 />
               )}
             </React.Fragment>
           ))}
         </div>
 
-        {/* Step 1 — Professional Info */}
+        {/* ── Step 1 — Professional Info ── */}
         {step === 1 && (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-1">
@@ -421,7 +452,7 @@ const DoctorOnboardingPage: React.FC = () => {
           </div>
         )}
 
-        {/* Step 2 — Upload Document */}
+        {/* ── Step 2 — Upload Document ── */}
         {step === 2 && (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-1">
@@ -456,7 +487,7 @@ const DoctorOnboardingPage: React.FC = () => {
               </select>
             </div>
 
-            {/* File Upload */}
+            {/* File Upload Zone */}
             <div
               onClick={() => fileRef.current?.click()}
               className="border-2 border-dashed border-gray-300 rounded-xl p-8 flex flex-col items-center gap-3 cursor-pointer hover:border-teal-400 hover:bg-teal-50/40 transition-colors"
@@ -527,56 +558,68 @@ const DoctorOnboardingPage: React.FC = () => {
           </div>
         )}
 
-        {/* Step 3 — Under Review / Status feedback */}
+        {/* ── Step 3 — Under Review ── */}
         {step === 3 && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center">
-              {user?.status === 'ACTIVE' ? (
-                  // Shouldn't normally render — poller will redirect, but just in case
-                  <>
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <CheckCircle2 size={28} className="text-green-600"/>
-                    </div>
-                    <h2 className="text-lg font-semibold text-gray-900 mb-2">Account Approved!</h2>
-                    <p className="text-sm text-gray-500 mb-6">
-                      Your account has been approved. Redirecting to dashboard...
-                    </p>
-                    <Spinner size="md"/>
-                  </>
-              ) : (
-                  <>
-                    <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Clock size={28} className="text-amber-600"/>
-                    </div>
-                    <h2 className="text-lg font-semibold text-gray-900 mb-2">
-                      Application Under Review
-                    </h2>
-                    <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
-                      Your onboarding details have been submitted successfully. Our
-                      admin team will review your application and credentials. You'll be
-                      notified once your account is activated.
-                    </p>
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center">
+            {/*
+                          user.status === ACTIVE branch: poller will have called navigate()
+                          before this re-renders, so the Navigate guard at the top of the
+                          component fires first. This branch is a safety net only.
+                        */}
+            {(user?.status as any) === ACCOUNT_STATUS.ACTIVE ? (
+              <>
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle2 size={28} className="text-green-600" />
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                  Account Approved!
+                </h2>
+                <p className="text-sm text-gray-500 mb-6">
+                  Your account has been approved. Redirecting to dashboard...
+                </p>
+                <Spinner size="md" />
+              </>
+            ) : (
+              <>
+                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Clock size={28} className="text-amber-600" />
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                  Application Under Review
+                </h2>
+                <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+                  Your onboarding details have been submitted successfully. Our
+                  admin team will review your application and credentials.
+                  You'll be notified once your account is activated.
+                </p>
 
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-left mb-4">
-                      <p className="text-xs font-medium text-amber-800 mb-1">
-                        What happens next?
-                      </p>
-                      <ul className="text-xs text-amber-700 space-y-1">
-                        <li>• Admin reviews your submitted documents and credentials</li>
-                        <li>• You'll receive a notification on approval or rejection</li>
-                        <li>• Once approved, you can access all doctor features</li>
-                      </ul>
-                    </div>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-left mb-4">
+                  <p className="text-xs font-medium text-amber-800 mb-1">
+                    What happens next?
+                  </p>
+                  <ul className="text-xs text-amber-700 space-y-1">
+                    <li>
+                      • Admin reviews your submitted documents and credentials
+                    </li>
+                    <li>
+                      • You'll receive a notification on approval or rejection
+                    </li>
+                    <li>• Once approved, you can access all doctor features</li>
+                  </ul>
+                </div>
 
-                    {/* Live polling indicator */}
-                    <div className="flex items-center justify-center gap-2 text-xs text-gray-400 mb-4">
-                      <Spinner size="sm"/>
-                      <span>Checking approval status automatically...</span>
-                    </div>
+                {/* Live polling indicator */}
+                <div className="flex items-center justify-center gap-2 text-xs text-gray-400 mb-4">
+                  <Spinner size="sm" />
+                  <span>Checking approval status automatically...</span>
+                </div>
 
-                    <p className="text-xs text-gray-400">Typical review time: 24–48 hours</p>
-                  </>
-              )}
-            </div>
+                <p className="text-xs text-gray-400">
+                  Typical review time: 24–48 hours
+                </p>
+              </>
+            )}
+          </div>
         )}
       </div>
     </div>
