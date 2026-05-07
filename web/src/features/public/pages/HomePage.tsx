@@ -1,232 +1,180 @@
 import React, {useState} from 'react';
-import {Link, useNavigate} from 'react-router-dom';
-import {Search, Stethoscope, MapPin, Star, ChevronRight, UserCircle} from 'lucide-react';
-import {useSearchDoctors} from '../hooks/usePublicDoctor';
-import {SPECIALIZATION_LABELS} from '../../doctor/types/doctor.types';
-import {CLINIC_TYPE_LABELS} from '../../doctor/types/doctor.clinic.types';
-import {ROUTES} from '../../../routes/routePaths';
+import {useNavigate, Link} from 'react-router-dom';
+import {Stethoscope, LayoutDashboard, LogOut} from 'lucide-react';
 import {useAuth} from '../../../shared/hooks/useAuth';
-import Spinner from '../../../shared/components/ui/Spinner';
+import {useAuthStore} from '../../../store/authStore';
+import {authService} from '../../auth/authService';
+import {ROUTES} from '../../../routes/routePaths';
+import {useDoctorSearch} from '../hooks/useDoctorSearch';
+import DoctorSearchCard from '../components/DoctorSearchCard';
+import {SPECIALIZATION_LABELS, type Specialization} from '../../doctor/types/doctor.types';
 
-const QUICK_SPECIALIZATIONS = [
-    'CARDIOLOGIST',
-    'DERMATOLOGIST',
-    'NEUROLOGIST',
-    'PEDIATRICIAN',
-    'GYNECOLOGIST',
-    'GENERAL_PHYSICIAN',
-] as const;
+const FEATURED_SPECIALIZATIONS: Specialization[] = [
+    'CARDIOLOGIST', 'DERMATOLOGIST', 'NEUROLOGIST',
+    'PEDIATRICIAN', 'GYNECOLOGIST', 'GENERAL_PHYSICIAN',
+];
 
 const HomePage: React.FC = () => {
     const navigate = useNavigate();
     const {isAuthenticated, isPatient, isDoctor} = useAuth();
-    const [searchQuery, setSearchQuery] = useState('');
+    const {clearAuth, refreshToken} = useAuthStore();
 
-    // Load some featured doctors with no filters
-    const {data: featuredRes, isLoading: featuredLoading} = useSearchDoctors({size: 6}, true);
-    const featured = featuredRes?.data?.content ?? [];
+    const [searchName, setSearchName] = useState('');
+    const [activeSpec, setActiveSpec] = useState<string>('');
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (searchQuery.trim()) {
-            navigate(`/search?name=${encodeURIComponent(searchQuery.trim())}`);
-        } else {
-            navigate('/search');
+    const {data, isLoading} = useDoctorSearch({
+        name: searchName || undefined,
+        specialization: activeSpec || undefined,
+        size: 6,
+    });
+    const doctors = data?.data?.content ?? [];
+
+    const handleLogout = async () => {
+        try {
+            if (refreshToken) await authService.logout({refreshToken});
+        } catch { /* best-effort */
+        } finally {
+            clearAuth();
+            navigate(ROUTES.login, {replace: true});
         }
-    };
-
-    const handleSpecialization = (spec: string) => {
-        navigate(`/search?specialization=${spec}`);
     };
 
     const getDashboardRoute = () => {
         if (isPatient) return ROUTES.patientDashboard;
         if (isDoctor) return ROUTES.doctorDashboard;
-        return ROUTES.login;
+        return ROUTES.adminDashboard;
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* ── Top Nav ── */}
-            <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
-                <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-                    <Link to="/" className="flex items-center gap-2">
+        <div className="min-h-screen bg-white">
+            {/* ── Navbar ── */}
+            <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100 shadow-sm">
+                <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+                    <Link to={ROUTES.home} className="flex items-center gap-2">
                         <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                             <Stethoscope size={16} className="text-white"/>
                         </div>
                         <span className="text-lg font-bold text-gray-900">LuneCare</span>
                     </Link>
 
-                    <nav className="flex items-center gap-3">
+                    <div className="flex items-center gap-3">
                         <Link
-                            to="/search"
-                            className="text-sm text-gray-600 hover:text-gray-900 font-medium hidden sm:inline"
+                            to="/find-doctors"
+                            className="text-sm text-gray-600 hover:text-blue-600 font-medium hidden sm:block"
                         >
                             Find Doctors
                         </Link>
+
                         {isAuthenticated ? (
-                            <Link
-                                to={getDashboardRoute()}
-                                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                            >
-                                Dashboard
-                            </Link>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => navigate(getDashboardRoute())}
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 text-sm font-medium rounded-lg hover:bg-blue-100 transition-colors"
+                                >
+                                    <LayoutDashboard size={14}/>
+                                    Dashboard
+                                </button>
+                                <button
+                                    onClick={handleLogout}
+                                    className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                                    title="Logout"
+                                >
+                                    <LogOut size={16}/>
+                                </button>
+                            </div>
                         ) : (
-                            <>
+                            <div className="flex items-center gap-2">
                                 <Link
                                     to={ROUTES.login}
-                                    className="text-sm text-gray-600 hover:text-gray-900 font-medium"
+                                    className="text-sm text-gray-600 font-medium hover:text-blue-600"
                                 >
                                     Sign In
                                 </Link>
                                 <Link
                                     to={ROUTES.register}
-                                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                                    className="px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
                                 >
                                     Register
                                 </Link>
-                            </>
+                            </div>
                         )}
-                    </nav>
+                    </div>
                 </div>
-            </header>
+            </nav>
 
             {/* ── Hero ── */}
-            <section className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 text-white py-16 px-4">
-                <div className="max-w-3xl mx-auto text-center">
+            <section className="pt-14 bg-gradient-to-br from-blue-600 to-blue-800 text-white">
+                <div className="max-w-6xl mx-auto px-4 py-16 text-center">
                     <h1 className="text-3xl sm:text-4xl font-bold mb-3">
                         Find the Right Doctor for You
                     </h1>
-                    <p className="text-blue-100 text-base mb-8">
+                    <p className="text-blue-100 text-sm sm:text-base mb-8">
                         Search by name, specialization, or city and book an appointment in minutes.
                     </p>
-
-                    {/* Search Bar */}
-                    <form onSubmit={handleSearch} className="flex gap-2 max-w-xl mx-auto">
-                        <div className="flex-1 relative">
-                            <Search
-                                size={16}
-                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                            />
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search by doctor name..."
-                                className="w-full pl-9 pr-4 py-3 rounded-lg text-sm text-gray-900 outline-none focus:ring-2 focus:ring-white/50"
-                            />
-                        </div>
+                    <div className="flex max-w-lg mx-auto gap-2">
+                        <input
+                            type="text"
+                            value={searchName}
+                            onChange={(e) => setSearchName(e.target.value)}
+                            placeholder="Search by doctor name..."
+                            className="flex-1 px-4 py-2.5 rounded-lg text-gray-800 text-sm outline-none focus:ring-2 focus:ring-blue-300"
+                        />
                         <button
-                            type="submit"
-                            className="px-5 py-3 bg-white text-blue-700 text-sm font-semibold rounded-lg hover:bg-blue-50 transition-colors"
-                        >
+                            className="px-5 py-2.5 bg-white text-blue-700 font-semibold rounded-lg hover:bg-blue-50 transition-colors text-sm">
                             Search
                         </button>
-                    </form>
+                    </div>
                 </div>
             </section>
 
-            {/* ── Quick Specializations ── */}
+            {/* ── Specializations ── */}
             <section className="max-w-6xl mx-auto px-4 py-8">
-                <h2 className="text-base font-semibold text-gray-700 mb-4">Browse by Specialization</h2>
+                <h2 className="text-base font-semibold text-gray-800 mb-4">Browse by Specialization</h2>
                 <div className="flex flex-wrap gap-2">
-                    {QUICK_SPECIALIZATIONS.map((spec) => (
+                    <button
+                        onClick={() => setActiveSpec('')}
+                        className={`px-4 py-1.5 rounded-full text-sm border transition-colors ${
+                            activeSpec === ''
+                                ? 'bg-blue-600 text-white border-blue-600'
+                                : 'border-gray-300 text-gray-600 hover:border-blue-400'
+                        }`}
+                    >
+                        All
+                    </button>
+                    {FEATURED_SPECIALIZATIONS.map((s) => (
                         <button
-                            key={spec}
-                            onClick={() => handleSpecialization(spec)}
-                            className="px-4 py-2 bg-white border border-gray-200 text-sm text-gray-700 rounded-full hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors font-medium"
+                            key={s}
+                            onClick={() => setActiveSpec(activeSpec === s ? '' : s)}
+                            className={`px-4 py-1.5 rounded-full text-sm border transition-colors ${
+                                activeSpec === s
+                                    ? 'bg-blue-600 text-white border-blue-600'
+                                    : 'border-gray-300 text-gray-600 hover:border-blue-400'
+                            }`}
                         >
-                            {SPECIALIZATION_LABELS[spec]}
+                            {SPECIALIZATION_LABELS[s]}
                         </button>
                     ))}
-                    <button
-                        onClick={() => navigate('/search')}
-                        className="px-4 py-2 bg-white border border-dashed border-gray-300 text-sm text-gray-500 rounded-full hover:border-blue-400 hover:text-blue-600 transition-colors"
-                    >
-                        View all →
-                    </button>
                 </div>
             </section>
 
-            {/* ── Featured Doctors ── */}
+            {/* ── Doctor List ── */}
             <section className="max-w-6xl mx-auto px-4 pb-16">
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-base font-semibold text-gray-700">Available Doctors</h2>
-                    <Link
-                        to="/search"
-                        className="flex items-center gap-1 text-sm text-blue-600 font-medium hover:underline"
-                    >
-                        View all <ChevronRight size={14}/>
+                    <h2 className="text-base font-semibold text-gray-800">Available Doctors</h2>
+                    <Link to="/find-doctors" className="text-sm text-blue-600 hover:underline">
+                        View all →
                     </Link>
                 </div>
 
-                {featuredLoading ? (
-                    <div className="flex justify-center py-12">
-                        <Spinner size="lg"/>
-                    </div>
-                ) : featured.length === 0 ? (
-                    <p className="text-sm text-gray-400 text-center py-10">No doctors found.</p>
+                {isLoading ? (
+                    <div className="text-sm text-gray-400">Loading doctors...</div>
+                ) : doctors.length === 0 ? (
+                    <div className="text-sm text-gray-400">No doctors found.</div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {featured.map((doctor) => {
-                            const clinic = doctor.clinics.find((c) => c.active) ?? doctor.clinics[0];
-                            return (
-                                <Link
-                                    key={doctor.id}
-                                    to={`/doctors/${doctor.id}`}
-                                    className="bg-white rounded-xl border border-gray-200 p-4 hover:border-blue-300 hover:shadow-sm transition-all group"
-                                >
-                                    <div className="flex items-start gap-3 mb-3">
-                                        {doctor.profilePhotoUrl ? (
-                                            <img
-                                                src={doctor.profilePhotoUrl}
-                                                alt="Doctor"
-                                                className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                                            />
-                                        ) : (
-                                            <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
-                                                <UserCircle size={28} className="text-blue-300"/>
-                                            </div>
-                                        )}
-                                        <div className="min-w-0">
-                                            <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                                                Dr. {doctor.firstName} {doctor.lastName}
-                                            </p>
-                                            <p className="text-xs text-blue-600 font-medium mt-0.5">
-                                                {doctor.specialization
-                                                    ? SPECIALIZATION_LABELS[doctor.specialization]
-                                                    : '—'}
-                                            </p>
-                                            <p className="text-xs text-gray-400 mt-0.5">
-                                                {doctor.qualification}
-                                                {doctor.yearsOfExperience != null
-                                                    ? ` · ${doctor.yearsOfExperience} yrs exp`
-                                                    : ''}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {clinic && (
-                                        <div className="space-y-1">
-                                            <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                                                <MapPin size={11} className="flex-shrink-0"/>
-                                                <span className="truncate">{clinic.city}, {clinic.state}</span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                                                <Star size={11} className="flex-shrink-0 text-amber-400"/>
-                                                <span>
-                                                    {CLINIC_TYPE_LABELS[clinic.type] || clinic.type}
-                                                    {' · '}
-                                                    <span className="text-teal-600 font-medium">
-                                                        ₹{clinic.consultationFees}
-                                                    </span>
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-                                </Link>
-                            );
-                        })}
+                        {doctors.map((doc) => (
+                            <DoctorSearchCard key={doc.id} doctor={doc}/>
+                        ))}
                     </div>
                 )}
             </section>

@@ -1,190 +1,160 @@
 import React, {useState} from 'react';
 import {Link} from 'react-router-dom';
-import {CalendarDays, ChevronLeft, ChevronRight, Clock} from 'lucide-react';
-import {usePatientAppointmentHistory} from '../hooks/usePatientAppointments';
-import {
-    STATUS_COLORS,
-    STATUS_LABELS,
-    type AppointmentResponse,
-    type AppointmentStatus
-} from '../types/patient.appointment.types';
+import {CalendarDays, X} from 'lucide-react';
+import {usePatientAppointmentHistory, useCancelPatientAppointment} from '../hooks/usePatientAppointments';
 import Spinner from '../../../shared/components/ui/Spinner';
+import {APPOINTMENT_STATUS_COLORS, APPOINTMENT_STATUS_LABELS} from '../../doctor/types/doctor.appointment.types';
+import type {AppointmentBookingResponse} from '../../appointment/services/appointmentService';
+import {toast} from 'sonner';
+import {AppError} from '../../../shared/utils/errorParser';
 
 type Tab = 'upcoming' | 'completed' | 'cancelled';
 
-const TAB_STATUSES: Record<Tab, AppointmentStatus[]> = {
-    upcoming: ['PENDING_PAYMENT', 'CONFIRMED'],
+const STATUS_MAP: Record<Tab, string[]> = {
+    upcoming: ['CONFIRMED', 'PENDING_PAYMENT'],
     completed: ['COMPLETED'],
     cancelled: ['CANCELLED', 'NO_SHOW'],
 };
 
-const formatTime = (time: string): string => {
-    const [h, m] = time.split(':').map(Number);
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const hour = h % 12 || 12;
-    return `${hour}:${m.toString().padStart(2, '0')} ${ampm}`;
-};
+const AppointmentCard: React.FC<{
+    appt: AppointmentBookingResponse;
+    onCancel?: (id: string) => void;
+    isCancelling?: boolean;
+}> = ({appt, onCancel, isCancelling}) => {
+    const statusClass = APPOINTMENT_STATUS_COLORS[appt.status as keyof typeof APPOINTMENT_STATUS_COLORS]
+        ?? 'bg-gray-100 text-gray-600';
+    const statusLabel = APPOINTMENT_STATUS_LABELS[appt.status as keyof typeof APPOINTMENT_STATUS_LABELS]
+        ?? appt.status;
 
-const AppointmentCard: React.FC<{ appointment: AppointmentResponse }> = ({appointment}) => (
-    <Link
-        to={`/patient/appointments/${appointment.id}`}
-        className="block bg-white rounded-xl border border-gray-200 px-5 py-4 hover:border-blue-300 hover:shadow-sm transition-all"
-    >
-        <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-2">
-                    <span
-                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[appointment.status]}`}>
-                        {STATUS_LABELS[appointment.status]}
-                    </span>
+    return (
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="flex items-start justify-between gap-3">
+                <div>
+                    <div className="flex items-center gap-2 mb-1">
+                        <CalendarDays size={14} className="text-blue-500"/>
+                        <span className="text-sm font-semibold text-gray-800">
+                            {appt.slotDate} · {appt.startTime?.slice(0, 5)} – {appt.endTime?.slice(0, 5)}
+                        </span>
+                    </div>
+                    <p className="text-xs text-gray-500">Appointment ID: {appt.id.slice(0, 8)}...</p>
+                    {appt.cancellationReason && (
+                        <p className="text-xs text-red-500 mt-1">Reason: {appt.cancellationReason}</p>
+                    )}
                 </div>
-                <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <span className="flex items-center gap-1.5">
-                        <CalendarDays size={13} className="text-blue-500"/>
-                        {new Date(appointment.appointmentDate).toLocaleDateString('en-IN', {
-                            day: 'numeric', month: 'short', year: 'numeric',
-                        })}
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                        <Clock size={13} className="text-blue-500"/>
-                        {formatTime(appointment.startTime)}
-                    </span>
+                <span className={`text-xs px-2 py-1 rounded-full font-medium flex-shrink-0 ${statusClass}`}>
+                    {statusLabel}
+                </span>
+            </div>
+
+            {/* Cancel button for confirmed/pending appointments */}
+            {(appt.status === 'CONFIRMED' || appt.status === 'PENDING_PAYMENT') && onCancel && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                    <button
+                        onClick={() => onCancel(appt.id)}
+                        disabled={isCancelling}
+                        className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700 disabled:opacity-50"
+                    >
+                        {isCancelling ? <Spinner size="sm"/> : <X size={12}/>}
+                        Cancel Appointment
+                    </button>
                 </div>
-                {appointment.cancellationReason && appointment.status === 'CANCELLED' && (
-                    <p className="text-xs text-gray-400 mt-2">
-                        Reason: {appointment.cancellationReason}
-                    </p>
-                )}
-            </div>
-            <div className="text-right flex-shrink-0">
-                <p className="text-sm font-semibold text-teal-700">₹{appointment.consultationFees}</p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                    {appointment.paymentId ? 'Paid' : 'Unpaid'}
-                </p>
-            </div>
+            )}
         </div>
-    </Link>
-);
+    );
+};
 
 const PatientAppointmentsPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<Tab>('upcoming');
-    const [page, setPage] = useState(0);
+    const [cancellingId, setCancellingId] = useState<string | null>(null);
 
-    // Fetch all — we filter client-side by tab
-    // For production scale you'd pass status filters to backend, but your API
-    // doesn't expose status filter on history endpoint, so client-side is correct here
-    const {data: historyRes, isLoading} = usePatientAppointmentHistory(page, 20);
-    const all: AppointmentResponse[] = historyRes?.data?.content ?? [];
-    const pageInfo = historyRes?.data?.page;
-    const totalPages = pageInfo?.totalPages ?? 0;
+    const {data, isLoading} = usePatientAppointmentHistory(0, 50);
+    const {mutate: cancel} = useCancelPatientAppointment();
 
-    const filtered = all.filter((a) => TAB_STATUSES[activeTab].includes(a.status));
+    const all = data?.data?.content ?? [];
+    const filtered = all.filter((a) => STATUS_MAP[activeTab].includes(a.status));
 
-    const tabs: { key: Tab; label: string; count: number }[] = [
-        {
-            key: 'upcoming',
-            label: 'Upcoming',
-            count: all.filter((a) => TAB_STATUSES.upcoming.includes(a.status)).length,
-        },
-        {
-            key: 'completed',
-            label: 'Completed',
-            count: all.filter((a) => TAB_STATUSES.completed.includes(a.status)).length,
-        },
-        {
-            key: 'cancelled',
-            label: 'Cancelled',
-            count: all.filter((a) => TAB_STATUSES.cancelled.includes(a.status)).length,
-        },
+    const handleCancel = (appointmentId: string) => {
+        const reason = window.prompt('Reason for cancellation (optional):') ?? 'Patient request';
+        setCancellingId(appointmentId);
+        cancel(
+            {appointmentId, reason},
+            {
+                onSuccess: () => {
+                    toast.success('Appointment cancelled');
+                    setCancellingId(null);
+                },
+                onError: (err: AppError) => {
+                    toast.error(err.message);
+                    setCancellingId(null);
+                },
+            },
+        );
+    };
+
+    const TABS: { key: Tab; label: string }[] = [
+        {key: 'upcoming', label: 'Upcoming'},
+        {key: 'completed', label: 'Completed'},
+        {key: 'cancelled', label: 'Cancelled'},
     ];
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
+        <div className="space-y-5">
             <div>
                 <h1 className="text-xl font-bold text-gray-900">My Appointments</h1>
                 <p className="text-sm text-gray-500 mt-0.5">View and manage your appointment history</p>
             </div>
 
             {/* Tabs */}
-            <div className="flex border border-gray-200 rounded-lg overflow-hidden bg-white">
-                {tabs.map((tab) => (
+            <div className="flex border border-gray-200 rounded-lg overflow-hidden">
+                {TABS.map((t) => (
                     <button
-                        key={tab.key}
-                        onClick={() => {
-                            setActiveTab(tab.key);
-                            setPage(0);
-                        }}
-                        className={`flex-1 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-1.5 ${
-                            activeTab === tab.key
+                        key={t.key}
+                        onClick={() => setActiveTab(t.key)}
+                        className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
+                            activeTab === t.key
                                 ? 'bg-blue-600 text-white'
-                                : 'text-gray-600 hover:bg-gray-50'
+                                : 'bg-white text-gray-600 hover:bg-gray-50'
                         }`}
                     >
-                        {tab.label}
-                        {tab.count > 0 && (
-                            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                                activeTab === tab.key
-                                    ? 'bg-white/20 text-white'
-                                    : 'bg-gray-100 text-gray-500'
-                            }`}>
-                                {tab.count}
-                            </span>
-                        )}
+                        {t.label}
                     </button>
                 ))}
             </div>
 
             {/* Content */}
-            {isLoading ? (
-                <div className="flex justify-center py-16">
-                    <Spinner size="lg"/>
-                </div>
-            ) : filtered.length === 0 ? (
-                <div className="bg-white rounded-xl border border-gray-200 flex flex-col items-center py-16 gap-3">
-                    <CalendarDays size={36} className="text-gray-300"/>
-                    <p className="text-sm text-gray-500">
-                        No {activeTab} appointments
-                    </p>
-                    {activeTab === 'upcoming' && (
-                        <Link
-                            to="/search"
-                            className="text-sm text-blue-600 font-medium hover:underline"
-                        >
-                            Find a Doctor →
-                        </Link>
-                    )}
-                </div>
-            ) : (
-                <div className="space-y-3">
-                    {filtered.map((appt) => (
-                        <AppointmentCard key={appt.id} appointment={appt}/>
-                    ))}
-                </div>
-            )}
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2">
-                    <button
-                        onClick={() => setPage((p) => Math.max(0, p - 1))}
-                        disabled={page === 0}
-                        className="flex items-center gap-1 px-3 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-50 disabled:opacity-40"
-                    >
-                        <ChevronLeft size={14}/> Prev
-                    </button>
-                    <span className="text-sm text-gray-500">
-                        Page {page + 1} of {totalPages}
-                    </span>
-                    <button
-                        onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                        disabled={page >= totalPages - 1}
-                        className="flex items-center gap-1 px-3 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-50 disabled:opacity-40"
-                    >
-                        Next <ChevronRight size={14}/>
-                    </button>
-                </div>
-            )}
+            <div>
+                {isLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                        <Spinner size="md"/>
+                    </div>
+                ) : filtered.length === 0 ? (
+                    <div className="bg-white rounded-xl border border-gray-200 flex flex-col items-center py-14 gap-3">
+                        <CalendarDays size={32} className="text-gray-200"/>
+                        <p className="text-sm text-gray-400">
+                            No {activeTab} appointments
+                        </p>
+                        {activeTab === 'upcoming' && (
+                            <Link
+                                to="/find-doctors"
+                                className="text-sm text-blue-600 font-medium hover:underline"
+                            >
+                                Find a Doctor →
+                            </Link>
+                        )}
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {filtered.map((appt) => (
+                            <AppointmentCard
+                                key={appt.id}
+                                appt={appt}
+                                onCancel={activeTab === 'upcoming' ? handleCancel : undefined}
+                                isCancelling={cancellingId === appt.id}
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

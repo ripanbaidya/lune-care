@@ -995,7 +995,7 @@ const DoctorSearchPage: React.FC = () => {
 export default DoctorSearchPage;
 
 
-# DoctorPublicPage.tsx
+# DoctorPublicProfilePage.tsx
 
 import React, {useState} from 'react';
 import {Link, useNavigate, useParams} from 'react-router-dom';
@@ -1038,7 +1038,7 @@ const maxDateStr = () => {
     return d.toISOString().split('T')[0];
 };
 
-const DoctorPublicPage: React.FC = () => {
+const DoctorPublicProfilePage: React.FC = () => {
     const {doctorId} = useParams<{doctorId: string}>();
     const navigate = useNavigate();
     const {isAuthenticated, isPatient} = useAuth();
@@ -1391,4 +1391,4 @@ const DoctorPublicPage: React.FC = () => {
     );
 };
 
-export default DoctorPublicPage;
+export default DoctorPublicProfilePage;

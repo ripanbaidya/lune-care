@@ -10,6 +10,7 @@ import {
     Menu,
     X,
     Stethoscope,
+    Search,
 } from 'lucide-react';
 import {useAuthStore} from '../../../store/authStore';
 import {authService} from '../../../features/auth/authService';
@@ -24,6 +25,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
     {label: 'Dashboard', to: ROUTES.patientDashboard, icon: <LayoutDashboard size={18}/>},
+    {label: 'Find Doctors', to: '/find-doctors', icon: <Search size={18}/>},  // ← NEW
     {label: 'Profile', to: ROUTES.patientProfile, icon: <User size={18}/>},
     {label: 'Address', to: ROUTES.patientAddress, icon: <MapPin size={18}/>},
     {label: 'Appointments', to: ROUTES.patientAppointments, icon: <CalendarDays size={18}/>},

@@ -211,7 +211,7 @@ const DoctorSearchPage: React.FC = () => {
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {results.map((doctor) => {
-                            const clinic = doctor.clinics.find((c) => c.active) ?? doctor.clinics[0];
+                            // const clinic = doctor.clinics.find((c) => c.active) ?? doctor.clinics[0];
                             return (
                                 <Link
                                     key={doctor.id}
