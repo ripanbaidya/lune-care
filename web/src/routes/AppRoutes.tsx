@@ -1,5 +1,5 @@
 import React from "react";
-import {Routes, Route, Navigate} from "react-router-dom";
+import {Navigate, Route, Routes} from "react-router-dom";
 import {ROUTES} from "./routePaths";
 import PrivateRoute from "../shared/components/guards/PrivateRoute";
 import RoleRoute from "../shared/components/guards/RoleRoute";
