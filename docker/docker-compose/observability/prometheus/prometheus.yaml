@@ -1,0 +1,66 @@
+# prometheus.yaml
+# job_name: '...' Used service name to refer to the job
+# targets: '...' used docker container name to refer to the target not the localhost
+
+global:
+  scrape_interval: 15s # scrape metrics every 15 seconds.
+  evaluation_interval: 15s # evaluate rules every 15 seconds.
+
+scrape_configs:
+
+  # infrastructure
+  - job_name: 'api-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'api-gateway:8080' ]
+
+  - job_name: 'config-server'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'config-server:8888' ]
+
+  - job_name: 'eureka-server'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'eureka-server:8761' ]
+
+  # services
+  - job_name: 'admin'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'admin:8088' ]
+
+  - job_name: 'appointment'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'appointment:8084' ]
+
+  - job_name: 'auth'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'auth:8081' ]
+
+  - job_name: 'doctor'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'doctor:8083' ]
+
+  - job_name: 'feedback'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'feedback:8087' ]
+
+  - job_name: 'notification'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'notification:8086' ]
+
+  - job_name: 'patient'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'patient:8082' ]
+
+  - job_name: 'payment'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'payment:8085' ]
