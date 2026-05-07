@@ -22,7 +22,7 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 public class SecurityConfig {
 
     private static final String[] PUBLIC_ENDPOINTS = {"/api/auth/**", "/api/internal/**", "/error"};
-    private static final String[] ACTUATOR_ENDPOINTS = {"/actuator/health/**", "/actuator/info"};
+    private static final String[] ACTUATOR_ENDPOINTS = {"/actuator/health/**", "/actuator/info", "/actuator/prometheus", "/actuator/metrics"};
     private static final String[] SWAGGER_ENDPOINTS = {"/api-docs/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"};
 
     private final GatewayAuthFilter gatewayAuthFilter;
