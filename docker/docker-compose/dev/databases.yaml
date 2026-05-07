@@ -1,4 +1,3 @@
-# dev/databases.yaml
 # Contains database services for PostgreSQL and MongoDB
 # NOTE: If you change the database or configuration, you must also update the service
 # configurations accordingly

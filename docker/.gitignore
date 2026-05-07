@@ -1,4 +1,4 @@
-docker-compose/dev/.env.dev
+.env.dev
 docker-compose/prod/.env.prod
 docker-compose/dev/.data
 

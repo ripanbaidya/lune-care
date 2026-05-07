@@ -1,4 +1,3 @@
-# dev/infra.yaml
 # Contains services for infrastructures like RabbitMQ, Redis, etc.
 # Consider adding more services as per business requirements.
 
