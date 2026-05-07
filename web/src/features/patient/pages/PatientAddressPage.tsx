@@ -9,7 +9,7 @@ import {
 import {FormError} from '../../../shared/components/ui/FormError';
 import {FieldErrorMessage} from '../../../shared/components/ui/FieldErrorMessage';
 import Spinner from '../../../shared/components/ui/Spinner';
-import type {AddressRequest} from '../patient-address.types';
+import type {AddressRequest} from '../types/patient-address.types.ts';
 import {AppError} from '../../../shared/utils/errorParser';
 import {toast} from 'sonner';
 

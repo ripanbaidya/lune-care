@@ -1,0 +1,1394 @@
+# file - public.types.ts
+
+import type {ClinicType} from '../../doctor/types/doctor.clinic.types';
+import type {Specialization} from '../../doctor/types/doctor.types';
+
+export interface PublicSchedule {
+    id: string;
+    dayOfWeek: string;
+    startTime: string;
+    endTime: string;
+    active: boolean;
+}
+
+export interface PublicClinic {
+    id: string;
+    name: string;
+    type: ClinicType;
+    consultationFees: number;
+    consultationDurationMinutes: number;
+    contactNumber: string | null;
+    addressLine: string;
+    city: string;
+    state: string;
+    pincode: string;
+    country: string;
+    active: boolean;
+    schedules: PublicSchedule[];
+}
+
+export interface PublicDoctorSummary {
+    id: string;
+    firstName: string;
+    lastName: string;
+    profilePhotoUrl: string | null;
+    specialization: Specialization | null;
+    qualification: string | null;
+    yearsOfExperience: number | null;
+    bio: string | null;
+    languagesSpoken: string[];
+    clinics: PublicClinic[];
+}
+
+export interface DoctorSearchFilters {
+    name?: string;
+    specialization?: string;
+    city?: string;
+    maxFees?: number;
+    page?: number;
+    size?: number;
+}
+
+export interface DoctorSearchResponse {
+    filters: {
+        name: string | null;
+        specialization: string | null;
+        city: string | null;
+        maxFees: number | null;
+    };
+    content: PublicDoctorSummary[];
+    page: {
+        number: number;
+        size: number;
+        totalElements: number;
+        totalPages: number;
+    };
+}
+
+# patient.appointment.types.ts
+
+export type AppointmentStatus =
+    | 'PENDING_PAYMENT'
+    | 'CONFIRMED'
+    | 'COMPLETED'
+    | 'CANCELLED'
+    | 'NO_SHOW';
+
+export type CancelledBy = 'PATIENT' | 'DOCTOR';
+
+export interface AppointmentResponse {
+    id: string;
+    patientId: string;
+    doctorId: string;
+    clinicId: string;
+    slotId: string;
+    appointmentDate: string;       // "YYYY-MM-DD"
+    startTime: string;             // "HH:mm:ss"
+    endTime: string;               // "HH:mm:ss"
+    status: AppointmentStatus;
+    consultationFees: number;
+    paymentId: string | null;
+    cancellationReason: string | null;
+    cancelledBy: CancelledBy | null;
+}
+
+export interface SlotResponse {
+    id: string;
+    doctorId: string;
+    clinicId: string;
+    slotDate: string;
+    startTime: string;
+    endTime: string;
+    status: 'AVAILABLE' | 'LOCKED' | 'BOOKED' | 'CANCELLED';
+}
+
+export interface BookAppointmentRequest {
+    slotId: string;
+}
+
+export interface CancelAppointmentRequest {
+    reason: string;
+}
+
+export interface AppointmentPage {
+    content: AppointmentResponse[];
+    page: {
+        number: number;
+        size: number;
+        totalElements: number;
+        totalPages: number;
+    };
+}
+
+export const STATUS_LABELS: Record<AppointmentStatus, string> = {
+    PENDING_PAYMENT: 'Pending Payment',
+    CONFIRMED: 'Confirmed',
+    COMPLETED: 'Completed',
+    CANCELLED: 'Cancelled',
+    NO_SHOW: 'No Show',
+};
+
+export const STATUS_COLORS: Record<AppointmentStatus, string> = {
+    PENDING_PAYMENT: 'bg-amber-100 text-amber-700',
+    CONFIRMED: 'bg-blue-100 text-blue-700',
+    COMPLETED: 'bg-green-100 text-green-700',
+    CANCELLED: 'bg-red-100 text-red-700',
+    NO_SHOW: 'bg-gray-100 text-gray-600',
+};
+
+# payment.types.ts
+
+export type GatewayType = 'RAZORPAY' | 'STRIPE';
+export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED';
+
+export interface InitiatePaymentRequest {
+    appointmentId: string;
+    gatewayType: GatewayType;
+}
+
+// What backend returns after initiating Razorpay payment
+export interface RazorpayInitiateResponse {
+    appointmentId: string;
+    gatewayType: 'RAZORPAY';
+    razorpayOrderId: string;
+    amount: number;    // in paise (e.g. 50000 = ₹500)
+    currency: string;  // "INR"
+    razorpayKey: string;
+}
+
+export interface VerifyRazorpayRequest {
+    appointmentId: string;
+    razorpayPaymentId: string;
+    razorpayOrderId: string;
+    razorpaySignature: string;
+}
+
+export interface PaymentResponse {
+    id: string;
+    appointmentId: string;
+    patientId: string;
+    amount: number;
+    currency: string;
+    razorpayOrderId: string | null;
+    razorpayPaymentId: string | null;
+    status: PaymentStatus;
+    gateway: GatewayType;
+    createdAt: string;
+}
+
+# publicDoctorService.ts
+
+import {apiClient} from '../../../lib/axios';
+import type {ResponseWrapper} from '../../../types/api.types';
+import type {DoctorSearchFilters, DoctorSearchResponse, PublicDoctorSummary} from '../types/public.types';
+
+export const publicDoctorService = {
+    searchDoctors: async (filters: DoctorSearchFilters): Promise<ResponseWrapper<DoctorSearchResponse>> => {
+        // Strip undefined/empty/zero values so the API gets clean params
+        const params = Object.fromEntries(
+            Object.entries(filters).filter(([, v]) => v !== undefined && v !== '' && v !== 0),
+        );
+        const res = await apiClient.get<ResponseWrapper<DoctorSearchResponse>>('/doctor/search', {params});
+        return res.data;
+    },
+
+    getDoctorPublic: async (doctorId: string): Promise<ResponseWrapper<PublicDoctorSummary>> => {
+        const res = await apiClient.get<ResponseWrapper<PublicDoctorSummary>>(`/doctor/${doctorId}/public`);
+        return res.data;
+    },
+};
+
+# patientAppointmentService.ts
+
+import {apiClient} from '../../../lib/axios';
+import type {ResponseWrapper} from '../../../types/api.types';
+import type {
+    AppointmentPage,
+    AppointmentResponse,
+    BookAppointmentRequest,
+    CancelAppointmentRequest,
+    SlotResponse,
+} from '../types/patient.appointment.types';
+
+export const patientAppointmentService = {
+    getAvailableSlots: async (
+        doctorId: string,
+        clinicId: string,
+        date: string,
+    ): Promise<ResponseWrapper<SlotResponse[]>> => {
+        const res = await apiClient.get<ResponseWrapper<SlotResponse[]>>(
+            `/appointment/slots/${doctorId}/${clinicId}`,
+            {params: {date}},
+        );
+        return res.data;
+    },
+
+    bookAppointment: async (
+        data: BookAppointmentRequest,
+    ): Promise<ResponseWrapper<AppointmentResponse>> => {
+        const res = await apiClient.post<ResponseWrapper<AppointmentResponse>>('/appointment/book', data);
+        return res.data;
+    },
+
+    getAppointment: async (appointmentId: string): Promise<ResponseWrapper<AppointmentResponse>> => {
+        const res = await apiClient.get<ResponseWrapper<AppointmentResponse>>(
+            `/appointment/${appointmentId}`,
+        );
+        return res.data;
+    },
+
+    getHistory: async (page = 0, size = 10): Promise<ResponseWrapper<AppointmentPage>> => {
+        const res = await apiClient.get<ResponseWrapper<AppointmentPage>>(
+            '/appointment/patient/history',
+            {params: {page, size}},
+        );
+        return res.data;
+    },
+
+    cancelAppointment: async (
+        appointmentId: string,
+        data: CancelAppointmentRequest,
+    ): Promise<ResponseWrapper<AppointmentResponse>> => {
+        const res = await apiClient.patch<ResponseWrapper<AppointmentResponse>>(
+            `/appointment/${appointmentId}/cancel`,
+            data,
+            // Backend reads X-User-Role to determine CancelledBy
+            {headers: {'X-User-Role': 'ROLE_PATIENT'}},
+        );
+        return res.data;
+    },
+};
+
+# paymentService.ts
+
+import {apiClient} from '../../../lib/axios';
+import type {ResponseWrapper} from '../../../types/api.types';
+import type {
+    InitiatePaymentRequest,
+    PaymentResponse,
+    RazorpayInitiateResponse,
+    VerifyRazorpayRequest,
+} from '../types/payment.types';
+
+export const paymentService = {
+    initiatePayment: async (
+        data: InitiatePaymentRequest,
+    ): Promise<ResponseWrapper<RazorpayInitiateResponse>> => {
+        const res = await apiClient.post<ResponseWrapper<RazorpayInitiateResponse>>(
+            '/payment/initiate',
+            data,
+        );
+        return res.data;
+    },
+
+    verifyRazorpay: async (
+        data: VerifyRazorpayRequest,
+    ): Promise<ResponseWrapper<PaymentResponse>> => {
+        const res = await apiClient.post<ResponseWrapper<PaymentResponse>>('/payment/verify', data);
+        return res.data;
+    },
+
+    getPaymentForAppointment: async (
+        appointmentId: string,
+    ): Promise<ResponseWrapper<PaymentResponse>> => {
+        const res = await apiClient.get<ResponseWrapper<PaymentResponse>>(
+            `/payment/appointment/${appointmentId}`,
+        );
+        return res.data;
+    },
+};
+
+# usePublicDoctor.ts
+
+import {useAppQuery} from '../../../shared/hooks/useAppQuery';
+import {publicDoctorService} from '../services/publicDoctorService';
+import type {DoctorSearchFilters, DoctorSearchResponse, PublicDoctorSummary} from '../types/public.types';
+import type {ResponseWrapper} from '../../../types/api.types';
+
+export function useSearchDoctors(filters: DoctorSearchFilters, enabled = true) {
+    return useAppQuery<ResponseWrapper<DoctorSearchResponse>>({
+        queryKey: ['public', 'doctors', 'search', filters],
+        queryFn: () => publicDoctorService.searchDoctors(filters),
+        enabled,
+        // Results stay fresh for 2 minutes — public data
+        staleTime: 1000 * 60 * 2,
+    });
+}
+
+export function useDoctorPublic(doctorId: string) {
+    return useAppQuery<ResponseWrapper<PublicDoctorSummary>>({
+        queryKey: ['public', 'doctors', doctorId],
+        queryFn: () => publicDoctorService.getDoctorPublic(doctorId),
+        enabled: !!doctorId,
+    });
+}
+
+# usePatientAppointments.ts
+
+import {useQueryClient} from '@tanstack/react-query';
+import {useAppQuery} from '../../../shared/hooks/useAppQuery';
+import {useAppMutation} from '../../../shared/hooks/useAppMutation';
+import {patientAppointmentService} from '../services/patientAppointmentService';
+import type {
+    AppointmentPage,
+    AppointmentResponse,
+    BookAppointmentRequest,
+    CancelAppointmentRequest,
+    SlotResponse,
+} from '../types/patient.appointment.types';
+import type {ResponseWrapper} from '../../../types/api.types';
+
+export const PATIENT_APPOINTMENT_HISTORY_KEY = ['patient', 'appointments', 'history'] as const;
+
+export function useAvailableSlots(
+    doctorId: string,
+    clinicId: string,
+    date: string,
+    enabled = true,
+) {
+    return useAppQuery<ResponseWrapper<SlotResponse[]>>({
+        queryKey: ['appointment', 'slots', doctorId, clinicId, date],
+        queryFn: () => patientAppointmentService.getAvailableSlots(doctorId, clinicId, date),
+        enabled: enabled && !!doctorId && !!clinicId && !!date,
+        // Don't cache slots — always fetch fresh so availability is accurate
+        staleTime: 0,
+    });
+}
+
+export function useAppointment(appointmentId: string) {
+    return useAppQuery<ResponseWrapper<AppointmentResponse>>({
+        queryKey: ['patient', 'appointment', appointmentId],
+        queryFn: () => patientAppointmentService.getAppointment(appointmentId),
+        enabled: !!appointmentId,
+    });
+}
+
+export function usePatientAppointmentHistory(page = 0, size = 10) {
+    return useAppQuery<ResponseWrapper<AppointmentPage>>({
+        queryKey: [...PATIENT_APPOINTMENT_HISTORY_KEY, page, size],
+        queryFn: () => patientAppointmentService.getHistory(page, size),
+    });
+}
+
+export function useBookAppointment() {
+    const qc = useQueryClient();
+    return useAppMutation<ResponseWrapper<AppointmentResponse>, BookAppointmentRequest>({
+        mutationFn: (data) => patientAppointmentService.bookAppointment(data),
+        onSuccess: () => {
+            qc.invalidateQueries({queryKey: PATIENT_APPOINTMENT_HISTORY_KEY});
+        },
+    });
+}
+
+export function useCancelPatientAppointment() {
+    const qc = useQueryClient();
+    return useAppMutation<
+        ResponseWrapper<AppointmentResponse>,
+        {appointmentId: string; data: CancelAppointmentRequest}
+    >({
+        mutationFn: ({appointmentId, data}) =>
+            patientAppointmentService.cancelAppointment(appointmentId, data),
+        onSuccess: (_res, {appointmentId}) => {
+            qc.invalidateQueries({queryKey: PATIENT_APPOINTMENT_HISTORY_KEY});
+            qc.invalidateQueries({queryKey: ['patient', 'appointment', appointmentId]});
+        },
+    });
+}
+
+# usePayment.ts
+
+import {useQueryClient} from '@tanstack/react-query';
+import {useAppMutation} from '../../../shared/hooks/useAppMutation';
+import {useAppQuery} from '../../../shared/hooks/useAppQuery';
+import {paymentService} from '../services/paymentService';
+import type {
+    InitiatePaymentRequest,
+    PaymentResponse,
+    RazorpayInitiateResponse,
+    VerifyRazorpayRequest,
+} from '../types/payment.types';
+import type {ResponseWrapper} from '../../../types/api.types';
+import {PATIENT_APPOINTMENT_HISTORY_KEY} from '../../patient/hooks/usePatientAppointments';
+
+export function useInitiatePayment() {
+    return useAppMutation<ResponseWrapper<RazorpayInitiateResponse>, InitiatePaymentRequest>({
+        mutationFn: (data) => paymentService.initiatePayment(data),
+    });
+}
+
+export function useVerifyRazorpay() {
+    const qc = useQueryClient();
+    return useAppMutation<ResponseWrapper<PaymentResponse>, VerifyRazorpayRequest>({
+        mutationFn: (data) => paymentService.verifyRazorpay(data),
+        onSuccess: (_res, {appointmentId}) => {
+            // Refresh appointment history + specific appointment detail
+            qc.invalidateQueries({queryKey: PATIENT_APPOINTMENT_HISTORY_KEY});
+            qc.invalidateQueries({queryKey: ['patient', 'appointment', appointmentId]});
+        },
+    });
+}
+
+export function usePaymentForAppointment(appointmentId: string) {
+    return useAppQuery<ResponseWrapper<PaymentResponse>>({
+        queryKey: ['payment', 'appointment', appointmentId],
+        queryFn: () => paymentService.getPaymentForAppointment(appointmentId),
+        enabled: !!appointmentId,
+    });
+}
+
+# HomePage.tsx
+
+import React, {useState} from 'react';
+import {Link, useNavigate} from 'react-router-dom';
+import {Search, Stethoscope, MapPin, Star, ChevronRight, UserCircle} from 'lucide-react';
+import {useSearchDoctors} from '../hooks/usePublicDoctor';
+import {SPECIALIZATION_LABELS} from '../../doctor/types/doctor.types';
+import {CLINIC_TYPE_LABELS} from '../../doctor/types/doctor.clinic.types';
+import {ROUTES} from '../../../routes/routePaths';
+import {useAuth} from '../../../shared/hooks/useAuth';
+import Spinner from '../../../shared/components/ui/Spinner';
+
+const QUICK_SPECIALIZATIONS = [
+    'CARDIOLOGIST',
+    'DERMATOLOGIST',
+    'NEUROLOGIST',
+    'PEDIATRICIAN',
+    'GYNECOLOGIST',
+    'GENERAL_PHYSICIAN',
+] as const;
+
+const HomePage: React.FC = () => {
+    const navigate = useNavigate();
+    const {isAuthenticated, isPatient, isDoctor} = useAuth();
+    const [searchQuery, setSearchQuery] = useState('');
+
+    // Load some featured doctors with no filters
+    const {data: featuredRes, isLoading: featuredLoading} = useSearchDoctors({size: 6}, true);
+    const featured = featuredRes?.data?.content ?? [];
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (searchQuery.trim()) {
+            navigate(`/search?name=${encodeURIComponent(searchQuery.trim())}`);
+        } else {
+            navigate('/search');
+        }
+    };
+
+    const handleSpecialization = (spec: string) => {
+        navigate(`/search?specialization=${spec}`);
+    };
+
+    const getDashboardRoute = () => {
+        if (isPatient) return ROUTES.patientDashboard;
+        if (isDoctor) return ROUTES.doctorDashboard;
+        return ROUTES.login;
+    };
+
+    return (
+        <div className="min-h-screen bg-gray-50">
+            {/* ── Top Nav ── */}
+            <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
+                <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+                    <Link to="/" className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                            <Stethoscope size={16} className="text-white"/>
+                        </div>
+                        <span className="text-lg font-bold text-gray-900">LuneCare</span>
+                    </Link>
+
+                    <nav className="flex items-center gap-3">
+                        <Link
+                            to="/search"
+                            className="text-sm text-gray-600 hover:text-gray-900 font-medium hidden sm:inline"
+                        >
+                            Find Doctors
+                        </Link>
+                        {isAuthenticated ? (
+                            <Link
+                                to={getDashboardRoute()}
+                                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                                Dashboard
+                            </Link>
+                        ) : (
+                            <>
+                                <Link
+                                    to={ROUTES.login}
+                                    className="text-sm text-gray-600 hover:text-gray-900 font-medium"
+                                >
+                                    Sign In
+                                </Link>
+                                <Link
+                                    to={ROUTES.register}
+                                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                                >
+                                    Register
+                                </Link>
+                            </>
+                        )}
+                    </nav>
+                </div>
+            </header>
+
+            {/* ── Hero ── */}
+            <section className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 text-white py-16 px-4">
+                <div className="max-w-3xl mx-auto text-center">
+                    <h1 className="text-3xl sm:text-4xl font-bold mb-3">
+                        Find the Right Doctor for You
+                    </h1>
+                    <p className="text-blue-100 text-base mb-8">
+                        Search by name, specialization, or city and book an appointment in minutes.
+                    </p>
+
+                    {/* Search Bar */}
+                    <form onSubmit={handleSearch} className="flex gap-2 max-w-xl mx-auto">
+                        <div className="flex-1 relative">
+                            <Search
+                                size={16}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                            />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search by doctor name..."
+                                className="w-full pl-9 pr-4 py-3 rounded-lg text-sm text-gray-900 outline-none focus:ring-2 focus:ring-white/50"
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            className="px-5 py-3 bg-white text-blue-700 text-sm font-semibold rounded-lg hover:bg-blue-50 transition-colors"
+                        >
+                            Search
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            {/* ── Quick Specializations ── */}
+            <section className="max-w-6xl mx-auto px-4 py-8">
+                <h2 className="text-base font-semibold text-gray-700 mb-4">Browse by Specialization</h2>
+                <div className="flex flex-wrap gap-2">
+                    {QUICK_SPECIALIZATIONS.map((spec) => (
+                        <button
+                            key={spec}
+                            onClick={() => handleSpecialization(spec)}
+                            className="px-4 py-2 bg-white border border-gray-200 text-sm text-gray-700 rounded-full hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors font-medium"
+                        >
+                            {SPECIALIZATION_LABELS[spec]}
+                        </button>
+                    ))}
+                    <button
+                        onClick={() => navigate('/search')}
+                        className="px-4 py-2 bg-white border border-dashed border-gray-300 text-sm text-gray-500 rounded-full hover:border-blue-400 hover:text-blue-600 transition-colors"
+                    >
+                        View all →
+                    </button>
+                </div>
+            </section>
+
+            {/* ── Featured Doctors ── */}
+            <section className="max-w-6xl mx-auto px-4 pb-16">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-base font-semibold text-gray-700">Available Doctors</h2>
+                    <Link
+                        to="/search"
+                        className="flex items-center gap-1 text-sm text-blue-600 font-medium hover:underline"
+                    >
+                        View all <ChevronRight size={14}/>
+                    </Link>
+                </div>
+
+                {featuredLoading ? (
+                    <div className="flex justify-center py-12">
+                        <Spinner size="lg"/>
+                    </div>
+                ) : featured.length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center py-10">No doctors found.</p>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {featured.map((doctor) => {
+                            const clinic = doctor.clinics.find((c) => c.active) ?? doctor.clinics[0];
+                            return (
+                                <Link
+                                    key={doctor.id}
+                                    to={`/doctors/${doctor.id}`}
+                                    className="bg-white rounded-xl border border-gray-200 p-4 hover:border-blue-300 hover:shadow-sm transition-all group"
+                                >
+                                    <div className="flex items-start gap-3 mb-3">
+                                        {doctor.profilePhotoUrl ? (
+                                            <img
+                                                src={doctor.profilePhotoUrl}
+                                                alt="Doctor"
+                                                className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                                            />
+                                        ) : (
+                                            <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
+                                                <UserCircle size={28} className="text-blue-300"/>
+                                            </div>
+                                        )}
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                                Dr. {doctor.firstName} {doctor.lastName}
+                                            </p>
+                                            <p className="text-xs text-blue-600 font-medium mt-0.5">
+                                                {doctor.specialization
+                                                    ? SPECIALIZATION_LABELS[doctor.specialization]
+                                                    : '—'}
+                                            </p>
+                                            <p className="text-xs text-gray-400 mt-0.5">
+                                                {doctor.qualification}
+                                                {doctor.yearsOfExperience != null
+                                                    ? ` · ${doctor.yearsOfExperience} yrs exp`
+                                                    : ''}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {clinic && (
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                                <MapPin size={11} className="flex-shrink-0"/>
+                                                <span className="truncate">{clinic.city}, {clinic.state}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                                <Star size={11} className="flex-shrink-0 text-amber-400"/>
+                                                <span>
+                                                    {CLINIC_TYPE_LABELS[clinic.type] || clinic.type}
+                                                    {' · '}
+                                                    <span className="text-teal-600 font-medium">
+                                                        ₹{clinic.consultationFees}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </Link>
+                            );
+                        })}
+                    </div>
+                )}
+            </section>
+        </div>
+    );
+};
+
+export default HomePage;
+
+
+# DoctorSearchPage.tsx
+
+import React, {useEffect, useState} from 'react';
+import {Link, useNavigate, useSearchParams} from 'react-router-dom';
+import {Search, MapPin, SlidersHorizontal, UserCircle, Stethoscope, X, ChevronLeft, ChevronRight} from 'lucide-react';
+import {useSearchDoctors} from '../hooks/usePublicDoctor';
+import {SPECIALIZATION_LABELS, type Specialization} from '../../doctor/types/doctor.types';
+import {CLINIC_TYPE_LABELS} from '../../doctor/types/doctor.clinic.types';
+import {ROUTES} from '../../../routes/routePaths';
+import {useAuth} from '../../../shared/hooks/useAuth';
+import Spinner from '../../../shared/components/ui/Spinner';
+
+const ALL_SPECIALIZATIONS = Object.keys(SPECIALIZATION_LABELS) as Specialization[];
+
+const DoctorSearchPage: React.FC = () => {
+    const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const {isAuthenticated, isPatient, isDoctor} = useAuth();
+
+    // Derive filter state from URL params — bookmarkable search
+    const [name, setName] = useState(searchParams.get('name') ?? '');
+    const [specialization, setSpecialization] = useState(searchParams.get('specialization') ?? '');
+    const [city, setCity] = useState(searchParams.get('city') ?? '');
+    const [maxFees, setMaxFees] = useState(searchParams.get('maxFees') ?? '');
+    const [page, setPage] = useState(0);
+    const [showFilters, setShowFilters] = useState(false);
+
+    // Build the active filter object from current state
+    const activeFilters = {
+        name: name || undefined,
+        specialization: specialization || undefined,
+        city: city || undefined,
+        maxFees: maxFees ? Number(maxFees) : undefined,
+        page,
+        size: 9,
+    };
+
+    const {data: searchRes, isLoading, isFetching} = useSearchDoctors(activeFilters);
+    const results = searchRes?.data?.content ?? [];
+    const pageInfo = searchRes?.data?.page;
+    const totalPages = pageInfo?.totalPages ?? 0;
+    const totalElements = pageInfo?.totalElements ?? 0;
+
+    // Sync URL params when filters change
+    useEffect(() => {
+        const params: Record<string, string> = {};
+        if (name) params.name = name;
+        if (specialization) params.specialization = specialization;
+        if (city) params.city = city;
+        if (maxFees) params.maxFees = maxFees;
+        setSearchParams(params, {replace: true});
+        setPage(0);
+    }, [name, specialization, city, maxFees]);
+
+    const clearFilters = () => {
+        setName('');
+        setSpecialization('');
+        setCity('');
+        setMaxFees('');
+    };
+
+    const hasActiveFilters = !!(name || specialization || city || maxFees);
+
+    const getDashboardRoute = () => {
+        if (isPatient) return ROUTES.patientDashboard;
+        if (isDoctor) return ROUTES.doctorDashboard;
+        return ROUTES.login;
+    };
+
+    return (
+        <div className="min-h-screen bg-gray-50">
+            {/* Nav */}
+            <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
+                <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+                    <Link to="/" className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                            <Stethoscope size={16} className="text-white"/>
+                        </div>
+                        <span className="text-lg font-bold text-gray-900">LuneCare</span>
+                    </Link>
+                    <nav className="flex items-center gap-3">
+                        {isAuthenticated ? (
+                            <Link
+                                to={getDashboardRoute()}
+                                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                                Dashboard
+                            </Link>
+                        ) : (
+                            <>
+                                <Link to={ROUTES.login} className="text-sm text-gray-600 hover:text-gray-900 font-medium">
+                                    Sign In
+                                </Link>
+                                <Link
+                                    to={ROUTES.register}
+                                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                                >
+                                    Register
+                                </Link>
+                            </>
+                        )}
+                    </nav>
+                </div>
+            </header>
+
+            <div className="max-w-6xl mx-auto px-4 py-6">
+                {/* Search Bar */}
+                <div className="bg-white rounded-xl border border-gray-200 px-4 py-4 mb-6">
+                    <div className="flex gap-2">
+                        <div className="flex-1 relative">
+                            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
+                            <input
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Search by doctor name..."
+                                className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                        </div>
+                        <button
+                            onClick={() => setShowFilters((v) => !v)}
+                            className={`flex items-center gap-1.5 px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${showFilters || hasActiveFilters ? 'border-blue-500 text-blue-600 bg-blue-50' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+                        >
+                            <SlidersHorizontal size={14}/>
+                            Filters
+                            {hasActiveFilters && (
+                                <span className="w-4 h-4 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center leading-none">
+                                    {[name, specialization, city, maxFees].filter(Boolean).length}
+                                </span>
+                            )}
+                        </button>
+                        {hasActiveFilters && (
+                            <button
+                                onClick={clearFilters}
+                                className="flex items-center gap-1 px-3 py-2 border border-gray-300 text-sm text-gray-500 rounded-lg hover:bg-gray-50"
+                            >
+                                <X size={13}/> Clear
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Expanded Filters */}
+                    {showFilters && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 pt-4 border-t border-gray-100">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Specialization</label>
+                                <select
+                                    value={specialization}
+                                    onChange={(e) => setSpecialization(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                >
+                                    <option value="">All Specializations</option>
+                                    {ALL_SPECIALIZATIONS.map((s) => (
+                                        <option key={s} value={s}>{SPECIALIZATION_LABELS[s]}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">City</label>
+                                <input
+                                    type="text"
+                                    value={city}
+                                    onChange={(e) => setCity(e.target.value)}
+                                    placeholder="e.g. Bengaluru"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Max Fees (₹)</label>
+                                <input
+                                    type="number"
+                                    value={maxFees}
+                                    onChange={(e) => setMaxFees(e.target.value)}
+                                    placeholder="e.g. 1000"
+                                    min={0}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Results Header */}
+                <div className="flex items-center justify-between mb-4">
+                    <p className="text-sm text-gray-500">
+                        {isLoading || isFetching ? (
+                            <span className="flex items-center gap-1.5"><Spinner size="sm"/> Searching...</span>
+                        ) : (
+                            <>{totalElements} doctor{totalElements !== 1 ? 's' : ''} found</>
+                        )}
+                    </p>
+                </div>
+
+                {/* Results Grid */}
+                {isLoading ? (
+                    <div className="flex justify-center py-16">
+                        <Spinner size="lg"/>
+                    </div>
+                ) : results.length === 0 ? (
+                    <div className="flex flex-col items-center py-16 gap-3">
+                        <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center">
+                            <Search size={22} className="text-gray-300"/>
+                        </div>
+                        <p className="text-sm text-gray-500">No doctors found matching your criteria.</p>
+                        {hasActiveFilters && (
+                            <button onClick={clearFilters} className="text-sm text-blue-600 hover:underline">
+                                Clear filters
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {results.map((doctor) => {
+                            const clinic = doctor.clinics.find((c) => c.active) ?? doctor.clinics[0];
+                            return (
+                                <Link
+                                    key={doctor.id}
+                                    to={`/doctors/${doctor.id}`}
+                                    className="bg-white rounded-xl border border-gray-200 p-5 hover:border-blue-300 hover:shadow-sm transition-all group"
+                                >
+                                    {/* Doctor Header */}
+                                    <div className="flex items-start gap-3 mb-4">
+                                        {doctor.profilePhotoUrl ? (
+                                            <img
+                                                src={doctor.profilePhotoUrl}
+                                                alt="Doctor"
+                                                className="w-14 h-14 rounded-full object-cover flex-shrink-0 border border-gray-100"
+                                            />
+                                        ) : (
+                                            <div className="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
+                                                <UserCircle size={32} className="text-blue-300"/>
+                                            </div>
+                                        )}
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight">
+                                                Dr. {doctor.firstName} {doctor.lastName}
+                                            </p>
+                                            <p className="text-xs text-blue-600 font-medium mt-0.5">
+                                                {doctor.specialization
+                                                    ? SPECIALIZATION_LABELS[doctor.specialization]
+                                                    : '—'}
+                                            </p>
+                                            <p className="text-xs text-gray-400 mt-0.5">
+                                                {[doctor.qualification, doctor.yearsOfExperience != null ? `${doctor.yearsOfExperience} yrs` : null]
+                                                    .filter(Boolean)
+                                                    .join(' · ')}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Languages */}
+                                    {doctor.languagesSpoken.length > 0 && (
+                                        <p className="text-xs text-gray-400 mb-3 truncate">
+                                            Speaks: {doctor.languagesSpoken.join(', ')}
+                                        </p>
+                                    )}
+
+                                    {/* Clinics */}
+                                    {doctor.clinics.length > 0 && (
+                                        <div className="space-y-1.5">
+                                            {doctor.clinics.slice(0, 2).map((c) => (
+                                                <div
+                                                    key={c.id}
+                                                    className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2"
+                                                >
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        <MapPin size={10} className="text-gray-400 flex-shrink-0"/>
+                                                        <span className="text-xs text-gray-600 truncate">
+                                                            {c.city} · {CLINIC_TYPE_LABELS[c.type] || c.type}
+                                                        </span>
+                                                    </div>
+                                                    <span className="text-xs font-semibold text-teal-600 flex-shrink-0 ml-2">
+                                                        ₹{c.consultationFees}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <div className="mt-3 text-xs text-blue-600 font-medium group-hover:underline">
+                                        View & Book →
+                                    </div>
+                                </Link>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 mt-8">
+                        <button
+                            onClick={() => setPage((p) => Math.max(0, p - 1))}
+                            disabled={page === 0}
+                            className="flex items-center gap-1 px-3 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            <ChevronLeft size={14}/> Prev
+                        </button>
+                        <span className="text-sm text-gray-500 px-2">
+                            Page {page + 1} of {totalPages}
+                        </span>
+                        <button
+                            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                            disabled={page >= totalPages - 1}
+                            className="flex items-center gap-1 px-3 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            Next <ChevronRight size={14}/>
+                        </button>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default DoctorSearchPage;
+
+
+# DoctorPublicPage.tsx
+
+import React, {useState} from 'react';
+import {Link, useNavigate, useParams} from 'react-router-dom';
+import {
+    ArrowLeft,
+    Building2,
+    Calendar,
+    CheckCircle2,
+    Clock,
+    Languages,
+    MapPin,
+    Phone,
+    Stethoscope,
+    UserCircle,
+} from 'lucide-react';
+import {useDoctorPublic} from '../hooks/usePublicDoctor';
+import {useAvailableSlots, useBookAppointment} from '../../patient/hooks/usePatientAppointments';
+import {SPECIALIZATION_LABELS} from '../../doctor/types/doctor.types';
+import {CLINIC_TYPE_LABELS, DAY_LABELS} from '../../doctor/types/doctor.clinic.types';
+import {ROUTES} from '../../../routes/routePaths';
+import {useAuth} from '../../../shared/hooks/useAuth';
+import Spinner from '../../../shared/components/ui/Spinner';
+import {AppError} from '../../../shared/utils/errorParser';
+import {toast} from 'sonner';
+
+// Format "09:00:00" → "9:00 AM"
+const formatTime = (time: string): string => {
+    const [h, m] = time.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const hour = h % 12 || 12;
+    return `${hour}:${m.toString().padStart(2, '0')} ${ampm}`;
+};
+
+// Today's date in "YYYY-MM-DD"
+const todayStr = () => new Date().toISOString().split('T')[0];
+// Max date: today + 60 days
+const maxDateStr = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 60);
+    return d.toISOString().split('T')[0];
+};
+
+const DoctorPublicPage: React.FC = () => {
+    const {doctorId} = useParams<{doctorId: string}>();
+    const navigate = useNavigate();
+    const {isAuthenticated, isPatient} = useAuth();
+
+    const {data: doctorRes, isLoading: doctorLoading} = useDoctorPublic(doctorId!);
+    const doctor = doctorRes?.data;
+
+    const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
+    const [selectedDate, setSelectedDate] = useState<string>(todayStr());
+    const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+    const [bookingSuccess, setBookingSuccess] = useState(false);
+
+    const activeClinic = doctor?.clinics.find((c) => c.id === selectedClinicId)
+        ?? doctor?.clinics.find((c) => c.active)
+        ?? doctor?.clinics[0];
+
+    // Auto-select clinic once doctor loads
+    React.useEffect(() => {
+        if (doctor && !selectedClinicId) {
+            const active = doctor.clinics.find((c) => c.active) ?? doctor.clinics[0];
+            if (active) setSelectedClinicId(active.id);
+        }
+    }, [doctor, selectedClinicId]);
+
+    // Reset slot when date or clinic changes
+    React.useEffect(() => {
+        setSelectedSlotId(null);
+    }, [selectedDate, selectedClinicId]);
+
+    const clinicForSlots = activeClinic;
+    const {data: slotsRes, isLoading: slotsLoading, isFetching: slotsFetching} = useAvailableSlots(
+        doctorId!,
+        clinicForSlots?.id ?? '',
+        selectedDate,
+        !!clinicForSlots && !!selectedDate,
+    );
+    const slots = slotsRes?.data ?? [];
+
+    const {mutate: bookAppointment, isPending: isBooking} = useBookAppointment();
+
+    const handleBook = () => {
+        if (!isAuthenticated) {
+            // Save where to return after login
+            navigate(`${ROUTES.login}?redirect=/doctors/${doctorId}`);
+            return;
+        }
+        if (!isPatient) {
+            toast.error('Only patients can book appointments.');
+            return;
+        }
+        if (!selectedSlotId) {
+            toast.error('Please select a time slot.');
+            return;
+        }
+
+        bookAppointment(
+            {slotId: selectedSlotId},
+            {
+                onSuccess: (res) => {
+                    const appointmentId = res.data.id;
+                    toast.success('Appointment booked!');
+                    navigate(`/patient/appointments/${appointmentId}`);
+                },
+                onError: (err: AppError) => {
+                    if (err.status === 409) {
+                        toast.error('This slot was just booked by someone else. Please pick another.');
+                    } else {
+                        toast.error(err.message);
+                    }
+                },
+            },
+        );
+    };
+
+    if (doctorLoading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <Spinner size="lg"/>
+            </div>
+        );
+    }
+
+    if (!doctor) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-3">
+                <p className="text-gray-500">Doctor not found.</p>
+                <Link to="/search" className="text-blue-600 hover:underline text-sm">Back to Search</Link>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-gray-50">
+            {/* Nav */}
+            <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
+                <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
+                    <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-gray-600">
+                        <ArrowLeft size={18}/>
+                    </button>
+                    <Link to="/" className="flex items-center gap-2">
+                        <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
+                            <Stethoscope size={14} className="text-white"/>
+                        </div>
+                        <span className="text-base font-bold text-gray-900">LuneCare</span>
+                    </Link>
+                    <div className="flex-1"/>
+                    {!isAuthenticated && (
+                        <Link
+                            to={ROUTES.login}
+                            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                            Sign In to Book
+                        </Link>
+                    )}
+                </div>
+            </header>
+
+            <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+                {/* ── Doctor Info Card ── */}
+                <div className="bg-white rounded-xl border border-gray-200 px-6 py-5">
+                    <div className="flex items-start gap-5">
+                        {doctor.profilePhotoUrl ? (
+                            <img
+                                src={doctor.profilePhotoUrl}
+                                alt="Doctor"
+                                className="w-20 h-20 rounded-full object-cover border-2 border-gray-100 flex-shrink-0"
+                            />
+                        ) : (
+                            <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 border-2 border-gray-100">
+                                <UserCircle size={44} className="text-blue-300"/>
+                            </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                            <h1 className="text-xl font-bold text-gray-900">
+                                Dr. {doctor.firstName} {doctor.lastName}
+                            </h1>
+                            {doctor.specialization && (
+                                <p className="text-sm text-blue-600 font-medium mt-0.5">
+                                    {SPECIALIZATION_LABELS[doctor.specialization]}
+                                </p>
+                            )}
+                            <div className="flex flex-wrap items-center gap-4 mt-2">
+                                {doctor.qualification && (
+                                    <span className="text-xs text-gray-500">{doctor.qualification}</span>
+                                )}
+                                {doctor.yearsOfExperience != null && (
+                                    <span className="flex items-center gap-1 text-xs text-gray-500">
+                                        <Clock size={11}/>
+                                        {doctor.yearsOfExperience} yrs experience
+                                    </span>
+                                )}
+                                {doctor.languagesSpoken.length > 0 && (
+                                    <span className="flex items-center gap-1 text-xs text-gray-500">
+                                        <Languages size={11}/>
+                                        {doctor.languagesSpoken.join(', ')}
+                                    </span>
+                                )}
+                            </div>
+                            {doctor.bio && (
+                                <p className="text-sm text-gray-600 mt-3 leading-relaxed">{doctor.bio}</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* ── Left: Clinics ── */}
+                    <div className="lg:col-span-1 space-y-3">
+                        <h2 className="text-sm font-semibold text-gray-700">Clinic Locations</h2>
+                        {doctor.clinics.map((clinic) => (
+                            <button
+                                key={clinic.id}
+                                onClick={() => setSelectedClinicId(clinic.id)}
+                                className={`w-full text-left p-4 rounded-xl border transition-all ${
+                                    selectedClinicId === clinic.id
+                                        ? 'border-blue-500 bg-blue-50'
+                                        : 'border-gray-200 bg-white hover:border-blue-300'
+                                }`}
+                            >
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-semibold text-gray-900 truncate">{clinic.name}</p>
+                                        <p className="text-xs text-gray-500 mt-0.5">
+                                            {CLINIC_TYPE_LABELS[clinic.type] || clinic.type}
+                                        </p>
+                                    </div>
+                                    {selectedClinicId === clinic.id && (
+                                        <CheckCircle2 size={16} className="text-blue-600 flex-shrink-0 mt-0.5"/>
+                                    )}
+                                </div>
+                                <div className="mt-2 space-y-1">
+                                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                        <MapPin size={10} className="flex-shrink-0"/>
+                                        <span className="truncate">{clinic.addressLine}, {clinic.city}</span>
+                                    </div>
+                                    {clinic.contactNumber && (
+                                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                            <Phone size={10} className="flex-shrink-0"/>
+                                            {clinic.contactNumber}
+                                        </div>
+                                    )}
+                                    <div className="flex items-center justify-between mt-1.5">
+                                        <span className="text-xs text-gray-500">
+                                            {clinic.consultationDurationMinutes} min
+                                        </span>
+                                        <span className="text-sm font-bold text-teal-600">
+                                            ₹{clinic.consultationFees}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Schedule Days */}
+                                {clinic.schedules.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-gray-100">
+                                        {clinic.schedules.filter((s) => s.active).map((s) => (
+                                            <span
+                                                key={s.id}
+                                                className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded"
+                                            >
+                                                {DAY_LABELS[s.dayOfWeek as keyof typeof DAY_LABELS] || s.dayOfWeek.slice(0, 3)}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* ── Right: Date + Slots + Book ── */}
+                    <div className="lg:col-span-2 space-y-4">
+                        {/* Date Picker */}
+                        <div className="bg-white rounded-xl border border-gray-200 px-5 py-4">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Calendar size={15} className="text-blue-600"/>
+                                <h2 className="text-sm font-semibold text-gray-700">Select a Date</h2>
+                            </div>
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                min={todayStr()}
+                                max={maxDateStr()}
+                                onChange={(e) => setSelectedDate(e.target.value)}
+                                className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                        </div>
+
+                        {/* Slots */}
+                        <div className="bg-white rounded-xl border border-gray-200 px-5 py-4">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Clock size={15} className="text-blue-600"/>
+                                <h2 className="text-sm font-semibold text-gray-700">Available Slots</h2>
+                                {(slotsLoading || slotsFetching) && <Spinner size="sm"/>}
+                            </div>
+
+                            {!selectedClinicId ? (
+                                <p className="text-sm text-gray-400 py-4">Select a clinic to see available slots.</p>
+                            ) : slotsLoading ? (
+                                <div className="flex justify-center py-8">
+                                    <Spinner size="md"/>
+                                </div>
+                            ) : slots.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <p className="text-sm text-gray-400">No slots available for this date.</p>
+                                    <p className="text-xs text-gray-400 mt-1">Try a different date.</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                    {slots.map((slot) => (
+                                        <button
+                                            key={slot.id}
+                                            onClick={() => setSelectedSlotId(slot.id)}
+                                            disabled={slot.status !== 'AVAILABLE'}
+                                            className={`py-2.5 px-2 rounded-lg text-xs font-medium border transition-all ${
+                                                slot.status !== 'AVAILABLE'
+                                                    ? 'bg-gray-50 border-gray-200 text-gray-300 cursor-not-allowed'
+                                                    : selectedSlotId === slot.id
+                                                        ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                                                        : 'bg-white border-gray-200 text-gray-700 hover:border-blue-400 hover:bg-blue-50'
+                                            }`}
+                                        >
+                                            {formatTime(slot.startTime)}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Booking Summary + CTA */}
+                        {selectedSlotId && activeClinic && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4">
+                                <p className="text-sm font-semibold text-blue-900 mb-2">Appointment Summary</p>
+                                <div className="space-y-1 mb-4">
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-blue-700">Doctor</span>
+                                        <span className="font-medium text-blue-900">
+                                            Dr. {doctor.firstName} {doctor.lastName}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-blue-700">Clinic</span>
+                                        <span className="font-medium text-blue-900">{activeClinic.name}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-blue-700">Date</span>
+                                        <span className="font-medium text-blue-900">
+                                            {new Date(selectedDate).toLocaleDateString('en-IN', {
+                                                weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+                                            })}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-blue-700">Time</span>
+                                        <span className="font-medium text-blue-900">
+                                            {formatTime(slots.find((s) => s.id === selectedSlotId)?.startTime ?? '')}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-blue-700">Consultation Fee</span>
+                                        <span className="font-bold text-teal-700">₹{activeClinic.consultationFees}</span>
+                                    </div>
+                                </div>
+
+                                {!isAuthenticated ? (
+                                    <Link
+                                        to={`${ROUTES.login}?redirect=/doctors/${doctorId}`}
+                                        className="block w-full text-center py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                                    >
+                                        Sign In to Book Appointment
+                                    </Link>
+                                ) : !isPatient ? (
+                                    <p className="text-xs text-center text-red-500">
+                                        Only patients can book appointments.
+                                    </p>
+                                ) : (
+                                    <button
+                                        onClick={handleBook}
+                                        disabled={isBooking}
+                                        className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors"
+                                    >
+                                        {isBooking ? <Spinner size="sm"/> : null}
+                                        Confirm Booking
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default DoctorPublicPage;

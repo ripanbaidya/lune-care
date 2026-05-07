@@ -15,7 +15,7 @@ import {
     type BloodGroup,
     type Gender,
     type UpdateProfileRequest,
-} from '../patient.types';
+} from '../types/patient.types.ts';
 import {AppError} from '../../../shared/utils/errorParser';
 import {toast} from 'sonner';
 

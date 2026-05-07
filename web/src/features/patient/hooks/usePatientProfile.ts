@@ -1,8 +1,8 @@
 import {useQueryClient} from '@tanstack/react-query';
 import {useAppQuery} from '../../../shared/hooks/useAppQuery';
 import {useAppMutation} from '../../../shared/hooks/useAppMutation';
-import {patientService} from '../patientService';
-import type {PatientProfileResponse, UpdateProfileRequest} from '../patient.types';
+import {patientService} from '../services/patientService.ts';
+import type {PatientProfileResponse, UpdateProfileRequest} from '../types/patient.types.ts';
 import type {ResponseWrapper} from '../../../types/api.types';
 
 export const PROFILE_QUERY_KEY = ['patient', 'profile'] as const;

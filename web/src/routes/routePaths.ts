@@ -11,6 +11,7 @@ export const PATIENT_ROUTES = {
     patientProfile: '/patient/profile',
     patientAddress: '/patient/address',
     patientAppointments: '/patient/appointments',
+    patientAppointmentDetail: '/patient/appointments/:appointmentId',
     patientNotifications: '/patient/notifications',
 } as const;
 

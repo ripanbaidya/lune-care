@@ -1,9 +1,9 @@
-import {apiClient} from '../../lib/axios';
-import type {ResponseWrapper} from '../../types/api.types';
+import {apiClient} from '../../../lib/axios.ts';
+import type {ResponseWrapper} from '../../../types/api.types.ts';
 import type {
     PatientProfileResponse,
     UpdateProfileRequest,
-} from './patient.types';
+} from '../types/patient.types.ts';
 
 export const patientService = {
     getProfile: async (): Promise<ResponseWrapper<PatientProfileResponse>> => {

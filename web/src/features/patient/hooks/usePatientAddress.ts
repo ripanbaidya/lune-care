@@ -1,8 +1,8 @@
 import {useQueryClient} from '@tanstack/react-query';
 import {useAppQuery} from '../../../shared/hooks/useAppQuery';
 import {useAppMutation} from '../../../shared/hooks/useAppMutation';
-import {patientAddressService} from '../patientAddressService';
-import type {AddressRequest, AddressResponse} from '../patient-address.types';
+import {patientAddressService} from '../services/patientAddressService.ts';
+import type {AddressRequest, AddressResponse} from '../types/patient-address.types.ts';
 import type {ResponseWrapper} from '../../../types/api.types';
 import {AppError} from '../../../shared/utils/errorParser';
 

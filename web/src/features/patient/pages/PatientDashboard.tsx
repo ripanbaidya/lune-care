@@ -4,7 +4,7 @@ import {User, MapPin, CalendarDays, ArrowRight, UserCircle} from 'lucide-react';
 import {usePatientProfile} from '../hooks/usePatientProfile';
 import {usePatientAddress} from '../hooks/usePatientAddress';
 import {ROUTES} from '../../../routes/routePaths';
-import {BLOOD_GROUP_LABELS, GENDER_LABELS} from '../patient.types';
+import {BLOOD_GROUP_LABELS, GENDER_LABELS} from '../types/patient.types.ts';
 import Spinner from '../../../shared/components/ui/Spinner';
 
 const InfoRow: React.FC<{ label: string; value: string | null | undefined }> = ({label, value}) => (
