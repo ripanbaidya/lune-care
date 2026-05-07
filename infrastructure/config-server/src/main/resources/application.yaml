@@ -55,7 +55,7 @@ management:
       base-path: /actuator
       exposure:
         # Exposes selected actuator endpoints over HTTP
-        include: health, info, refresh, busrefresh
+        include: health, info, refresh, busrefresh, prometheus, metrics
 
   endpoint:
     busrefresh:
@@ -67,6 +67,10 @@ management:
       probes:
         # Enables liveness and readiness probes (Kubernetes-friendly)
         enabled: true
+
+    # Enables shutdown endpoint
+    shutdown:
+      access: unrestricted
 
     info:
       # Allows unrestricted access to application info endpoint
@@ -82,6 +86,11 @@ management:
     env:
       # Exposes environment details via /actuator/info
       enabled: true
+
+  # Metrics configuration
+  metrics:
+    tags:
+      application: ${spring.application.name}
 
 # Using Spring Cloud Config Encryption so that sensitive data stays encrypted in the repository to avoid
 # leaking it in plain text.
