@@ -4,6 +4,7 @@ export const PUBLIC_ROUTES = {
     home: '/',
     login: '/login',
     register: '/register',
+    findDoctors: '/find-doctors',
 } as const;
 
 export const PATIENT_ROUTES = {
@@ -11,7 +12,6 @@ export const PATIENT_ROUTES = {
     patientProfile: '/patient/profile',
     patientAddress: '/patient/address',
     patientAppointments: '/patient/appointments',
-    patientAppointmentDetail: '/patient/appointments/:appointmentId',
     patientNotifications: '/patient/notifications',
 } as const;
 
