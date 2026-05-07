@@ -1,0 +1,35 @@
+Setup Prometheus
+=================
+
+Q. Why Prometheus? What are the requirement of using micrometer with Prometheus?
+Q. How to setup Prometheus?
+
+Steps
+======
+
+1. Add the micrometer dependency to the "pom.xml" file of all microservices, and load the mavne changes.
+=>
+<dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>micrometer-registry-prometheus</artifactId>
+</dependency>
+
+2. Add the configuration to the "application.yaml" file of all microservices.
+=>
+management:
+  endpoint:
+    web:
+      exposure:
+        include: health,info,prometheus # This configuration will depend on your project requirements.
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+3. Test the metrics from the browser.
+=>
+Once you have added the dependencies and configuration, you can go to the browser and access the metrics endpoint.
+http://localhost:8080/actuator/prometheus  # This will show the metrics in Prometheus format.
+http://localhost:8080/actuator/metrics     # This will show the metrics in the default format.
+http://localhost:8080/actuator/metrics/jvm.memory.used # This will show the metrics for a specific metric.
+
+and so on, Test and play with it.
