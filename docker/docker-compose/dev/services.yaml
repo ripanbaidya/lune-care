@@ -15,6 +15,15 @@
 # via SPRING_CONFIG_IMPORT=http://config-server:8888
 #
 # Boot order: infra → databases → config-server → eureka → services → api-gateway
+# Open Telemetry for tracing
+
+# Note: If you want to add Open Telemetry tracing feature then you need to add the follwing lines to
+# all the services here
+# under each service, to add opentelemetry environment variables.
+# extends:
+#  file: commons.yml
+#   service: open_telemetry_environment_config
+# As of now to remove ambiguity i m keeping these to only one service and removing from the other services.
 
 services:
 
@@ -26,6 +35,8 @@ services:
     ports:
       - "8888:8888"
     environment:
+
+      SPRING_APPLICATION_NAME: config-server
       SPRING_PROFILES_ACTIVE: docker
       SPRING_CLOUD_CONFIG_SERVER_GIT_URI: ${GIT_URI}
       # Symmetric key used to decrypt {cipher} values in config repo
@@ -39,6 +50,9 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+#    extends:
+#      file: commons.yml
+#      service: open_telemetry_environment_config
 
   # Eureka Server - service registry
   # Depends on config-server for its configuration
@@ -48,8 +62,8 @@ services:
     ports:
       - "8761:8761"
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev,docker}
       SPRING_APPLICATION_NAME: eureka-server
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev,docker}
       SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
     depends_on:
       config-server:
