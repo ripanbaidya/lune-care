@@ -1,12 +1,12 @@
 import React, {useState} from 'react';
-import {Link} from 'react-router-dom';
-import {CalendarDays, X} from 'lucide-react';
-import {usePatientAppointmentHistory, useCancelPatientAppointment} from '../hooks/usePatientAppointments';
+import {Link, useNavigate} from 'react-router-dom';
+import {CalendarDays, ChevronRight, Clock, IndianRupee} from 'lucide-react';
+import {usePatientAppointmentHistory} from '../hooks/usePatientAppointments';
 import Spinner from '../../../shared/components/ui/Spinner';
 import {APPOINTMENT_STATUS_COLORS, APPOINTMENT_STATUS_LABELS} from '../../doctor/types/doctor.appointment.types';
 import type {AppointmentBookingResponse} from '../../appointment/services/appointmentService';
-import {toast} from 'sonner';
-import {AppError} from '../../../shared/utils/errorParser';
+import {appointmentDetailPath} from '../../../routes/routePaths';
+import {ROUTES} from '../../../routes/routePaths';
 
 type Tab = 'upcoming' | 'completed' | 'cancelled';
 
@@ -16,80 +16,72 @@ const STATUS_MAP: Record<Tab, string[]> = {
     cancelled: ['CANCELLED', 'NO_SHOW'],
 };
 
-const AppointmentCard: React.FC<{
-    appt: AppointmentBookingResponse;
-    onCancel?: (id: string) => void;
-    isCancelling?: boolean;
-}> = ({appt, onCancel, isCancelling}) => {
-    const statusClass = APPOINTMENT_STATUS_COLORS[appt.status as keyof typeof APPOINTMENT_STATUS_COLORS]
-        ?? 'bg-gray-100 text-gray-600';
-    const statusLabel = APPOINTMENT_STATUS_LABELS[appt.status as keyof typeof APPOINTMENT_STATUS_LABELS]
-        ?? appt.status;
+// ── Single appointment card — navigates to detail page on click ───────────────
+const AppointmentCard: React.FC<{ appt: AppointmentBookingResponse }> = ({appt}) => {
+    const navigate = useNavigate();
+
+    const statusClass =
+        APPOINTMENT_STATUS_COLORS[appt.status as keyof typeof APPOINTMENT_STATUS_COLORS] ??
+        'bg-gray-100 text-gray-600';
+    const statusLabel =
+        APPOINTMENT_STATUS_LABELS[appt.status as keyof typeof APPOINTMENT_STATUS_LABELS] ??
+        appt.status;
+
+    const fmtTime = (t: string) => {
+        const [h, m] = t.split(':').map(Number);
+        return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+    };
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <button
+            onClick={() => navigate(appointmentDetailPath(appt.id))}
+            className="w-full text-left bg-white rounded-xl border border-gray-200 p-4 hover:border-blue-300 hover:shadow-sm transition-all group"
+        >
             <div className="flex items-start justify-between gap-3">
-                <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <CalendarDays size={14} className="text-blue-500"/>
+                {/* Left */}
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1.5">
+                        <CalendarDays size={14} className="text-blue-500 flex-shrink-0"/>
                         <span className="text-sm font-semibold text-gray-800">
-                            {appt.slotDate} · {appt.startTime?.slice(0, 5)} – {appt.endTime?.slice(0, 5)}
+                            {appt.slotDate}
                         </span>
                     </div>
-                    <p className="text-xs text-gray-500">Appointment ID: {appt.id.slice(0, 8)}...</p>
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
+                        <Clock size={11} className="flex-shrink-0"/>
+                        {fmtTime(appt.startTime)} – {fmtTime(appt.endTime)}
+                    </div>
+                    {appt.consultationFees != null && (
+                        <div className="flex items-center gap-0.5 text-xs text-teal-700 font-medium">
+                            <IndianRupee size={11}/>
+                            {appt.consultationFees}
+                        </div>
+                    )}
                     {appt.cancellationReason && (
-                        <p className="text-xs text-red-500 mt-1">Reason: {appt.cancellationReason}</p>
+                        <p className="text-xs text-red-400 mt-1 truncate">
+                            Reason: {appt.cancellationReason}
+                        </p>
                     )}
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-full font-medium flex-shrink-0 ${statusClass}`}>
-                    {statusLabel}
-                </span>
-            </div>
 
-            {/* Cancel button for confirmed/pending appointments */}
-            {(appt.status === 'CONFIRMED' || appt.status === 'PENDING_PAYMENT') && onCancel && (
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                    <button
-                        onClick={() => onCancel(appt.id)}
-                        disabled={isCancelling}
-                        className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700 disabled:opacity-50"
-                    >
-                        {isCancelling ? <Spinner size="sm"/> : <X size={12}/>}
-                        Cancel Appointment
-                    </button>
+                {/* Right */}
+                <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusClass}`}>
+                        {statusLabel}
+                    </span>
+                    <ChevronRight size={16} className="text-gray-300 group-hover:text-blue-500 transition-colors"/>
                 </div>
-            )}
-        </div>
+            </div>
+        </button>
     );
 };
 
+// ── Page ──────────────────────────────────────────────────────────────────────
 const PatientAppointmentsPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<Tab>('upcoming');
-    const [cancellingId, setCancellingId] = useState<string | null>(null);
-
     const {data, isLoading} = usePatientAppointmentHistory(0, 50);
-    const {mutate: cancel} = useCancelPatientAppointment();
 
     const all = data?.data?.content ?? [];
     const filtered = all.filter((a) => STATUS_MAP[activeTab].includes(a.status));
-
-    const handleCancel = (appointmentId: string) => {
-        const reason = window.prompt('Reason for cancellation (optional):') ?? 'Patient request';
-        setCancellingId(appointmentId);
-        cancel(
-            {appointmentId, reason},
-            {
-                onSuccess: () => {
-                    toast.success('Appointment cancelled');
-                    setCancellingId(null);
-                },
-                onError: (err: AppError) => {
-                    toast.error(err.message);
-                    setCancellingId(null);
-                },
-            },
-        );
-    };
 
     const TABS: { key: Tab; label: string }[] = [
         {key: 'upcoming', label: 'Upcoming'},
@@ -117,44 +109,40 @@ const PatientAppointmentsPage: React.FC = () => {
                         }`}
                     >
                         {t.label}
+                        {t.key === 'upcoming' && all.filter((a) => STATUS_MAP.upcoming.includes(a.status)).length > 0 && (
+                            <span className="ml-1.5 text-xs bg-white/20 px-1.5 py-0.5 rounded-full">
+                                {all.filter((a) => STATUS_MAP.upcoming.includes(a.status)).length}
+                            </span>
+                        )}
                     </button>
                 ))}
             </div>
 
             {/* Content */}
-            <div>
-                {isLoading ? (
-                    <div className="flex items-center justify-center py-12">
-                        <Spinner size="md"/>
-                    </div>
-                ) : filtered.length === 0 ? (
-                    <div className="bg-white rounded-xl border border-gray-200 flex flex-col items-center py-14 gap-3">
-                        <CalendarDays size={32} className="text-gray-200"/>
-                        <p className="text-sm text-gray-400">
-                            No {activeTab} appointments
-                        </p>
-                        {activeTab === 'upcoming' && (
-                            <Link
-                                to="/find-doctors"
-                                className="text-sm text-blue-600 font-medium hover:underline"
-                            >
-                                Find a Doctor →
-                            </Link>
-                        )}
-                    </div>
-                ) : (
-                    <div className="space-y-3">
-                        {filtered.map((appt) => (
-                            <AppointmentCard
-                                key={appt.id}
-                                appt={appt}
-                                onCancel={activeTab === 'upcoming' ? handleCancel : undefined}
-                                isCancelling={cancellingId === appt.id}
-                            />
-                        ))}
-                    </div>
-                )}
-            </div>
+            {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                    <Spinner size="md"/>
+                </div>
+            ) : filtered.length === 0 ? (
+                <div className="bg-white rounded-xl border border-gray-200 flex flex-col items-center py-14 gap-3">
+                    <CalendarDays size={32} className="text-gray-200"/>
+                    <p className="text-sm text-gray-400">No {activeTab} appointments</p>
+                    {activeTab === 'upcoming' && (
+                        <Link
+                            to={ROUTES.findDoctors}
+                            className="text-sm text-blue-600 font-medium hover:underline"
+                        >
+                            Find a Doctor →
+                        </Link>
+                    )}
+                </div>
+            ) : (
+                <div className="space-y-3">
+                    {filtered.map((appt) => (
+                        <AppointmentCard key={appt.id} appt={appt}/>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };

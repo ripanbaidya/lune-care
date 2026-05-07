@@ -8,10 +8,12 @@ export interface AppointmentBookingResponse {
     doctorId: string;
     patientId: string;
     clinicId: string;
-    slotDate: string;
+    appointmentDate: string;
     startTime: string;
     endTime: string;
     status: string;
+    consultationFees: number;
+    paymentId: string | null;
     createdAt: string;
     cancellationReason: string | null;
 }
@@ -23,7 +25,6 @@ export interface AppointmentPage {
 
 export const appointmentService = {
     // GET /api/appointment/slots/:doctorId/:clinicId?date=YYYY-MM-DD
-    // NOTE: doctorId here must be doctor's userId (not profile id)
     getAvailableSlots: async (
         doctorId: string,
         clinicId: string,
@@ -40,6 +41,15 @@ export const appointmentService = {
         const res = await apiClient.post<ResponseWrapper<AppointmentBookingResponse>>(
             '/appointment/book',
             {slotId},
+        );
+        return res.data;
+    },
+
+    getAppointmentById: async (
+        appointmentId: string,
+    ): Promise<ResponseWrapper<AppointmentBookingResponse>> => {
+        const res = await apiClient.get<ResponseWrapper<AppointmentBookingResponse>>(
+            `/appointment/${appointmentId}`,
         );
         return res.data;
     },

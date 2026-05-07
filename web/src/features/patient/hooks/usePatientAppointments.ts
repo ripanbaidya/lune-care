@@ -9,7 +9,11 @@ import {AppError} from '../../../shared/utils/errorParser';
 
 export const PATIENT_HISTORY_KEY = ['patient', 'appointments', 'history'] as const;
 
-// Key includes doctorId + clinicId + date so different combos cache independently
+/** Alias exported for payment hooks to import without circular dep issues */
+export const PATIENT_APPOINTMENT_HISTORY_KEY = PATIENT_HISTORY_KEY;
+
+// ── Slots ─────────────────────────────────────────────────────────────────────
+
 export function slotsQueryKey(doctorId: string, clinicId: string, date: string) {
     return ['appointment', 'slots', doctorId, clinicId, date] as const;
 }
@@ -22,9 +26,8 @@ export function useAvailableSlots(
     return useAppQuery<ResponseWrapper<SlotResponse[]>>({
         queryKey: slotsQueryKey(doctorId ?? '', clinicId ?? '', date ?? ''),
         queryFn: () => appointmentService.getAvailableSlots(doctorId!, clinicId!, date!),
-        // Only fetch when all three are present
         enabled: !!doctorId && !!clinicId && !!date,
-        staleTime: 30_000, // slots are time-sensitive, 30s cache
+        staleTime: 30_000,
         retry: (failureCount, error) => {
             if (error instanceof AppError && !error.isServerError) return false;
             return failureCount < 1;
@@ -32,16 +35,31 @@ export function useAvailableSlots(
     });
 }
 
+// ── Booking ───────────────────────────────────────────────────────────────────
+
 export function useBookAppointment() {
     const qc = useQueryClient();
     return useAppMutation<ResponseWrapper<AppointmentBookingResponse>, string>({
         mutationFn: (slotId) => appointmentService.bookAppointment(slotId),
         onSuccess: () => {
-            // Invalidate history so it refreshes
             qc.invalidateQueries({queryKey: PATIENT_HISTORY_KEY});
         },
     });
 }
+
+// ── Single appointment ────────────────────────────────────────────────────────
+
+export function useAppointment(appointmentId: string) {
+    return useAppQuery<ResponseWrapper<AppointmentBookingResponse>>({
+        queryKey: ['patient', 'appointment', appointmentId],
+        queryFn: () => appointmentService.getAppointmentById(appointmentId),
+        enabled: !!appointmentId,
+        // Stale after 30s — user may pay and we need fresh status
+        staleTime: 30_000,
+    });
+}
+
+// ── History ───────────────────────────────────────────────────────────────────
 
 export function usePatientAppointmentHistory(page = 0, size = 10) {
     return useAppQuery<ResponseWrapper<AppointmentPage>>({
@@ -50,11 +68,13 @@ export function usePatientAppointmentHistory(page = 0, size = 10) {
     });
 }
 
+// ── Cancel ────────────────────────────────────────────────────────────────────
+
 export function useCancelPatientAppointment() {
     const qc = useQueryClient();
     return useAppMutation<
         ResponseWrapper<AppointmentBookingResponse>,
-        { appointmentId: string; reason: string }
+        {appointmentId: string; reason: string}
     >({
         mutationFn: ({appointmentId, reason}) =>
             appointmentService.cancelAppointment(appointmentId, reason),

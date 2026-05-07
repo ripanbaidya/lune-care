@@ -11,6 +11,7 @@ import {
     X,
     Stethoscope,
     Search,
+    CreditCard,
 } from 'lucide-react';
 import {useAuthStore} from '../../../store/authStore';
 import {authService} from '../../../features/auth/authService';
@@ -25,10 +26,11 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
     {label: 'Dashboard', to: ROUTES.patientDashboard, icon: <LayoutDashboard size={18}/>},
-    {label: 'Find Doctors', to: '/find-doctors', icon: <Search size={18}/>},  // ← NEW
+    {label: 'Find Doctors', to: ROUTES.findDoctors, icon: <Search size={18}/>},
+    {label: 'Appointments', to: ROUTES.patientAppointments, icon: <CalendarDays size={18}/>},
+    {label: 'Payments', to: ROUTES.patientPayments, icon: <CreditCard size={18}/>},
     {label: 'Profile', to: ROUTES.patientProfile, icon: <User size={18}/>},
     {label: 'Address', to: ROUTES.patientAddress, icon: <MapPin size={18}/>},
-    {label: 'Appointments', to: ROUTES.patientAppointments, icon: <CalendarDays size={18}/>},
     {label: 'Notifications', to: ROUTES.patientNotifications, icon: <Bell size={18}/>},
 ];
 
@@ -41,7 +43,7 @@ const PatientSidebar: React.FC = () => {
         try {
             if (refreshToken) await authService.logout({refreshToken});
         } catch {
-            // best-effort logout
+            // best-effort
         } finally {
             clearAuth();
             navigate(ROUTES.login, {replace: true});
@@ -74,9 +76,7 @@ const PatientSidebar: React.FC = () => {
     return (
         <>
             {/* ── Desktop Sidebar ── */}
-            <aside
-                className="hidden md:flex flex-col w-60 min-h-screen bg-white border-r border-gray-200 fixed left-0 top-0 z-30">
-                {/* Logo */}
+            <aside className="hidden md:flex flex-col w-60 min-h-screen bg-white border-r border-gray-200 fixed left-0 top-0 z-30">
                 <div className="flex items-center gap-2 px-5 py-5 border-b border-gray-100">
                     <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                         <Stethoscope size={16} className="text-white"/>
@@ -86,7 +86,6 @@ const PatientSidebar: React.FC = () => {
 
                 <NavList/>
 
-                {/* Logout */}
                 <div className="px-3 py-4 border-t border-gray-100">
                     <button
                         onClick={handleLogout}
@@ -99,8 +98,7 @@ const PatientSidebar: React.FC = () => {
             </aside>
 
             {/* ── Mobile Top Bar ── */}
-            <div
-                className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200 flex items-center justify-between px-4 py-3">
+            <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200 flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-2">
                     <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
                         <Stethoscope size={14} className="text-white"/>

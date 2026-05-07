@@ -10,7 +10,6 @@ import RegisterPage from "../features/auth/pages/RegisterPage";
 
 // Public pages
 import HomePage from "../features/public/pages/HomePage";
-import FindDoctorsPage from "../features/public/pages/FindDoctorsPage";
 import DoctorPublicProfilePage from "../features/doctor/pages/DoctorPublicProfilePage";
 
 // Patient pages
@@ -18,6 +17,9 @@ import PatientDashboard from "../features/patient/pages/PatientDashboard";
 import PatientProfilePage from "../features/patient/pages/PatientProfilePage";
 import PatientAddressPage from "../features/patient/pages/PatientAddressPage";
 import PatientAppointmentsPage from "../features/patient/pages/PatientAppointmentsPage";
+import AppointmentDetailPage from "../features/patient/pages/AppointmentDetailPage";
+import FindDoctorsPage from "../features/public/pages/FindDoctorsPage";
+import PaymentHistoryPage from "../features/payment/pages/PaymentHistoryPage";
 
 // Doctor pages
 import DoctorOnboardingPage from "../features/doctor/pages/DoctorOnboardingPage";
@@ -30,10 +32,8 @@ import DoctorClinicsPage from "../features/doctor/pages/DoctorClinicsPage";
 
 const AppRoutes: React.FC = () => (
     <Routes>
-        {/* ── Fully Public Routes (zero auth required) ── */}
+        {/* ── Fully Public Routes ── */}
         <Route path={ROUTES.home} element={<HomePage/>}/>
-        <Route path="/find-doctors" element={<FindDoctorsPage/>}/>
-        {/* Doctor public profile — accessible by anyone, logged in or not */}
         <Route path="/doctors/:doctorId" element={<DoctorPublicProfilePage/>}/>
 
         {/* ── Auth Pages ── */}
@@ -53,7 +53,17 @@ const AppRoutes: React.FC = () => (
             <Route path={ROUTES.patientDashboard} element={<PatientDashboard/>}/>
             <Route path={ROUTES.patientProfile} element={<PatientProfilePage/>}/>
             <Route path={ROUTES.patientAddress} element={<PatientAddressPage/>}/>
+
+            {/* Find Doctors — inside patient layout */}
+            <Route path={ROUTES.findDoctors} element={<FindDoctorsPage/>}/>
+
+            {/* Appointments list + detail */}
             <Route path={ROUTES.patientAppointments} element={<PatientAppointmentsPage/>}/>
+            <Route path={ROUTES.patientAppointmentDetail} element={<AppointmentDetailPage/>}/>
+
+            {/* Payment history */}
+            <Route path={ROUTES.patientPayments} element={<PaymentHistoryPage/>}/>
+
             <Route
                 path={ROUTES.patientNotifications}
                 element={
@@ -64,7 +74,7 @@ const AppRoutes: React.FC = () => (
             />
         </Route>
 
-        {/* ── Doctor — onboarding & pending (no ACTIVE status required) ── */}
+        {/* ── Doctor — onboarding & pending ── */}
         <Route
             element={
                 <PrivateRoute>
@@ -86,7 +96,7 @@ const AppRoutes: React.FC = () => (
             path={ROUTES.doctorPending}
         />
 
-        {/* ── Doctor — active routes (ACTIVE status required) ── */}
+        {/* ── Doctor — active routes ── */}
         <Route
             element={
                 <PrivateRoute>

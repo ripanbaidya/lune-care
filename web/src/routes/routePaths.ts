@@ -12,6 +12,8 @@ export const PATIENT_ROUTES = {
     patientProfile: '/patient/profile',
     patientAddress: '/patient/address',
     patientAppointments: '/patient/appointments',
+    patientAppointmentDetail: '/patient/appointments/:appointmentId',
+    patientPayments: '/patient/payments',
     patientNotifications: '/patient/notifications',
 } as const;
 
@@ -36,8 +38,11 @@ export const ROUTES = {
     ...ADMIN_ROUTES,
 } as const;
 
+/** Helper — build the concrete appointment detail URL (replaces :appointmentId) */
+export const appointmentDetailPath = (id: string) => `/patient/appointments/${id}`;
+
 export type PublicRoute = typeof ROUTES[keyof typeof PUBLIC_ROUTES];
 export type PatientRoute = typeof ROUTES[keyof typeof PATIENT_ROUTES];
 export type DoctorRoute = typeof ROUTES[keyof typeof DOCTOR_ROUTES];
 export type AdminRoute = typeof ROUTES[keyof typeof ADMIN_ROUTES];
-export type AppRoutes = typeof ROUTES[keyof typeof ROUTES];
+export type AppRoute = typeof ROUTES[keyof typeof ROUTES];
