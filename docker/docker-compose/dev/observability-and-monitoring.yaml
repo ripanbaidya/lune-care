@@ -4,9 +4,9 @@ services:
     image: grafana/loki:3.7.0
     command: "-config.file=/etc/loki/config.yaml -target=read -query-scheduler.use-scheduler-ring=false"
     ports:
-      - 3101:3100
-      - 7946
-      - 9095
+      - "3101:3100"
+      - "7946"
+      - "9095"
     volumes:
       - ../observability/loki/loki-config.yaml:/etc/loki/config.yaml
     depends_on:
@@ -26,9 +26,9 @@ services:
     image: grafana/loki:3.7.0
     command: "-config.file=/etc/loki/config.yaml -target=write"
     ports:
-      - 3102:3100
-      - 7946
-      - 9095
+      - "3102:3100"
+      - "7946"
+      - "9095"
     volumes:
       - ../observability/loki/loki-config.yaml:/etc/loki/config.yaml
     healthcheck:
@@ -49,7 +49,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command:  run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
     ports:
-      - 12345:12345
+      - "12345:12345"
     depends_on:
       - gateway
     networks:
@@ -70,7 +70,7 @@ services:
       - MINIO_PROMETHEUS_AUTH_TYPE=public
       - MINIO_UPDATE=off
     ports:
-      - 9000
+      - "9000"
     volumes:
       - ./.data/minio:/data
     healthcheck:
@@ -90,6 +90,18 @@ services:
       - ../observability/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml
     networks:
       - lunecare_network
+
+#  tempo:
+#    image: grafana/tempo:2.6.1
+#    container_name: tempo
+#    command: -config.file /etc/tempo-config.yml
+#    ports:
+#      - "3110:3100" # using 3110 bcz 3100 is used by loki
+#      - "4318:4318"
+#    volumes:
+#      - ../observability/tempo/tempo.yaml:/etc/tempo-config.yml
+#    networks:
+#      - lunecare_network
 
   grafana:
     image: grafana/grafana:12.4.3
