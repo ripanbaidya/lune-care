@@ -15,6 +15,7 @@ import {useAuthStore} from '../../../store/authStore';
 import {authService} from '../../auth/authService.ts';
 import {ROUTES} from '../../../routes/routePaths';
 import clsx from 'clsx';
+import {useUnreadNotificationCount} from "../../notification/hooks/useNotifications.ts";
 
 interface NavItem {
     label: string;
@@ -34,6 +35,8 @@ const DoctorSidebar: React.FC = () => {
     const {clearAuth, refreshToken} = useAuthStore();
     const navigate = useNavigate();
     const [mobileOpen, setMobileOpen] = useState(false);
+    const {data: unreadData} = useUnreadNotificationCount();
+    const unreadCount = unreadData?.data?.unreadCount ?? 0;
 
     const handleLogout = async () => {
         try {
@@ -63,7 +66,14 @@ const DoctorSidebar: React.FC = () => {
                     }
                 >
                     {item.icon}
-                    {item.label}
+                    <span className="flex-1">{item.label}</span>
+                    {/* Badge — only for Notifications nav item */}
+                    {item.label === 'Notifications' && unreadCount > 0 && (
+                        <span
+                            className="min-w-[18px] h-[18px] px-1 bg-teal-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                    )}
                 </NavLink>
             ))}
         </nav>

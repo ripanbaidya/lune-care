@@ -21,6 +21,8 @@ import AppointmentDetailPage from "../features/patient/pages/AppointmentDetailPa
 import FindDoctorsPage from "../features/public/pages/FindDoctorsPage";
 import PaymentHistoryPage from "../features/payment/pages/PaymentHistoryPage";
 
+import NotificationsPage from '../features/notification/pages/NotificationPage';
+
 // Doctor pages
 import DoctorOnboardingPage from "../features/doctor/pages/DoctorOnboardingPage";
 import DoctorPendingVerificationPage from "../features/doctor/pages/DoctorPendingVerificationPage";
@@ -41,14 +43,13 @@ const AppRoutes: React.FC = () => (
         <Route path={ROUTES.register} element={<RegisterPage/>}/>
 
         {/* ── Patient Routes ── */}
-        <Route
-            element={
-                <PrivateRoute>
-                    <RoleRoute allowedRoles={["ROLE_PATIENT"]}>
-                        <PatientLayout/>
-                    </RoleRoute>
-                </PrivateRoute>
-            }
+        <Route element={
+            <PrivateRoute>
+                <RoleRoute allowedRoles={["ROLE_PATIENT"]}>
+                    <PatientLayout/>
+                </RoleRoute>
+            </PrivateRoute>
+        }
         >
             <Route path={ROUTES.patientDashboard} element={<PatientDashboard/>}/>
             <Route path={ROUTES.patientProfile} element={<PatientProfilePage/>}/>
@@ -64,14 +65,7 @@ const AppRoutes: React.FC = () => (
             {/* Payment history */}
             <Route path={ROUTES.patientPayments} element={<PaymentHistoryPage/>}/>
 
-            <Route
-                path={ROUTES.patientNotifications}
-                element={
-                    <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
-                        Notifications — coming soon
-                    </div>
-                }
-            />
+            <Route path={ROUTES.patientNotifications} element={<NotificationsPage/>}/>
         </Route>
 
         {/* ── Doctor — onboarding & pending ── */}
@@ -119,14 +113,7 @@ const AppRoutes: React.FC = () => (
                     </div>
                 }
             />
-            <Route
-                path={ROUTES.doctorNotifications}
-                element={
-                    <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
-                        Notifications — coming soon
-                    </div>
-                }
-            />
+            <Route path={ROUTES.doctorNotifications} element={<NotificationsPage/>}/>
         </Route>
 
         {/* ── Admin Routes ── */}
