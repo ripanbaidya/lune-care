@@ -3,7 +3,6 @@ import {Navigate, Route, Routes} from "react-router-dom";
 import {ROUTES} from "./routePaths";
 import PrivateRoute from "../shared/components/guards/PrivateRoute";
 import RoleRoute from "../shared/components/guards/RoleRoute";
-import Layout from "../shared/components/layout/Layout";
 import PatientLayout from "../shared/components/layout/PatientLayout";
 import LoginPage from "../features/auth/pages/LoginPage";
 import RegisterPage from "../features/auth/pages/RegisterPage";
@@ -25,6 +24,9 @@ import NotificationsPage from '../features/notification/pages/NotificationPage';
 import MySubmittedFeedbackPage from '../features/feedback/pages/MySubmittedFeedbackPage';
 import MyReceivedFeedbackPage from '../features/feedback/pages/MyReceivedFeedbackPage';
 
+import AdminLayout from "../features/admin/pages/AdminLayout";
+import AdminDashboard from "../features/admin/pages/AdminDashboard";
+
 // Doctor pages
 import DoctorOnboardingPage from "../features/doctor/pages/DoctorOnboardingPage";
 import DoctorPendingVerificationPage from "../features/doctor/pages/DoctorPendingVerificationPage";
@@ -34,6 +36,7 @@ import DoctorDashboard from "../features/doctor/pages/DoctorDashboard";
 import DoctorProfilePage from "../features/doctor/pages/DoctorProfilePage";
 import DoctorClinicsPage from "../features/doctor/pages/DoctorClinicsPage";
 import DoctorAppointmentsPage from "../features/doctor/pages/DoctorAppointmentsPage.tsx";
+import GuestRoute from "../shared/components/guards/GuestRoute.tsx";
 
 const AppRoutes: React.FC = () => (
     <Routes>
@@ -42,8 +45,8 @@ const AppRoutes: React.FC = () => (
         <Route path="/doctors/:doctorId" element={<DoctorPublicProfilePage/>}/>
 
         {/* ── Auth Pages ── */}
-        <Route path={ROUTES.login} element={<LoginPage/>}/>
-        <Route path={ROUTES.register} element={<RegisterPage/>}/>
+        <Route path={ROUTES.login} element={ <GuestRoute> <LoginPage/> </GuestRoute>}/>
+        <Route path={ROUTES.register} element={<GuestRoute> <RegisterPage/> </GuestRoute>}/>
 
         {/* ── Patient Routes ── */}
         <Route element={
@@ -70,7 +73,7 @@ const AppRoutes: React.FC = () => (
 
             <Route path={ROUTES.patientNotifications} element={<NotificationsPage/>}/>
 
-            <Route path={ROUTES.patientFeedback} element={<MySubmittedFeedbackPage />} />
+            <Route path={ROUTES.patientFeedback} element={<MySubmittedFeedbackPage/>}/>
         </Route>
 
         {/* ── Doctor — onboarding & pending ── */}
@@ -112,19 +115,18 @@ const AppRoutes: React.FC = () => (
             <Route path={ROUTES.doctorClinics} element={<DoctorClinicsPage/>}/>
             <Route path={ROUTES.doctorAppointments} element={<DoctorAppointmentsPage/>}/>
             <Route path={ROUTES.doctorNotifications} element={<NotificationsPage/>}/>
-            <Route path={ROUTES.doctorFeedback} element={<MyReceivedFeedbackPage />} />
+            <Route path={ROUTES.doctorFeedback} element={<MyReceivedFeedbackPage/>}/>
         </Route>
 
         {/* ── Admin Routes ── */}
         <Route element={
             <PrivateRoute>
                 <RoleRoute allowedRoles={["ROLE_ADMIN"]}>
-                    <Layout/>
+                    <AdminLayout/>
                 </RoleRoute>
             </PrivateRoute>
-        }
-        >
-            {/* Admin routes will go here */}
+        }>
+            <Route path={ROUTES.adminDashboard} element={<AdminDashboard/>}/>
         </Route>
 
         {/* Catch-all */}

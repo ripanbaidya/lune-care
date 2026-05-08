@@ -116,7 +116,7 @@ export default function LoginPage() {
             >
               {isPending ? (
                 <>
-                  <Spinner size="sm" variant="gradient" color="white" />
+                  <Spinner size="sm" />
                   <span>Signing in...</span>
                 </>
               ) : (

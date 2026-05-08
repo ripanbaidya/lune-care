@@ -1,23 +1,23 @@
 import React, {useState} from 'react';
-import {NavLink, useNavigate} from 'react-router-dom';
+import {NavLink} from 'react-router-dom';
 import {
-    LayoutDashboard,
-    User,
-    MapPin,
-    CalendarDays,
     Bell,
+    CalendarDays,
+    CreditCard,
+    LayoutDashboard,
     LogOut,
+    MapPin,
     Menu,
-    X,
-    Stethoscope,
     Search,
-    CreditCard, Star,
+    Star,
+    Stethoscope,
+    User,
+    X,
 } from 'lucide-react';
-import {useAuthStore} from '../../../store/authStore';
-import {authService} from '../../../features/auth/authService';
 import {ROUTES} from '../../../routes/routePaths';
 import clsx from 'clsx';
 import {useUnreadNotificationCount} from "../../../features/notification/hooks/useNotifications.ts";
+import {useLogout} from "../../hooks/useLogout.ts";
 
 interface NavItem {
     label: string;
@@ -37,22 +37,12 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const PatientSidebar: React.FC = () => {
-    const {clearAuth, refreshToken} = useAuthStore();
-    const navigate = useNavigate();
+    // const {clearAuth, refreshToken} = useAuthStore();
+    // const navigate = useNavigate();
     const [mobileOpen, setMobileOpen] = useState(false);
     const {data: unreadData} = useUnreadNotificationCount();
     const unreadCount = unreadData?.data?.unreadCount ?? 0;
-
-    const handleLogout = async () => {
-        try {
-            if (refreshToken) await authService.logout({refreshToken});
-        } catch {
-            // best-effort
-        } finally {
-            clearAuth();
-            navigate(ROUTES.login, {replace: true});
-        }
-    };
+    const handleLogout = useLogout();
 
     const NavList = () => (
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
