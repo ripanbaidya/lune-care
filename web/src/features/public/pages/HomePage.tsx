@@ -1,27 +1,13 @@
-import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import {
-  Stethoscope,
-  LayoutDashboard,
-  LogOut,
-  Search,
-  Menu,
-  X,
-  ArrowRight,
-  Star,
-  MapPin,
-  Clock,
-} from "lucide-react";
-import { useAuth } from "../../../shared/hooks/useAuth";
-import { useAuthStore } from "../../../store/authStore";
-import { authService } from "../../auth/authService";
-import { ROUTES } from "../../../routes/routePaths";
-import { useDoctorSearch } from "../hooks/useDoctorSearch";
+import React, {useState} from "react";
+import {Link, useNavigate} from "react-router-dom";
+import {ArrowRight, LayoutDashboard, LogOut, Menu, Search, Stethoscope, X,} from "lucide-react";
+import {useAuth} from "../../../shared/hooks/useAuth";
+import {useAuthStore} from "../../../store/authStore";
+import {authService} from "../../auth/authService";
+import {ROUTES} from "../../../routes/routePaths";
+import {useDoctorSearch} from "../hooks/useDoctorSearch";
 import DoctorSearchCard from "../components/DoctorSearchCard";
-import {
-  SPECIALIZATION_LABELS,
-  type Specialization,
-} from "../../doctor/types/doctor.types";
+import {type Specialization, SPECIALIZATION_LABELS,} from "../../doctor/types/doctor.types";
 
 const FEATURED_SPECIALIZATIONS: Specialization[] = [
   "CARDIOLOGIST",
