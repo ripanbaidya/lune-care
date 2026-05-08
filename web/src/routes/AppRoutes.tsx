@@ -31,6 +31,7 @@ import DoctorActiveRoute from "../features/doctor/DoctorActiveRoute";
 import DoctorDashboard from "../features/doctor/pages/DoctorDashboard";
 import DoctorProfilePage from "../features/doctor/pages/DoctorProfilePage";
 import DoctorClinicsPage from "../features/doctor/pages/DoctorClinicsPage";
+import DoctorAppointmentsPage from "../features/doctor/pages/DoctorAppointmentsPage.tsx";
 
 const AppRoutes: React.FC = () => (
     <Routes>
@@ -105,26 +106,18 @@ const AppRoutes: React.FC = () => (
             <Route path={ROUTES.doctorDashboard} element={<DoctorDashboard/>}/>
             <Route path={ROUTES.doctorProfile} element={<DoctorProfilePage/>}/>
             <Route path={ROUTES.doctorClinics} element={<DoctorClinicsPage/>}/>
-            <Route
-                path={ROUTES.doctorAppointments}
-                element={
-                    <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
-                        Appointments — coming soon
-                    </div>
-                }
-            />
+            <Route path={ROUTES.doctorAppointments} element={<DoctorAppointmentsPage/>}/>
             <Route path={ROUTES.doctorNotifications} element={<NotificationsPage/>}/>
         </Route>
 
         {/* ── Admin Routes ── */}
-        <Route
-            element={
-                <PrivateRoute>
-                    <RoleRoute allowedRoles={["ROLE_ADMIN"]}>
-                        <Layout/>
-                    </RoleRoute>
-                </PrivateRoute>
-            }
+        <Route element={
+            <PrivateRoute>
+                <RoleRoute allowedRoles={["ROLE_ADMIN"]}>
+                    <Layout/>
+                </RoleRoute>
+            </PrivateRoute>
+        }
         >
             {/* Admin routes will go here */}
         </Route>

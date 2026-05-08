@@ -45,8 +45,7 @@ const STATUS_CONFIG: Record<
 const PaymentCard: React.FC<{ payment: PaymentResponse }> = ({payment}) => {
     const cfg = STATUS_CONFIG[payment.status] ?? STATUS_CONFIG.INITIATED;
 
-    // Backend stores amount in paise; display in rupees
-    const amountRupees = payment.amount/100;
+    const amountRupees = payment.amount;
     const txnId =
         payment.razorpayPaymentId ?? payment.stripePaymentIntentId ?? payment.id;
 
@@ -177,7 +176,7 @@ const PaymentHistoryPage: React.FC = () => {
     const totalElements = pageInfo?.totalElements ?? 0;
 
     const completed = payments.filter((p) => p.status === 'SUCCESS');
-    const totalSpentRupees = completed.reduce((sum, p) => sum + p.amount / 100, 0);
+    const totalSpentRupees = completed.reduce((sum, p) => sum + p.amount, 0);
 
     return (
         <div className="space-y-5 pb-8">

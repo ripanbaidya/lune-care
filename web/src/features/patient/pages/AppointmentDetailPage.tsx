@@ -1,12 +1,25 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {Link, useNavigate, useParams} from 'react-router-dom';
 import {
-    ArrowLeft, Calendar, Clock, CreditCard, CheckCircle2, XCircle, AlertCircle, Stethoscope,
-    Receipt, Shield, IndianRupee, Loader2,
+    AlertCircle,
+    ArrowLeft,
+    Calendar,
+    CheckCircle2,
+    Clock,
+    CreditCard,
+    IndianRupee,
+    Loader2,
+    Receipt,
+    Shield,
+    Stethoscope,
+    XCircle,
 } from 'lucide-react';
 import {useAppointment, useCancelPatientAppointment} from '../hooks/usePatientAppointments';
 import {
-    useInitiateRazorpay, useInitiateStripe, useVerifyRazorpay, useVerifyStripe,
+    useInitiateRazorpay,
+    useInitiateStripe,
+    useVerifyRazorpay,
+    useVerifyStripe,
 } from '../../payment/hooks/usePayment';
 import type {GatewayType} from '../../payment/types/payment.types';
 import Spinner from '../../../shared/components/ui/Spinner';
@@ -69,7 +82,13 @@ interface StripeElement {
 // Script loader (idempotent)
 const loadScript = (src: string): Promise<boolean> =>
     new Promise((resolve) => {
-        if (document.querySelector(`script[src="${src}"]`)) return resolve(true);
+        if (typeof window.Stripe === 'function') return resolve(true);
+        const existing = document.querySelector(`script[src="${src}"]`);
+        if (existing) {
+            existing.addEventListener('load', () => resolve(true));
+            existing.addEventListener('error', () => resolve(false));
+            return;
+        }
         const s = document.createElement('script');
         s.src = src;
         s.onload = () => resolve(true);
@@ -180,7 +199,17 @@ const StripeCardForm: React.FC<StripeCardFormProps> = ({
             const ok = await loadScript('https://js.stripe.com/v3/');
             if (!ok || !mounted || !cardRef.current) return;
 
-            const stripe = window.Stripe(stripeKey);
+            if (!stripeKey) {
+                console.error('Stripe publishable key is missing — set VITE_STRIPE_PUBLISHABLE_KEY in .env and restart Vite');
+                return;
+            }
+            let stripe: StripeInstance;
+            try {
+                stripe = window.Stripe(stripeKey);
+            } catch (e) {
+                console.error('Failed to initialize Stripe:', e);
+                return;
+            }
             stripeRef.current = stripe;
             const elements = stripe.elements();
             const card = elements.create('card', {
@@ -195,12 +224,15 @@ const StripeCardForm: React.FC<StripeCardFormProps> = ({
                 },
                 hidePostalCode: true,
             });
-            card.mount(cardRef.current);
-            card.on('change', (e) => {
+            cardElementRef.current = card;
+            card.mount(cardRef.current); // 1. mount first
+            card.on('change', (e) => {  // 2. then listen for changes
                 setCardError(e.error?.message ?? null);
             });
-            cardElementRef.current = card;
-            setReady(true);
+            card.on('ready', () => { // 3. ready fires when iframe is visible
+                if (mounted) setReady(true);
+            });
+
         })();
 
         return () => {
@@ -230,8 +262,6 @@ const StripeCardForm: React.FC<StripeCardFormProps> = ({
         }
     };
 
-    const amountRupees = Math.round(amount / 100);
-
     return (
         <div className="space-y-4">
             <div className="p-3 border border-gray-300 rounded-lg bg-white min-h-[42px]">
@@ -260,7 +290,7 @@ const StripeCardForm: React.FC<StripeCardFormProps> = ({
                     {processing ? (
                         <><Spinner size="sm"/> Processing...</>
                     ) : (
-                        <><CreditCard size={14}/> Pay ₹{amountRupees}</>
+                        <><CreditCard size={14}/> Pay ₹{amount}</>
                     )}
                 </button>
             </div>

@@ -226,10 +226,16 @@ const DoctorDashboard: React.FC = () => {
                 </div>
             )}
 
-            {/* Appointments Placeholder */}
+            {/* Appointments shortcut */}
             <div className="bg-white rounded-xl border border-gray-200 px-5 py-6 flex flex-col items-center gap-2">
-                <CalendarDays size={32} className="text-gray-300"/>
-                <p className="text-sm text-gray-500">Appointments coming soon</p>
+                <CalendarDays size={32} className="text-teal-300"/>
+                <p className="text-sm text-gray-500">View and manage your appointments</p>
+                <Link
+                    to={ROUTES.doctorAppointments}
+                    className="text-xs text-teal-600 font-medium hover:underline"
+                >
+                    Go to Appointments →
+                </Link>
             </div>
         </div>
     );
