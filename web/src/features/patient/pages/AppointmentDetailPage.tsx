@@ -10,7 +10,7 @@ import {
     IndianRupee,
     Loader2,
     Receipt,
-    Shield,
+    Shield, Star,
     Stethoscope,
     XCircle,
 } from 'lucide-react';
@@ -26,6 +26,7 @@ import Spinner from '../../../shared/components/ui/Spinner';
 import {AppError} from '../../../shared/utils/errorParser';
 import {toast} from 'sonner';
 import {ROUTES} from '../../../routes/routePaths';
+import {SubmitFeedbackForm} from '../../feedback/components/SubmitFeedbackForm';
 
 // Razorpay global types
 declare global {
@@ -318,6 +319,11 @@ const AppointmentDetailPage: React.FC = () => {
 
     const [selectedGateway, setSelectedGateway] = useState<GatewayType>('RAZORPAY');
     const [paymentProcessing, setPaymentProcessing] = useState(false);
+
+    // Track whether the patient has already submitted feedback this session.
+    // In a production app, the appointment response should carry feedbackId.
+    const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+    const [showFeedbackForm, setShowFeedbackForm] = useState(false);
 
     // When Stripe is selected and initiation succeeds, we show the card form
     const [stripeState, setStripeState] = useState<{
@@ -656,6 +662,40 @@ const AppointmentDetailPage: React.FC = () => {
                             </div>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* ── Feedback Section — only for COMPLETED appointments ── */}
+            {status === 'COMPLETED' && !feedbackSubmitted && (
+                <div>
+                    {!showFeedbackForm ? (
+                        <button
+                            onClick={() => setShowFeedbackForm(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 text-amber-700 text-sm font-medium rounded-lg hover:bg-amber-100 transition-colors"
+                        >
+                            <Star size={14}/>
+                            Leave Feedback for this Appointment
+                        </button>
+                    ) : (
+                        <SubmitFeedbackForm
+                            appointmentId={appointment.id}
+                            doctorId={appointment.doctorId}
+                            onSuccess={() => {
+                                setFeedbackSubmitted(true);
+                                setShowFeedbackForm(false);
+                            }}
+                            onCancel={() => setShowFeedbackForm(false)}
+                        />
+                    )}
+                </div>
+            )}
+
+            {/* Show confirmation after submission */}
+            {status === 'COMPLETED' && feedbackSubmitted && (
+                <div
+                    className="flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                    <CheckCircle2 size={14}/>
+                    Feedback submitted — thank you for your review!
                 </div>
             )}
 

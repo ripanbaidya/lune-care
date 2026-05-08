@@ -3,10 +3,14 @@ import {useNavigate} from 'react-router-dom';
 import {IndianRupee, MapPin, UserCircle} from 'lucide-react';
 import type {DoctorSearchResult} from '../hooks/useDoctorSearch';
 import {SPECIALIZATION_LABELS} from '../../doctor/types/doctor.types';
+import { DoctorRatingSummary } from '../../feedback/components/DoctorRatingSummary';
+import { useDoctorFeedback } from '../../feedback/hooks/useFeedback';
 
 interface Props {
     doctor: DoctorSearchResult;
 }
+
+// ✅ FIXED DoctorSearchCard.tsx
 
 const DoctorSearchCard: React.FC<Props> = ({doctor}) => {
     const navigate = useNavigate();
@@ -15,6 +19,9 @@ const DoctorSearchCard: React.FC<Props> = ({doctor}) => {
     const specLabel = doctor.specialization
         ? (SPECIALIZATION_LABELS[doctor.specialization as keyof typeof SPECIALIZATION_LABELS] ?? doctor.specialization)
         : null;
+
+    const { data: ratingRes } = useDoctorFeedback(doctor.id, 0, 1);
+    const ratingSummary = ratingRes?.data;
 
     return (
         <button
@@ -33,6 +40,8 @@ const DoctorSearchCard: React.FC<Props> = ({doctor}) => {
                         <UserCircle size={24} className="text-blue-400"/>
                     </div>
                 )}
+
+                {/* ✅ Fix 1: Move everything out of <p>, use <div> as container */}
                 <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-gray-900 truncate">
                         Dr. {doctor.firstName} {doctor.lastName}
@@ -40,10 +49,24 @@ const DoctorSearchCard: React.FC<Props> = ({doctor}) => {
                     {specLabel && (
                         <p className="text-xs text-blue-600 font-medium">{specLabel}</p>
                     )}
+                    {/* qualification and experience on its own line */}
                     <p className="text-xs text-gray-400 mt-0.5">
-                        {doctor.qualification}
-                        {doctor.yearsOfExperience != null ? ` · ${doctor.yearsOfExperience} yrs exp` : ''}
+                        {[
+                            doctor.qualification,
+                            doctor.yearsOfExperience != null ? `${doctor.yearsOfExperience} yrs exp` : null,
+                        ]
+                            .filter(Boolean)
+                            .join(' · ')}
                     </p>
+                    {/* ✅ Rating on its own line — no longer inside <p> */}
+                    {ratingSummary && ratingSummary.totalReviews > 0 && (
+                        <DoctorRatingSummary
+                            averageRating={ratingSummary.averageRating}
+                            totalReviews={ratingSummary.totalReviews}
+                            variant="compact"
+                            className="mt-0.5"
+                        />
+                    )}
                 </div>
             </div>
 

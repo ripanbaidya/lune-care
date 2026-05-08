@@ -15,6 +15,7 @@ export const PATIENT_ROUTES = {
     patientAppointmentDetail: '/patient/appointments/:appointmentId',
     patientPayments: '/patient/payments',
     patientNotifications: '/patient/notifications',
+    patientFeedback: '/patient/feedback',
 } as const;
 
 export const DOCTOR_ROUTES = {
@@ -25,6 +26,7 @@ export const DOCTOR_ROUTES = {
     doctorClinics: '/doctor/clinics',
     doctorAppointments: '/doctor/appointments',
     doctorNotifications: '/doctor/notifications',
+    doctorFeedback: '/doctor/feedback',
 } as const;
 
 export const ADMIN_ROUTES = {

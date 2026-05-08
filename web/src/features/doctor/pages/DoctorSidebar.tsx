@@ -9,7 +9,7 @@ import {
     LogOut,
     Menu,
     X,
-    Stethoscope,
+    Stethoscope, Star,
 } from 'lucide-react';
 import {useAuthStore} from '../../../store/authStore';
 import {authService} from '../../auth/authService.ts';
@@ -29,6 +29,7 @@ const NAV_ITEMS: NavItem[] = [
     {label: 'Clinics', to: ROUTES.doctorClinics, icon: <Building2 size={18}/>},
     {label: 'Appointments', to: ROUTES.doctorAppointments, icon: <CalendarDays size={18}/>},
     {label: 'Notifications', to: ROUTES.doctorNotifications, icon: <Bell size={18}/>},
+    { label: 'My Reviews', to: ROUTES.doctorFeedback, icon: <Star size={18} /> },
 ];
 
 const DoctorSidebar: React.FC = () => {

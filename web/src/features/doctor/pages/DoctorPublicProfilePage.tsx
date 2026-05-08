@@ -29,8 +29,11 @@ import {DAY_LABELS, type DayOfWeek} from '../types/doctor.clinic.types';
 import Spinner from '../../../shared/components/ui/Spinner';
 import {toast} from 'sonner';
 import {AppError} from '../../../shared/utils/errorParser';
+import {DoctorFeedbackSection} from '../../feedback/components/DoctorFeedbackSection';
+import {DoctorRatingSummary} from '../../feedback/components/DoctorRatingSummary';
+import {useDoctorFeedback} from '../../feedback/hooks/useFeedback';
 
-// ─── Calendar Component ───────────────────────────────────────────────────────
+// Calendar Component
 
 interface CalendarPickerProps {
     /** Dates (YYYY-MM-DD) that have available slots */
@@ -247,6 +250,10 @@ const DoctorPublicProfilePage: React.FC = () => {
         return set;
     }, [selectedDate, slots]);
 
+    // TODO: This is not working need to check it later
+    const {data: ratingRes} = useDoctorFeedback(doctor?.userId ?? '', 0, 1);
+    const ratingSummary = ratingRes?.data;
+
     const handleBook = () => {
         if (!selectedSlotId) return;
 
@@ -407,6 +414,17 @@ const DoctorPublicProfilePage: React.FC = () => {
                                 <div className="mt-3 flex items-center gap-1.5 text-xs text-gray-500">
                                     <Languages size={12}/>
                                     {doctor.languagesSpoken.join(', ')}
+                                </div>
+                            )}
+
+                            {/* Compact rating badge */}
+                            {ratingSummary && ratingSummary.totalReviews > 0 && (
+                                <div className="mt-2">
+                                    <DoctorRatingSummary
+                                        averageRating={ratingSummary.averageRating}
+                                        totalReviews={ratingSummary.totalReviews}
+                                        variant="compact"
+                                    />
                                 </div>
                             )}
 
@@ -580,6 +598,12 @@ const DoctorPublicProfilePage: React.FC = () => {
                         )}
                     </div>
                 </div>
+                {/* ── Reviews Section ── */}
+                {doctor && (
+                    <div className="mt-6 bg-white rounded-xl border border-gray-200 px-5 py-5">
+                        <DoctorFeedbackSection doctorId={doctorId ?? ''} pageSize={10}/>
+                    </div>
+                )}
             </div>
         </div>
     );

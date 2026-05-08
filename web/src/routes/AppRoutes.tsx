@@ -22,6 +22,8 @@ import FindDoctorsPage from "../features/public/pages/FindDoctorsPage";
 import PaymentHistoryPage from "../features/payment/pages/PaymentHistoryPage";
 
 import NotificationsPage from '../features/notification/pages/NotificationPage';
+import MySubmittedFeedbackPage from '../features/feedback/pages/MySubmittedFeedbackPage';
+import MyReceivedFeedbackPage from '../features/feedback/pages/MyReceivedFeedbackPage';
 
 // Doctor pages
 import DoctorOnboardingPage from "../features/doctor/pages/DoctorOnboardingPage";
@@ -67,6 +69,8 @@ const AppRoutes: React.FC = () => (
             <Route path={ROUTES.patientPayments} element={<PaymentHistoryPage/>}/>
 
             <Route path={ROUTES.patientNotifications} element={<NotificationsPage/>}/>
+
+            <Route path={ROUTES.patientFeedback} element={<MySubmittedFeedbackPage />} />
         </Route>
 
         {/* ── Doctor — onboarding & pending ── */}
@@ -108,6 +112,7 @@ const AppRoutes: React.FC = () => (
             <Route path={ROUTES.doctorClinics} element={<DoctorClinicsPage/>}/>
             <Route path={ROUTES.doctorAppointments} element={<DoctorAppointmentsPage/>}/>
             <Route path={ROUTES.doctorNotifications} element={<NotificationsPage/>}/>
+            <Route path={ROUTES.doctorFeedback} element={<MyReceivedFeedbackPage />} />
         </Route>
 
         {/* ── Admin Routes ── */}

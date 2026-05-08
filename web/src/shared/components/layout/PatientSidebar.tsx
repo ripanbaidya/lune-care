@@ -11,7 +11,7 @@ import {
     X,
     Stethoscope,
     Search,
-    CreditCard,
+    CreditCard, Star,
 } from 'lucide-react';
 import {useAuthStore} from '../../../store/authStore';
 import {authService} from '../../../features/auth/authService';
@@ -33,6 +33,7 @@ const NAV_ITEMS: NavItem[] = [
     {label: 'Profile', to: ROUTES.patientProfile, icon: <User size={18}/>},
     {label: 'Address', to: ROUTES.patientAddress, icon: <MapPin size={18}/>},
     {label: 'Notifications', to: ROUTES.patientNotifications, icon: <Bell size={18}/>},
+    { label: 'My Feedback', to: ROUTES.patientFeedback, icon: <Star size={18} /> },
 ];
 
 const PatientSidebar: React.FC = () => {
