@@ -1,12 +1,11 @@
-# artifacts
+# Java/Spring build outputs
 **/target/
-**/dist/
 **/build/
 **/*.class
 **/*.jar
 **/*.war
 
-# IDE
+# IDE/editor
 .idea/
 .vscode/
 *.iml
@@ -16,29 +15,26 @@
 .classpath
 .settings/
 
-# OS
+# OS files
 .DS_Store
-.DS_Store?
 Thumbs.db
 desktop.ini
 *~
 
-# Secrets & keys
-# secrets/
-# *.pem
-.env
-!.evn.example
-encrypted-config.yml
-
-# Spring Boot/Java
-HELP.md
+# Runtime logs
 *.log
 logs/
 spring-shell.log
 
-# Frontend
+# Secrets/config
+.env
+!.evn.example
+encrypted-config.yml
+
+# Frontend outputs (web/)
 web/node_modules/
 web/dist/
 web/dist-ssr/
-web/*.local
+web/.vite/
 web/.eslintcache
+web/*.local
