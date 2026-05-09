@@ -1,5 +1,6 @@
 package com.healthcare.patient.service.impl;
 
+import com.healthcare.patient.config.RedisCacheConfig;
 import com.healthcare.patient.entity.Address;
 import com.healthcare.patient.entity.Patient;
 import com.healthcare.patient.enums.ErrorCode;
@@ -13,6 +14,9 @@ import com.healthcare.patient.repository.PatientRepository;
 import com.healthcare.patient.service.AddressService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +30,10 @@ public class AddressServiceImpl implements AddressService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.PATIENT_ADDRESS_CACHE, key = "#userId"),
+            @CacheEvict(cacheNames = RedisCacheConfig.PATIENT_PROFILE_CACHE, key = "#userId")
+    })
     public AddressResponse createAddress(String userId, AddressRequest request) {
         log.debug("Creating address for userId='{}'", userId);
         Patient patient = findByUserId(userId);
@@ -52,6 +60,10 @@ public class AddressServiceImpl implements AddressService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.PATIENT_ADDRESS_CACHE, key = "#userId"),
+            @CacheEvict(cacheNames = RedisCacheConfig.PATIENT_PROFILE_CACHE, key = "#userId")
+    })
     public AddressResponse updateAddress(String userId, AddressRequest request) {
         log.debug("Updating address for userId='{}'", userId);
 
@@ -78,6 +90,7 @@ public class AddressServiceImpl implements AddressService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = RedisCacheConfig.PATIENT_ADDRESS_CACHE, key = "#userId")
     public AddressResponse getAddress(String userId) {
         log.debug("Retrieving address for userId={}", userId);
 
@@ -95,6 +108,10 @@ public class AddressServiceImpl implements AddressService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.PATIENT_ADDRESS_CACHE, key = "#userId"),
+            @CacheEvict(cacheNames = RedisCacheConfig.PATIENT_PROFILE_CACHE, key = "#userId")
+    })
     public void deleteAddress(String userId) {
         log.info("Deleting address for userId: {}", userId);
         Patient patient = findByUserId(userId);

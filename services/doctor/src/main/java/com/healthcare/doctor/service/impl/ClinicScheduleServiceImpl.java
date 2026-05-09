@@ -1,6 +1,7 @@
 package com.healthcare.doctor.service.impl;
 
 import com.healthcare.doctor.client.AppointmentServiceClient;
+import com.healthcare.doctor.config.RedisCacheConfig;
 import com.healthcare.doctor.entity.Clinic;
 import com.healthcare.doctor.entity.ClinicSchedule;
 import com.healthcare.doctor.entity.Doctor;
@@ -17,6 +18,8 @@ import com.healthcare.doctor.service.DoctorService;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +46,10 @@ public class ClinicScheduleServiceImpl implements ClinicScheduleService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_SEARCH_CACHE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_PUBLIC_PROFILE_CACHE, allEntries = true)
+    })
     public List<ClinicScheduleResponse> setSchedule(String userId,
                                                     String clinicId,
                                                     ClinicScheduleRequest request) {
@@ -139,6 +146,10 @@ public class ClinicScheduleServiceImpl implements ClinicScheduleService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_SEARCH_CACHE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_PUBLIC_PROFILE_CACHE, allEntries = true)
+    })
     public void deleteScheduleDay(String userId, String clinicId, DayOfWeek dayOfWeek) {
         Doctor doctor = doctorService.findByUserId(userId);
         findClinicOwnedByDoctor(clinicId, doctor.getId());

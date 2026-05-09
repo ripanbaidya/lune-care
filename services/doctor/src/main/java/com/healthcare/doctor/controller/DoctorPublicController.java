@@ -1,5 +1,6 @@
 package com.healthcare.doctor.controller;
 
+import com.healthcare.doctor.config.RedisCacheConfig;
 import com.healthcare.doctor.payload.dto.success.ResponseWrapper;
 import com.healthcare.doctor.payload.response.DoctorPublicResponse;
 import com.healthcare.doctor.service.DoctorService;
@@ -12,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
@@ -40,6 +42,10 @@ public class DoctorPublicController {
     )
     @ApiResponse(responseCode = "200", description = "Doctors fetched successfully")
     @GetMapping("/search")
+    @Cacheable(
+            cacheNames = RedisCacheConfig.DOCTOR_SEARCH_CACHE,
+            keyGenerator = "doctorSearchKeyGenerator"
+    )
     public ResponseEntity<ResponseWrapper<Map<String, Object>>> search(
             @Parameter(description = "Partial or full doctor name") @RequestParam(required = false) String name,
             @Parameter(description = "Specialization enum value e.g. CARDIOLOGY") @RequestParam(required = false) String specialization,

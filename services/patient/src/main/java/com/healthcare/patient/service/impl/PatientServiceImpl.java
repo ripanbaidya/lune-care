@@ -1,5 +1,6 @@
 package com.healthcare.patient.service.impl;
 
+import com.healthcare.patient.config.RedisCacheConfig;
 import com.healthcare.patient.entity.Patient;
 import com.healthcare.patient.enums.ErrorCode;
 import com.healthcare.patient.exception.PatientException;
@@ -12,6 +13,9 @@ import com.healthcare.patient.service.CloudinaryService;
 import com.healthcare.patient.service.PatientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -29,6 +33,10 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.PATIENT_PROFILE_CACHE, key = "#request.userId()"),
+            @CacheEvict(cacheNames = RedisCacheConfig.PATIENT_ADDRESS_CACHE, key = "#request.userId()")
+    })
     public void creteProfile(CreateProfileRequest request) {
         log.info("Creating patient profile for userId: {}", request.userId());
         String userId = request.userId();
@@ -50,6 +58,7 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = RedisCacheConfig.PATIENT_PROFILE_CACHE, key = "#userId")
     public PatientProfileResponse getProfile(String userId) {
         log.debug("Fetching patient profile for userId: {}", userId);
 
@@ -59,6 +68,7 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = RedisCacheConfig.PATIENT_PROFILE_CACHE, key = "#userId")
     public PatientProfileResponse updateProfile(String userId, UpdateProfileRequest request) {
         log.debug("Updating patient profile for userId: {}", userId);
         Patient patient = findByUserId(userId);
@@ -79,6 +89,7 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = RedisCacheConfig.PATIENT_PROFILE_CACHE, key = "#userId")
     public PatientProfileResponse uploadProfilePhoto(String userId, MultipartFile file) {
         log.debug("Starting profile photo upload. userId={}, fileName={}, size={} bytes, type={}",
                 userId, file.getOriginalFilename(), file.getSize(), file.getContentType());
@@ -113,6 +124,7 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = RedisCacheConfig.PATIENT_PROFILE_CACHE, key = "#userId")
     public PatientProfileResponse removeProfilePhoto(String userId) {
         log.debug("Request to remove profile photo. userId={}", userId);
 

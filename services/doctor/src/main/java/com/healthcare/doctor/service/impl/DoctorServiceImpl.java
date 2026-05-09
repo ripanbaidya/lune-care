@@ -1,6 +1,7 @@
 package com.healthcare.doctor.service.impl;
 
 import com.healthcare.doctor.client.AuthServiceClient;
+import com.healthcare.doctor.config.RedisCacheConfig;
 import com.healthcare.doctor.entity.Clinic;
 import com.healthcare.doctor.entity.Doctor;
 import com.healthcare.doctor.entity.DoctorProfile;
@@ -26,6 +27,9 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -54,6 +58,10 @@ public class DoctorServiceImpl implements DoctorService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_SEARCH_CACHE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_PUBLIC_PROFILE_CACHE, allEntries = true)
+    })
     public void creteProfile(CreateDoctorProfileRequest request) {
         String userId = request.userId();
         log.info("Creating doctor profile. userId={}", userId);
@@ -86,6 +94,10 @@ public class DoctorServiceImpl implements DoctorService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_SEARCH_CACHE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_PUBLIC_PROFILE_CACHE, allEntries = true)
+    })
     public DoctorProfileResponse completeOnboarding(String userId, OnboardingRequest request) {
         log.info("Completing onboarding. userId={}, specialization={}", userId, request.specialization());
 
@@ -129,6 +141,10 @@ public class DoctorServiceImpl implements DoctorService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_SEARCH_CACHE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_PUBLIC_PROFILE_CACHE, allEntries = true)
+    })
     public DoctorProfileResponse updateProfile(String userId, UpdateDoctorProfileRequest request) {
         log.debug("Updating profile. userId={}", userId);
 
@@ -162,6 +178,10 @@ public class DoctorServiceImpl implements DoctorService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_SEARCH_CACHE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_PUBLIC_PROFILE_CACHE, allEntries = true)
+    })
     public DoctorProfileResponse uploadProfilePhoto(String userId, MultipartFile file) {
         log.debug("Uploading profile photo. userId={}, size={} bytes", userId, file.getSize());
 
@@ -188,6 +208,10 @@ public class DoctorServiceImpl implements DoctorService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_SEARCH_CACHE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_PUBLIC_PROFILE_CACHE, allEntries = true)
+    })
     public DoctorProfileResponse removeProfilePhoto(String userId) {
         log.info("Removing profile photo. userId={}", userId);
 
@@ -274,6 +298,10 @@ public class DoctorServiceImpl implements DoctorService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            cacheNames = RedisCacheConfig.DOCTOR_PUBLIC_PROFILE_CACHE,
+            key = "#doctorId"
+    )
     public DoctorPublicResponse getPublicProfile(String doctorId) {
         log.debug("Fetching public profile. doctorId={}", doctorId);
 
@@ -319,6 +347,10 @@ public class DoctorServiceImpl implements DoctorService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_SEARCH_CACHE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_PUBLIC_PROFILE_CACHE, allEntries = true)
+    })
     public void updateVerificationStatus(String doctorId, UpdateVerificationStatusRequest request) {
         boolean approved = request.approved();
         String action = approved ? "APPROVED" : "REJECTED";

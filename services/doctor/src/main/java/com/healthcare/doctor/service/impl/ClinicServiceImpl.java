@@ -1,5 +1,6 @@
 package com.healthcare.doctor.service.impl;
 
+import com.healthcare.doctor.config.RedisCacheConfig;
 import com.healthcare.doctor.entity.Clinic;
 import com.healthcare.doctor.entity.Doctor;
 import com.healthcare.doctor.enums.ErrorCode;
@@ -13,6 +14,8 @@ import com.healthcare.doctor.service.ClinicService;
 import com.healthcare.doctor.service.DoctorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -31,6 +34,10 @@ public class ClinicServiceImpl implements ClinicService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_SEARCH_CACHE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_PUBLIC_PROFILE_CACHE, allEntries = true)
+    })
     public ClinicResponse addClinic(String userId, CreateClinicRequest request) {
         log.info("Adding new clinic for doctor. userId={}, clinicName={}, city={}",
                 userId, request.name(), request.city());
@@ -121,6 +128,10 @@ public class ClinicServiceImpl implements ClinicService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_SEARCH_CACHE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_PUBLIC_PROFILE_CACHE, allEntries = true)
+    })
     public ClinicResponse updateClinic(String userId, String clinicId, UpdateClinicRequest request) {
         log.info("Updating clinic details. userId={}, clinicId={}", userId, clinicId);
 
@@ -167,6 +178,10 @@ public class ClinicServiceImpl implements ClinicService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_SEARCH_CACHE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.DOCTOR_PUBLIC_PROFILE_CACHE, allEntries = true)
+    })
     public void deleteClinic(String userId, String clinicId) {
         log.info("Request to deactivate (soft-delete) clinic. userId={}, clinicId={}", userId, clinicId);
 
