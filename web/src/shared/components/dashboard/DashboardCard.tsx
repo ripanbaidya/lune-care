@@ -1,22 +1,29 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
-import Spinner from "../../../../shared/components/ui/Spinner";
+import Spinner from "../ui/Spinner";
 
-const DashboardCard: React.FC<{
+interface DashboardCardProps {
   title: string;
   icon: React.ReactNode;
   to: string;
   children: React.ReactNode;
   isLoading?: boolean;
-}> = ({ title, icon, to, children, isLoading }) => (
+}
+
+const DashboardCard: React.FC<DashboardCardProps> = ({
+  title,
+  icon,
+  to,
+  children,
+  isLoading,
+}) => (
   <div className="bg-gradient-to-br from-gray-900/40 via-gray-900/30 to-black/40 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden hover:border-white/20 transition-all duration-300">
     <div className="flex items-center justify-between px-6 py-5 border-b border-white/5">
       <div className="flex items-center gap-3">
         <div className="text-blue-400/90">{icon}</div>
         <h2 className="text-sm font-semibold text-gray-100">{title}</h2>
       </div>
-
       <Link
         to={to}
         className="flex items-center gap-1 text-xs text-blue-400/80 font-medium hover:text-blue-300 transition-colors duration-200"

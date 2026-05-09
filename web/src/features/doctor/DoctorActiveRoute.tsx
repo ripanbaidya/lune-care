@@ -2,7 +2,7 @@ import React from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../../shared/hooks/useAuth";
 import { useAuthStore } from "../../store/authStore";
-import { ACCOUNT_STATUS } from "../auth/types/auth.types.ts";
+import { ACCOUNT_STATUS } from "../auth/types/auth.types";
 import { ROUTES } from "../../routes/routePaths";
 
 interface Props {

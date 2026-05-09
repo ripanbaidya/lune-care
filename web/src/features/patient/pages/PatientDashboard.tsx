@@ -6,12 +6,14 @@ import { usePatientProfile } from "../hooks/usePatientProfile";
 import { usePatientAddress } from "../hooks/usePatientAddress";
 
 import { ROUTES } from "../../../routes/routePaths";
-import { BLOOD_GROUP_LABELS } from "../types/patient.types.ts";
+import { BLOOD_GROUP_LABELS, GENDER_LABELS } from "../types/patient.types";
 
-import InfoRow from "../components/profile/InfoRow.tsx";
-import DashboardCard from "../components/profile/DashboardCard.tsx";
-import HeroStrip from "../components/profile/HeroStrip.tsx";
-import QuickStats from "../components/profile/QuickStats.tsx";
+import DashboardCard from "../../../shared/components/dashboard/DashboardCard";
+import HeroStrip from "../../../shared/components/dashboard/HeroStrip";
+import InfoRow from "../../../shared/components/dashboard/InfoRow";
+import QuickStats, {
+  type StatItem,
+} from "../../../shared/components/dashboard/QuickStats";
 
 const PatientDashboard: React.FC = () => {
   const { data: profileRes, isLoading: profileLoading } = usePatientProfile();
@@ -19,6 +21,23 @@ const PatientDashboard: React.FC = () => {
 
   const profile = profileRes?.data;
   const address = addressRes?.data;
+
+  const stats: StatItem[] = [
+    {
+      label: "Gender",
+      value: profile?.gender ? GENDER_LABELS[profile.gender] : null,
+    },
+    {
+      label: "Blood Group",
+      value: profile?.bloodGroup
+        ? BLOOD_GROUP_LABELS[profile.bloodGroup]
+        : null,
+    },
+    {
+      label: "City",
+      value: address?.city ?? null,
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -31,10 +50,15 @@ const PatientDashboard: React.FC = () => {
       </div>
 
       {/* Hero Strip */}
-      <HeroStrip profile={profile} isLoading={profileLoading} />
+      <HeroStrip
+        name={profile ? `${profile.firstName} ${profile.lastName}` : null}
+        subtitle={profile?.phoneNumber}
+        profilePhotoUrl={profile?.profilePhotoUrl}
+        isLoading={profileLoading}
+      />
 
       {/* Quick Stats */}
-      <QuickStats profile={profile} address={address} />
+      <QuickStats stats={stats} />
 
       {/* Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

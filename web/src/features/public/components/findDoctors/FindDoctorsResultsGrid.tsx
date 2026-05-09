@@ -49,22 +49,23 @@ const DoctorCard: React.FC<{ doctor: DoctorResult }> = ({ doctor }) => {
   return (
     <button
       onClick={() => navigate(`/doctors/${doctor.id}`)}
-      className="w-full text-left bg-gray-900/60 border border-gray-800/80 rounded-2xl p-5 hover:border-blue-500/40 hover:bg-gray-900/80 hover:shadow-xl hover:shadow-blue-950/20 transition-all duration-200 group backdrop-blur-sm"
+      className="w-full text-left bg-gradient-to-br from-gray-900/60 via-gray-900/40 to-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-5 hover:border-blue-500/30 hover:bg-blue-500/5 hover:shadow-xl hover:shadow-blue-950/20 transition-all duration-200 group"
     >
+      {/* Doctor header */}
       <div className="flex items-start gap-3">
         {doctor.profilePhotoUrl ? (
           <img
             src={doctor.profilePhotoUrl}
             alt={`Dr. ${doctor.firstName}`}
-            className="w-14 h-14 rounded-2xl object-cover border border-gray-700/60 flex-shrink-0"
+            className="w-14 h-14 rounded-2xl object-cover border border-white/10 flex-shrink-0"
           />
         ) : (
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-900/60 to-indigo-900/60 border border-blue-800/30 flex items-center justify-center flex-shrink-0">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-900/60 to-indigo-900/60 border border-white/10 flex items-center justify-center flex-shrink-0">
             <UserCircle size={26} className="text-blue-400/70" />
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-gray-100 group-hover:text-blue-300 transition-colors leading-tight">
+          <p className="text-sm font-bold text-white group-hover:text-blue-300 transition-colors leading-tight">
             Dr. {doctor.firstName} {doctor.lastName}
           </p>
           {specLabel && (
@@ -80,7 +81,7 @@ const DoctorCard: React.FC<{ doctor: DoctorResult }> = ({ doctor }) => {
             )}
             {doctor.yearsOfExperience != null && (
               <>
-                <span className="text-gray-700">·</span>
+                <span className="text-gray-600">·</span>
                 <span className="text-xs text-gray-500 flex items-center gap-0.5">
                   <Clock size={10} className="text-gray-600" />
                   {doctor.yearsOfExperience} yrs
@@ -91,14 +92,16 @@ const DoctorCard: React.FC<{ doctor: DoctorResult }> = ({ doctor }) => {
         </div>
       </div>
 
+      {/* Bio */}
       {doctor.bio && (
         <p className="text-xs text-gray-500 mt-3 line-clamp-2 leading-relaxed">
           {doctor.bio}
         </p>
       )}
 
+      {/* Primary clinic strip */}
       {primaryClinic && (
-        <div className="mt-3 pt-3 border-t border-gray-800/60 flex items-center justify-between">
+        <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-xs text-gray-500 min-w-0">
             <MapPin size={11} className="flex-shrink-0 text-gray-600" />
             <span className="truncate">
@@ -112,12 +115,13 @@ const DoctorCard: React.FC<{ doctor: DoctorResult }> = ({ doctor }) => {
         </div>
       )}
 
+      {/* Language pills */}
       {doctor.languagesSpoken.length > 0 && (
         <div className="flex gap-1.5 mt-3 flex-wrap">
           {doctor.languagesSpoken.slice(0, 3).map((lang) => (
             <span
               key={lang}
-              className="text-xs bg-gray-800/80 border border-gray-700/60 text-gray-400 px-2 py-0.5 rounded-full"
+              className="text-xs bg-white/5 border border-white/10 text-gray-400 px-2 py-0.5 rounded-full"
             >
               {lang}
             </span>
@@ -130,6 +134,7 @@ const DoctorCard: React.FC<{ doctor: DoctorResult }> = ({ doctor }) => {
         </div>
       )}
 
+      {/* CTA */}
       <div className="mt-3 text-xs text-blue-500 font-semibold group-hover:text-blue-400 transition-colors">
         View Profile & Book →
       </div>
@@ -170,8 +175,8 @@ const FindDoctorsResultsGrid: React.FC<FindDoctorsResultsGridProps> = ({
   if (doctors.length === 0) {
     return (
       <div className="flex flex-col items-center py-20 gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-gray-900/80 border border-gray-800 flex items-center justify-center">
-          <Stethoscope size={26} className="text-gray-700" />
+        <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+          <Stethoscope size={26} className="text-gray-600" />
         </div>
         <div className="text-center">
           <p className="text-sm font-semibold text-gray-400">
