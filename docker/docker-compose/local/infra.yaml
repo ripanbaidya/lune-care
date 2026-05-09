@@ -5,9 +5,8 @@ services:
     container_name: lunecare-rabbitmq
     ports:
       - "5672:5672"
-      - "15672:15672" # UI
+      - "15672:15672" # Management UI → http://localhost:15672 (guest/guest)
     environment:
-      RABBITMQ_HOSTNAME: localhost
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
     volumes:

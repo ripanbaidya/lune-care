@@ -1,47 +1,50 @@
 # ============================================================
-# Docker Compose Dev Environment
-# Usage: make <target>
-# All commands run from: docker/docker-compose/dev/
-# ============================================================
-
-ENV_FILE     := .env.dev
-COMPOSE_BASE := docker compose --env-file $(ENV_FILE)
-COMPOSE_ALL  := $(COMPOSE_BASE) -f infra.yaml -f databases.yaml -f services.yaml -f observability-and-monitoring.yaml
-COMPOSE_INFRA := $(COMPOSE_BASE) -f infra.yaml
-COMPOSE_DB    := $(COMPOSE_BASE) -f infra.yaml -f databases.yaml
-
-# ============================================================
-# DEFAULT
+# Makefile.common — Shared targets for local and compose envs
+#
+# Include this from environment-specific Makefiles:
+#   include ../Makefile.common
+#
+# The including Makefile MUST define these before the include:
+#   COMPOSE_ALL   — all compose files combined
+#   COMPOSE_INFRA — infra only (RabbitMQ + Redis)
+#   COMPOSE_DB    — infra + databases
 # ============================================================
 
 .DEFAULT_GOAL := help
 
+# ============================================================
+# HELP
+# ============================================================
+
 help: ## Show all available commands
 	@echo ""
-	@echo "  LuneCare Docker Dev — Available Commands"
+	@echo "  LuneCare Docker — Available Commands"
 	@echo "  ─────────────────────────────────────────"
-	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*##/ { printf "  \033[36m%-24s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 	@echo ""
 
 # ============================================================
-# CORE — Start / Stop / Restart
+# CORE — Lifecycle
 # ============================================================
 
-up: ## Start all services (infra + databases + services)
+up: ## Start all services
 	$(COMPOSE_ALL) up -d
 
-down: ## Stop and remove all containers (keeps volumes)
+down: ## Stop and remove containers (volumes preserved)
 	$(COMPOSE_ALL) down
+
+down-v: ## Stop and remove containers AND volumes (full wipe)
+	$(COMPOSE_ALL) down -v
 
 restart: ## Restart all containers
 	$(COMPOSE_ALL) restart
 
-rebuild: ## Pull latest images and restart everything
+rebuild: ## Pull latest images and recreate all containers
 	$(COMPOSE_ALL) pull
 	$(COMPOSE_ALL) up -d --force-recreate
 
 # ============================================================
-# SELECTIVE — Start specific layers
+# SELECTIVE STARTUP
 # ============================================================
 
 up-infra: ## Start infra only (RabbitMQ + Redis)
@@ -50,18 +53,15 @@ up-infra: ## Start infra only (RabbitMQ + Redis)
 up-db: ## Start infra + databases (PostgreSQL + MongoDB)
 	$(COMPOSE_DB) up -d
 
-up-services: ## Start all microservices (assumes infra + db already running)
-	$(COMPOSE_BASE) -f services.yaml up -d
-
 # ============================================================
 # CLEANUP
 # ============================================================
 
-clean: ## Stop all containers and remove volumes (full reset)
+clean: ## Stop containers and remove volumes (full reset)
 	$(COMPOSE_ALL) down -v
 	@echo "  ✓ All containers and volumes removed"
 
-clean-images: ## Remove all lunecare images
+clean-images: ## Remove all lunecare Docker images
 	docker images --format '{{.Repository}}:{{.Tag}}' | grep 'lunecare' | xargs -r docker rmi -f
 	@echo "  ✓ All lunecare images removed"
 
@@ -79,34 +79,34 @@ logs: ## Tail logs for all services
 logs-errors: ## Show only ERROR/EXCEPTION lines across all services
 	$(COMPOSE_ALL) logs --no-log-prefix 2>&1 | grep -iE "error|exception|failed" | grep -v DEBUG
 
-logs-config: ## Tail config-server logs
+logs-config:       ## Tail config-server logs
 	docker logs lunecare-config-server -f --tail=50
 
-logs-eureka: ## Tail eureka-server logs
+logs-eureka:       ## Tail eureka-server logs
 	docker logs lunecare-eureka-server -f --tail=50
 
-logs-gateway: ## Tail api-gateway logs
+logs-gateway:      ## Tail api-gateway logs
 	docker logs lunecare-api-gateway -f --tail=50
 
-logs-auth: ## Tail auth service logs
+logs-auth:         ## Tail auth service logs
 	docker logs lunecare-auth -f --tail=50
 
-logs-patient: ## Tail patient service logs
+logs-patient:      ## Tail patient service logs
 	docker logs lunecare-patient -f --tail=50
 
-logs-doctor: ## Tail doctor service logs
+logs-doctor:       ## Tail doctor service logs
 	docker logs lunecare-doctor -f --tail=50
 
-logs-appointment: ## Tail appointment service logs
+logs-appointment:  ## Tail appointment service logs
 	docker logs lunecare-appointment -f --tail=50
 
-logs-payment: ## Tail payment service logs
+logs-payment:      ## Tail payment service logs
 	docker logs lunecare-payment -f --tail=50
 
 logs-notification: ## Tail notification service logs
 	docker logs lunecare-notification -f --tail=50
 
-logs-feedback: ## Tail feedback service logs
+logs-feedback:     ## Tail feedback service logs
 	docker logs lunecare-feedback -f --tail=50
 
 # ============================================================
@@ -116,18 +116,23 @@ logs-feedback: ## Tail feedback service logs
 ps: ## Show running containers with ports and status
 	@docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
-health: ## Check actuator/health for all services from host
+health: ## Check /actuator/health for all services from host
 	@echo ""
 	@echo "  Checking service health..."
 	@echo "  ─────────────────────────────────────────"
-	@for entry in "config-server:8888" "eureka-server:8761" "auth:8081" "patient:8082" "doctor:8083" "appointment:8084" "payment:8085" "notification:8086" "feedback:8087" "admin:8088" "api-gateway:8080"; do \
+	@for entry in \
+		"config-server:8888" "eureka-server:8761" "api-gateway:8080" \
+		"auth:8081" "patient:8082" "doctor:8083" "appointment:8084" \
+		"payment:8085" "notification:8086" "feedback:8087" "admin:8088"; do \
 		name=$$(echo $$entry | cut -d: -f1); \
 		port=$$(echo $$entry | cut -d: -f2); \
-		status=$$(curl -sf http://localhost:$$port/actuator/health 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','?'))" 2>/dev/null || echo "UNREACHABLE"); \
+		status=$$(curl -sf http://localhost:$$port/actuator/health 2>/dev/null \
+		    | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','?'))" 2>/dev/null \
+		    || echo "UNREACHABLE"); \
 		if [ "$$status" = "UP" ]; then \
-			printf "  \033[32m✓\033[0m %-20s %s\n" "$$name" "$$status"; \
+			printf "  \033[32m✓\033[0m %-24s %s\n" "$$name" "$$status"; \
 		else \
-			printf "  \033[31m✗\033[0m %-20s %s\n" "$$name" "$$status"; \
+			printf "  \033[31m✗\033[0m %-24s %s\n" "$$name" "$$status"; \
 		fi \
 	done
 	@echo ""
@@ -136,13 +141,13 @@ health: ## Check actuator/health for all services from host
 # DATABASE UTILS
 # ============================================================
 
+db-connect: ## Open PostgreSQL interactive shell (psql)
+	docker exec -it lunecare-postgres psql -U postgres -d lunecare
+
 db-schemas: ## List all schemas in PostgreSQL
 	docker exec -it lunecare-postgres psql -U postgres -d lunecare -c "\dn"
 
-db-connect: ## Open PostgreSQL interactive shell
-	docker exec -it lunecare-postgres psql -U postgres -d lunecare
-
-mongo-connect: ## Open MongoDB interactive shell
+mongo-connect: ## Open MongoDB interactive shell (mongosh)
 	docker exec -it lunecare-mongodb mongosh -u mongouser -p mongopass --authenticationDatabase admin
 
 mongo-dbs: ## List all MongoDB databases
@@ -150,45 +155,52 @@ mongo-dbs: ## List all MongoDB databases
 		--authenticationDatabase admin --eval "show dbs"
 
 # ============================================================
-# CONFIG SERVER UTILS
+# CONFIG SERVER
 # ============================================================
 
-config-check: ## Verify config-server is serving configs (tests appointment/dev,docker)
+config-check: ## Verify config-server is serving configs
 	@echo "  Testing config-server..."
-	@curl -sf http://localhost:8888/appointment/dev,docker | python3 -m json.tool || echo "Config server not reachable"
+	@curl -sf http://localhost:8888/appointment/dev,docker | python3 -m json.tool \
+		|| echo "  ✗ Config server not reachable"
 
-config-refresh: ## Trigger Spring Cloud Bus refresh (propagates config changes to all services)
+config-refresh: ## Trigger Spring Cloud Bus refresh across all services
 	@echo "  Triggering bus refresh..."
 	@curl -sf -X POST http://localhost:8888/actuator/busrefresh
 	@echo "  ✓ Refresh triggered"
 
 # ============================================================
-# INTER-CONTAINER CONNECTIVITY TEST
+# INTER-CONTAINER CONNECTIVITY
 # ============================================================
 
-test-network: ## Test inter-container DNS resolution from api-gateway
+test-network: ## Verify inter-container DNS resolution via api-gateway
 	@echo ""
 	@echo "  Testing container-to-container connectivity from api-gateway..."
 	@echo "  ─────────────────────────────────────────"
-	@for entry in "auth:8081" "patient:8082" "doctor:8083" "appointment:8084" "payment:8085" "notification:8086" "feedback:8087"; do \
+	@for entry in \
+		"auth:8081" "patient:8082" "doctor:8083" "appointment:8084" \
+		"payment:8085" "notification:8086" "feedback:8087"; do \
 		name=$$(echo $$entry | cut -d: -f1); \
 		port=$$(echo $$entry | cut -d: -f2); \
-		status=$$(docker exec lunecare-api-gateway curl -sf http://$$name:$$port/actuator/health 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','?'))" 2>/dev/null || echo "UNREACHABLE"); \
+		status=$$(docker exec lunecare-api-gateway \
+		    curl -sf http://$$name:$$port/actuator/health 2>/dev/null \
+		    | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','?'))" 2>/dev/null \
+		    || echo "UNREACHABLE"); \
 		if [ "$$status" = "UP" ]; then \
-			printf "  \033[32m✓\033[0m %-20s %s\n" "$$name" "$$status"; \
+			printf "  \033[32m✓\033[0m %-24s %s\n" "$$name" "$$status"; \
 		else \
-			printf "  \033[31m✗\033[0m %-20s %s\n" "$$name" "$$status"; \
+			printf "  \033[31m✗\033[0m %-24s %s\n" "$$name" "$$status"; \
 		fi \
 	done
 	@echo ""
 
-.PHONY: help up down restart rebuild \
-        up-infra up-db up-services \
+.PHONY: help \
+        up down down-v restart rebuild \
+        up-infra up-db \
         clean clean-images prune \
-        logs logs-errors logs-config logs-eureka logs-gateway \
-        logs-auth logs-patient logs-doctor logs-appointment \
-        logs-payment logs-notification logs-feedback \
+        logs logs-errors \
+        logs-config logs-eureka logs-gateway logs-auth logs-patient \
+        logs-doctor logs-appointment logs-payment logs-notification logs-feedback \
         ps health \
-        db-schemas db-connect mongo-connect mongo-dbs \
+        db-connect db-schemas mongo-connect mongo-dbs \
         config-check config-refresh \
         test-network

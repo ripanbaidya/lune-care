@@ -1,21 +1,16 @@
-# Contains database services for PostgreSQL and MongoDB
-# NOTE: If you change the database or configuration, you must also update the service
-# configurations accordingly
+# Strategy: schema-per-service on a single PostgreSQL instance
+# Schemas: auth, patient, doctor, appointment, payment
+# This conserves memory and resources in containerized environments.
 #
-# Strategy: Schema per service
-# Single PostgreSQL instance with multiple schemas: auth, patient, doctor, appointment, payment
-# This saves memory and resources. You can also use separate databases per service if needed.
-# Just update the service configurations to match.
-#
-# MongoDB: Single instance with two databases
-# notification → notification_db
-# feedback → feedback_db
+# MongoDB: single instance, database-per-service
+#   notification → notification_db
+#   feedback     → feedback_db
 
 services:
 
-  # PostgreSQL: single instance with multiple schemas
-  # Connect using: ?currentSchema=<schema_name>
-  # Place init-db.sql in the project root or adjust the volume mount as needed
+  # PostgreSQL — schema-per-service
+  # Connect with: ?currentSchema=<schema_name>
+  # Spring services receive JDBC URLs from config-server as {cipher} values.
   postgres:
     image: postgres:16-alpine
     container_name: lunecare-postgres
@@ -39,8 +34,8 @@ services:
       retries: 5
       start_period: 15s
 
-  # MongoDB — single instance
-  # Each service uses its own database. Auth is handled via authSource=admin
+  # MongoDB — database-per-service
+  # Spring services receive MongoDB URIs from config-server as {cipher} values.
   mongodb:
     image: mongo:8.2
     container_name: lunecare-mongodb

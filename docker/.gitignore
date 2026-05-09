@@ -1,5 +1,5 @@
-docker-compose/dev/.env.dev
+docker-compose/compose/.env.dev
+docker-compose/compose/.data
 docker-compose/prod/.env.prod
-docker-compose/dev/.data
 
 !.env.example

@@ -1,46 +1,34 @@
-# dev/services.yaml
-#
-# Profile strategy: SPRING_PROFILES_ACTIVE=dev,docker
-# Why? dev owns the config. docker only patches the hostnames. You need both.
+# Spring profile strategy: SPRING_PROFILES_ACTIVE=dev,docker
 #
 # Load order (last wins):
-# application.yml
-# → application-dev.yml (localhost refs)
-# → application-docker.yml (overrides localhost → docker hostnames)
-# → services/<name>/application.yml
-# → services/<name>/application-dev.yml (localhost DB/redis)
-# → services/<name>/application-docker.yml (overrides → docker hostnames)
-#
-# Config pull: all services fetch config from config-server
-# via SPRING_CONFIG_IMPORT=http://config-server:8888
+#   application.yml
+#   → application-dev.yml        (localhost refs, dev behaviour)
+#   → application-docker.yml     (overrides localhost → docker service names)
+#   → services/<name>/application.yml
+#   → services/<name>/application-dev.yml
+#   → services/<name>/application-docker.yml
 #
 # Boot order: infra → databases → config-server → eureka → services → api-gateway
-# Open Telemetry for tracing
-
-# Note: If you want to add Open Telemetry tracing feature then you need to add the follwing lines to
-# all the services here
-# under each service, to add opentelemetry environment variables.
-# extends:
-#  file: commons.yml
-#   service: open_telemetry_environment_config
-# As of now to remove ambiguity i m keeping these to only one service and removing from the other services.
+#
+# To enable OpenTelemetry tracing on a service, add:
+#   extends:
+#     file: commons.yaml
+#     service: open_telemetry_environment_config
 
 services:
 
-  # Config Server - must start first; all services depend on it
-  # Pulls configs from public GitHub repo (no auth needed in dev)
+  # Infrastructure
+
+  # Config Server — must start first; all services pull their config from here
   config-server:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-config-server:${IMAGE_TAG:-latest}
     container_name: lunecare-config-server
     ports:
       - "8888:8888"
     environment:
-
       SPRING_APPLICATION_NAME: config-server
       SPRING_PROFILES_ACTIVE: docker
       SPRING_CLOUD_CONFIG_SERVER_GIT_URI: ${GIT_URI}
-      # Symmetric key used to decrypt {cipher} values in config repo
-      # Must match the key used during encryption - loaded as Spring property
       ENCRYPT_KEY: ${ENCRYPT_KEY}
     networks:
       - lunecare_network
@@ -50,12 +38,8 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
-#    extends:
-#      file: commons.yml
-#      service: open_telemetry_environment_config
 
-  # Eureka Server - service registry
-  # Depends on config-server for its configuration
+  # Eureka Server — service registry; depends on config-server
   eureka-server:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-eureka-server:${IMAGE_TAG:-latest}
     container_name: lunecare-eureka-server
@@ -77,8 +61,11 @@ services:
       retries: 10
       start_period: 40s
 
+  # Services
+
   # Auth Service — port 8081
-  # PostgreSQL (lunecare DB, schema: auth) + Redis
+  # Storage: PostgreSQL (schema: auth) + Redis (token blacklist)
+  # Requires RSA private + public key mounts for JWT signing
   auth:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-auth:${IMAGE_TAG:-latest}
     container_name: lunecare-auth
@@ -89,9 +76,6 @@ services:
       SPRING_PROFILES_ACTIVE: dev,docker
       SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
     volumes:
-      # Mount RSA keys from host into container at the exact relative path the app expects
-      # app.security.rsa.private-key-path: secrets/keys/private_key.pem & public_key.pem
-      # Working dir inside container is /app, so /app/secrets/keys/ must have the PEM files
       - ../../../secrets/keys:/app/secrets/keys:ro
     depends_on:
       config-server:
@@ -101,8 +85,8 @@ services:
     networks:
       - lunecare_network
 
-  # Patient Service - port 8082
-  # PostgreSQL (lunecare DB, schema: patient)
+  # Patient Service — port 8082
+  # Storage: PostgreSQL (schema: patient)
   patient:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-patient:${IMAGE_TAG:-latest}
     container_name: lunecare-patient
@@ -120,8 +104,8 @@ services:
     networks:
       - lunecare_network
 
-  # Doctor Service - port 8083
-  # PostgreSQL (lunecare DB, schema: doctor)
+  # Doctor Service — port 8083
+  # Storage: PostgreSQL (schema: doctor)
   doctor:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-doctor:${IMAGE_TAG:-latest}
     container_name: lunecare-doctor
@@ -139,8 +123,8 @@ services:
     networks:
       - lunecare_network
 
-  # Appointment Service - port 8084
-  # PostgreSQL (lunecare DB, schema: appointment) + Redis
+  # Appointment Service — port 8084
+  # Storage: PostgreSQL (schema: appointment) + Redis (cache)
   appointment:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-appointment:${IMAGE_TAG:-latest}
     container_name: lunecare-appointment
@@ -158,8 +142,8 @@ services:
     networks:
       - lunecare_network
 
-  # Payment Service - port 8085
-  # PostgreSQL (lunecare DB, schema: payment)
+  # Payment Service — port 8085
+  # Storage: PostgreSQL (schema: payment)
   payment:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-payment:${IMAGE_TAG:-latest}
     container_name: lunecare-payment
@@ -177,8 +161,8 @@ services:
     networks:
       - lunecare_network
 
-  # Notification Service - port 8086
-  # MongoDB (notification_db)
+  # Notification Service — port 8086
+  # Storage: MongoDB (notification_db)
   notification:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-notification:${IMAGE_TAG:-latest}
     container_name: lunecare-notification
@@ -196,8 +180,8 @@ services:
     networks:
       - lunecare_network
 
-  # Feedback Service - port 8087
-  # MongoDB (feedback_db)
+  # Feedback Service — port 8087
+  # Storage: MongoDB (feedback_db)
   feedback:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-feedback:${IMAGE_TAG:-latest}
     container_name: lunecare-feedback
@@ -215,8 +199,8 @@ services:
     networks:
       - lunecare_network
 
-  # Admin Service - port 8088
-  # No DB; aggregates via Feign (doctor-service, auth-service)
+  # Admin Service — port 8088
+  # No dedicated DB; aggregates via Feign (doctor-service, auth-service)
   admin:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-admin:${IMAGE_TAG:-latest}
     container_name: lunecare-admin
@@ -234,10 +218,12 @@ services:
     networks:
       - lunecare_network
 
-  # API Gateway - port 8080
-  # Entry point for all external traffic
-  # Depends on eureka for service discovery + redis for rate limiting
-  # Start last — after all services are up
+  # Gateway
+
+  # API Gateway — port 8080
+  # Entry point for all external traffic.
+  # Requires RSA public key mount for JWT verification.
+  # Start last — after all domain services are registered in Eureka.
   api-gateway:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-api-gateway:${IMAGE_TAG:-latest}
     container_name: lunecare-api-gateway
@@ -248,8 +234,6 @@ services:
       SPRING_PROFILES_ACTIVE: dev,docker
       SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
     volumes:
-      # API Gateway only needs the public key for JWT verification
-      # app.security.rsa.public-key-path: secrets/keys/public_key.pem
       - ../../../secrets/keys:/app/secrets/keys:ro
     depends_on:
       config-server:

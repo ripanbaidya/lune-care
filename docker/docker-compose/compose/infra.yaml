@@ -1,6 +1,3 @@
-# Contains services for infrastructures like RabbitMQ, Redis, etc.
-# Consider adding more services as per business requirements.
-
 services:
 
   rabbitmq:
@@ -8,7 +5,7 @@ services:
     container_name: lunecare-rabbitmq
     ports:
       - "5672:5672"
-      - "15672:15672" # UI → http://localhost:15672 (guest/guest)
+      - "15672:15672" # Management UI → http://localhost:15672 (guest/guest)
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
