@@ -28,7 +28,7 @@ import {
 import { AppError } from "../../../shared/utils/errorParser";
 import { toast } from "sonner";
 import { useAuthStore } from "../../../store/authStore";
-import { ACCOUNT_STATUS } from "../../auth/auth.types";
+import { ACCOUNT_STATUS } from "../../auth/types/auth.types";
 import { ROUTES } from "../../../routes/routePaths";
 import { useAccountStatusPoller } from "../../../shared/hooks/useAccountStatus";
 
@@ -105,7 +105,7 @@ const DoctorOnboardingPage: React.FC = () => {
       setStep(1);
       toast.error(
         "Your application was rejected by the admin. Please review your details and submit again.",
-        { duration: 8000 }
+        { duration: 8000 },
       );
     }
   }, [user?.status, step]);

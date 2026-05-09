@@ -3,7 +3,7 @@ import {Link, useNavigate} from "react-router-dom";
 import {ArrowRight, LayoutDashboard, LogOut, Menu, Search, Stethoscope, X,} from "lucide-react";
 import {useAuth} from "../../../shared/hooks/useAuth";
 import {useAuthStore} from "../../../store/authStore";
-import {authService} from "../../auth/authService";
+import {authService} from "../../auth/services/authService";
 import {ROUTES} from "../../../routes/routePaths";
 import {useDoctorSearch} from "../hooks/useDoctorSearch";
 import DoctorSearchCard from "../components/DoctorSearchCard";

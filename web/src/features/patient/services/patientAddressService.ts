@@ -1,9 +1,9 @@
-import {apiClient} from '../../../lib/axios.ts';
-import type {ResponseWrapper} from '../../../types/api.types.ts';
+import { apiClient } from '../../../lib/axios.ts';
+import type { ResponseWrapper } from '../../../types/api.types.ts';
 import type {
     AddressRequest,
     AddressResponse,
-} from '../types/patient-address.types.ts';
+} from '../types/patient.address.types.ts';
 
 export const patientAddressService = {
     getAddress: async (): Promise<ResponseWrapper<AddressResponse>> => {

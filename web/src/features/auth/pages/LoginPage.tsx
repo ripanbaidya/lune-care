@@ -81,12 +81,6 @@ export default function LoginPage() {
                 <label className="block text-sm font-semibold text-gray-300">
                   Password
                 </label>
-                {/* <Link
-                  to={ROUTES.forgotPassword}
-                  className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                  Forgot password?
-                </Link> */}
               </div>
               <div className="relative">
                 <input

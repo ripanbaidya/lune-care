@@ -1,8 +1,8 @@
-import {useQueryClient} from '@tanstack/react-query';
-import {useAppQuery} from '../../../shared/hooks/useAppQuery';
-import {useAppMutation} from '../../../shared/hooks/useAppMutation';
-import {feedbackService} from '../services/feedbackService';
-import type {ResponseWrapper} from '../../../types/api.types';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAppQuery } from '../../../shared/hooks/useAppQuery';
+import { useAppMutation } from '../../../shared/hooks/useAppMutation';
+import { feedbackService } from '../services/feedbackService';
+import type { ResponseWrapper } from '../../../types/api.types';
 import type {
     DoctorFeedbackSummary,
     FeedbackResponse,
@@ -10,7 +10,7 @@ import type {
     SubmitFeedbackRequest,
     UpdateFeedbackRequest,
 } from '../types/feedback.types';
-import {AppError} from '../../../shared/utils/errorParser';
+import { AppError } from '../../../shared/utils/errorParser';
 
 // Query Keys
 
@@ -20,7 +20,7 @@ export const doctorFeedbackKey = (doctorId: string, page: number, size: number) 
 export const MY_SUBMITTED_FEEDBACK_KEY = ['feedback', 'patient', 'my'] as const;
 export const MY_RECEIVED_FEEDBACK_KEY = ['feedback', 'doctor', 'my'] as const;
 
-// Doctor public feedback — used on DoctorPublicProfilePage
+// Doctor public feedback 
 
 export function useDoctorFeedback(doctorId: string, page = 0, size = 10) {
     return useAppQuery<ResponseWrapper<DoctorFeedbackSummary>>({
@@ -28,7 +28,7 @@ export function useDoctorFeedback(doctorId: string, page = 0, size = 10) {
         queryFn: () => feedbackService.getDoctorFeedback(doctorId, page, size),
         enabled: !!doctorId,
         staleTime: 1000 * 60 * 2,
-        // Do not retry on 404 — doctor may have no feedback yet (still valid)
+        // Do not retry on 404 — doctor may have no feedback yet
         retry: (failureCount, error) => {
             if (error instanceof AppError && !error.isServerError) return false;
             return failureCount < 2;
@@ -64,9 +64,9 @@ export function useSubmitFeedback(doctorId: string) {
         mutationFn: (data) => feedbackService.submitFeedback(doctorId, data),
         onSuccess: () => {
             // Invalidate patient's feedback list
-            qc.invalidateQueries({queryKey: MY_SUBMITTED_FEEDBACK_KEY});
+            qc.invalidateQueries({ queryKey: MY_SUBMITTED_FEEDBACK_KEY });
             // Invalidate doctor's public feedback (avg rating + reviews update)
-            qc.invalidateQueries({queryKey: ['feedback', 'doctor', doctorId]});
+            qc.invalidateQueries({ queryKey: ['feedback', 'doctor', doctorId] });
         },
     });
 }
@@ -79,13 +79,13 @@ export function useUpdateFeedback() {
         ResponseWrapper<FeedbackResponse>,
         { feedbackId: string; data: UpdateFeedbackRequest }
     >({
-        mutationFn: ({feedbackId, data}) =>
+        mutationFn: ({ feedbackId, data }) =>
             feedbackService.updateFeedback(feedbackId, data),
         onSuccess: () => {
-            qc.invalidateQueries({queryKey: MY_SUBMITTED_FEEDBACK_KEY});
+            qc.invalidateQueries({ queryKey: MY_SUBMITTED_FEEDBACK_KEY });
             // Refresh doctor public pages — we don't know which doctorId here,
             // so invalidate the whole feedback namespace for safety.
-            qc.invalidateQueries({queryKey: ['feedback', 'doctor']});
+            qc.invalidateQueries({ queryKey: ['feedback', 'doctor'] });
         },
     });
 }
@@ -97,8 +97,8 @@ export function useDeleteFeedback() {
     return useAppMutation<void, string>({
         mutationFn: (feedbackId) => feedbackService.deleteFeedback(feedbackId),
         onSuccess: () => {
-            qc.invalidateQueries({queryKey: MY_SUBMITTED_FEEDBACK_KEY});
-            qc.invalidateQueries({queryKey: ['feedback', 'doctor']});
+            qc.invalidateQueries({ queryKey: MY_SUBMITTED_FEEDBACK_KEY });
+            qc.invalidateQueries({ queryKey: ['feedback', 'doctor'] });
         },
     });
 }

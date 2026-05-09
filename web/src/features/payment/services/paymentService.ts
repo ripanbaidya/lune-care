@@ -1,5 +1,5 @@
-import {apiClient} from '../../../lib/axios';
-import type {ResponseWrapper} from '../../../types/api.types';
+import { apiClient } from '../../../lib/axios';
+import type { ResponseWrapper } from '../../../types/api.types';
 import type {
     InitiatePaymentRequest,
     PaymentPage,
@@ -18,7 +18,7 @@ export const paymentService = {
     ): Promise<ResponseWrapper<RazorpayInitiateResponse>> => {
         const res = await apiClient.post<ResponseWrapper<RazorpayInitiateResponse>>(
             '/payment/initiate',
-            {...data, gatewayType: 'RAZORPAY'},
+            { ...data, gatewayType: 'RAZORPAY' },
         );
         return res.data;
     },
@@ -28,7 +28,7 @@ export const paymentService = {
     ): Promise<ResponseWrapper<StripeInitiateResponse>> => {
         const res = await apiClient.post<ResponseWrapper<StripeInitiateResponse>>(
             '/payment/initiate',
-            {...data, gatewayType: 'STRIPE'},
+            { ...data, gatewayType: 'STRIPE' },
         );
         return res.data;
     },
@@ -63,7 +63,7 @@ export const paymentService = {
     ): Promise<ResponseWrapper<PaymentPage>> => {
         const res = await apiClient.get<ResponseWrapper<PaymentPage>>(
             '/payment/history',
-            {params: {page, size}},
+            { params: { page, size } },
         );
         return res.data;
     },

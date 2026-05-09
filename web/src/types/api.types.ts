@@ -1,4 +1,6 @@
-// success
+// API response format for all for success and error response.
+// Backend server return all data success or error response data in this format.
+
 export interface ResponseWrapper<T> {
     success: true;
     status: number;
@@ -7,7 +9,6 @@ export interface ResponseWrapper<T> {
     timestamp: string;
 }
 
-// error
 export interface ErrorResponse {
     success: false;
     error: ErrorDetail;

@@ -1,10 +1,10 @@
-import {useEffect, useRef} from 'react';
-import {useNavigate} from 'react-router-dom';
-import {apiClient} from '../../lib/axios';
-import {useAuthStore} from '../../store/authStore';
-import {ROUTES} from '../../routes/routePaths';
-import type {ResponseWrapper} from '../../types/api.types';
-import type {UserResponse} from '../../features/auth/auth.types';
+import { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { apiClient } from '../../lib/axios';
+import { useAuthStore } from '../../store/authStore';
+import { ROUTES } from '../../routes/routePaths';
+import type { ResponseWrapper } from '../../types/api.types';
+import type { UserResponse } from '../../features/auth/types/auth.types';
 
 const POLL_INTERVAL_MS = 10_000; // 10 seconds
 
@@ -14,7 +14,7 @@ const POLL_INTERVAL_MS = 10_000; // 10 seconds
  * On ONBOARDING → redirects back to onboarding.
  */
 export function useAccountStatusPoller() {
-    const {user, updateUser} = useAuthStore();
+    const { user, updateUser } = useAuthStore();
     const navigate = useNavigate();
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -30,15 +30,15 @@ export function useAccountStatusPoller() {
                 if (!freshStatus) return;
 
                 if (freshStatus !== user.status) {
-                    updateUser({status: freshStatus});
+                    updateUser({ status: freshStatus });
                 }
 
                 if (freshStatus === 'ACTIVE') {
                     clearInterval(intervalRef.current!);
-                    navigate(ROUTES.doctorDashboard, {replace: true});
+                    navigate(ROUTES.doctorDashboard, { replace: true });
                 } else if (freshStatus === 'ONBOARDING') {
                     clearInterval(intervalRef.current!);
-                    navigate(ROUTES.doctorOnboarding, {replace: true});
+                    navigate(ROUTES.doctorOnboarding, { replace: true });
                 }
             } catch (error) {
                 console.error("Poller error:", error);

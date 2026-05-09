@@ -2,7 +2,7 @@ import React from 'react';
 import {Clock, LogOut, Stethoscope} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';
 import {useAuthStore} from '../../../store/authStore';
-import {authService} from '../../auth/authService.ts';
+import {authService} from '../../auth/services/authService';
 import {ROUTES} from '../../../routes/routePaths';
 import {useAccountStatusPoller} from '../../../shared/hooks/useAccountStatus';
 import Spinner from "../../../shared/components/ui/Spinner.tsx";

@@ -1,6 +1,6 @@
 import React from "react";
-import {Navigate, Route, Routes} from "react-router-dom";
-import {ROUTES} from "./routePaths";
+import { Navigate, Route, Routes } from "react-router-dom";
+import { ROUTES } from "./routePaths";
 import PrivateRoute from "../shared/components/guards/PrivateRoute";
 import RoleRoute from "../shared/components/guards/RoleRoute";
 import PatientLayout from "../shared/components/layout/PatientLayout";
@@ -8,7 +8,7 @@ import LoginPage from "../features/auth/pages/LoginPage";
 import RegisterPage from "../features/auth/pages/RegisterPage";
 
 // Public pages
-import HomePage from "../features/public/pages/HomePage";
+import HomePage from "../features/public/pages/HomePage.tsx";
 import DoctorPublicProfilePage from "../features/doctor/pages/DoctorPublicProfilePage";
 
 // Patient pages
@@ -17,12 +17,12 @@ import PatientProfilePage from "../features/patient/pages/PatientProfilePage";
 import PatientAddressPage from "../features/patient/pages/PatientAddressPage";
 import PatientAppointmentsPage from "../features/patient/pages/PatientAppointmentsPage";
 import AppointmentDetailPage from "../features/patient/pages/AppointmentDetailPage";
-import FindDoctorsPage from "../features/public/pages/FindDoctorsPage";
+import FindDoctorsPage from "../features/public/pages/FindDoctorsPage.tsx";
 import PaymentHistoryPage from "../features/payment/pages/PaymentHistoryPage";
 
-import NotificationsPage from '../features/notification/pages/NotificationPage';
-import MySubmittedFeedbackPage from '../features/feedback/pages/MySubmittedFeedbackPage';
-import MyReceivedFeedbackPage from '../features/feedback/pages/MyReceivedFeedbackPage';
+import NotificationsPage from "../features/notification/pages/NotificationPage";
+import MySubmittedFeedbackPage from "../features/feedback/pages/MySubmittedFeedbackPage";
+import MyReceivedFeedbackPage from "../features/feedback/pages/MyReceivedFeedbackPage";
 
 import AdminLayout from "../features/admin/pages/AdminLayout";
 import AdminDashboard from "../features/admin/pages/AdminDashboard";
@@ -39,99 +39,139 @@ import DoctorAppointmentsPage from "../features/doctor/pages/DoctorAppointmentsP
 import GuestRoute from "../shared/components/guards/GuestRoute.tsx";
 
 const AppRoutes: React.FC = () => (
-    <Routes>
-        {/* ── Fully Public Routes ── */}
-        <Route path={ROUTES.home} element={<HomePage/>}/>
-        <Route path="/doctors/:doctorId" element={<DoctorPublicProfilePage/>}/>
+  <Routes>
+    {/* ── Fully Public Routes ── */}
+    <Route path={ROUTES.home} element={<HomePage />} />
+    <Route path="/doctors/:doctorId" element={<DoctorPublicProfilePage />} />
 
-        {/* ── Auth Pages ── */}
-        <Route path={ROUTES.login} element={ <GuestRoute> <LoginPage/> </GuestRoute>}/>
-        <Route path={ROUTES.register} element={<GuestRoute> <RegisterPage/> </GuestRoute>}/>
+    {/* ── Auth Pages ── */}
+    <Route
+      path={ROUTES.login}
+      element={
+        <GuestRoute>
+          {" "}
+          <LoginPage />{" "}
+        </GuestRoute>
+      }
+    />
+    <Route
+      path={ROUTES.register}
+      element={
+        <GuestRoute>
+          {" "}
+          <RegisterPage />{" "}
+        </GuestRoute>
+      }
+    />
 
-        {/* ── Patient Routes ── */}
-        <Route element={
-            <PrivateRoute>
-                <RoleRoute allowedRoles={["ROLE_PATIENT"]}>
-                    <PatientLayout/>
-                </RoleRoute>
-            </PrivateRoute>
-        }
-        >
-            <Route path={ROUTES.patientDashboard} element={<PatientDashboard/>}/>
-            <Route path={ROUTES.patientProfile} element={<PatientProfilePage/>}/>
-            <Route path={ROUTES.patientAddress} element={<PatientAddressPage/>}/>
+    {/* ── Patient Routes ── */}
+    <Route
+      element={
+        <PrivateRoute>
+          <RoleRoute allowedRoles={["ROLE_PATIENT"]}>
+            <PatientLayout />
+          </RoleRoute>
+        </PrivateRoute>
+      }
+    >
+      <Route path={ROUTES.patientDashboard} element={<PatientDashboard />} />
+      <Route path={ROUTES.patientProfile} element={<PatientProfilePage />} />
+      <Route path={ROUTES.patientAddress} element={<PatientAddressPage />} />
 
-            {/* Find Doctors — inside patient layout */}
-            <Route path={ROUTES.findDoctors} element={<FindDoctorsPage/>}/>
+      {/* Find Doctors — inside patient layout */}
+      <Route path={ROUTES.findDoctors} element={<FindDoctorsPage />} />
 
-            {/* Appointments list + detail */}
-            <Route path={ROUTES.patientAppointments} element={<PatientAppointmentsPage/>}/>
-            <Route path={ROUTES.patientAppointmentDetail} element={<AppointmentDetailPage/>}/>
+      {/* Appointments list + detail */}
+      <Route
+        path={ROUTES.patientAppointments}
+        element={<PatientAppointmentsPage />}
+      />
+      <Route
+        path={ROUTES.patientAppointmentDetail}
+        element={<AppointmentDetailPage />}
+      />
 
-            {/* Payment history */}
-            <Route path={ROUTES.patientPayments} element={<PaymentHistoryPage/>}/>
+      {/* Payment history */}
+      <Route path={ROUTES.patientPayments} element={<PaymentHistoryPage />} />
 
-            <Route path={ROUTES.patientNotifications} element={<NotificationsPage/>}/>
+      <Route
+        path={ROUTES.patientNotifications}
+        element={<NotificationsPage />}
+      />
 
-            <Route path={ROUTES.patientFeedback} element={<MySubmittedFeedbackPage/>}/>
-        </Route>
+      <Route
+        path={ROUTES.patientFeedback}
+        element={<MySubmittedFeedbackPage />}
+      />
+    </Route>
 
-        {/* ── Doctor — onboarding & pending ── */}
-        <Route
-            element={
-                <PrivateRoute>
-                    <RoleRoute allowedRoles={["ROLE_DOCTOR"]}>
-                        <DoctorOnboardingPage/>
-                    </RoleRoute>
-                </PrivateRoute>
-            }
-            path={ROUTES.doctorOnboarding}
-        />
-        <Route
-            element={
-                <PrivateRoute>
-                    <RoleRoute allowedRoles={["ROLE_DOCTOR"]}>
-                        <DoctorPendingVerificationPage/>
-                    </RoleRoute>
-                </PrivateRoute>
-            }
-            path={ROUTES.doctorPending}
-        />
+    {/* ── Doctor — onboarding & pending ── */}
+    <Route
+      element={
+        <PrivateRoute>
+          <RoleRoute allowedRoles={["ROLE_DOCTOR"]}>
+            <DoctorOnboardingPage />
+          </RoleRoute>
+        </PrivateRoute>
+      }
+      path={ROUTES.doctorOnboarding}
+    />
+    <Route
+      element={
+        <PrivateRoute>
+          <RoleRoute allowedRoles={["ROLE_DOCTOR"]}>
+            <DoctorPendingVerificationPage />
+          </RoleRoute>
+        </PrivateRoute>
+      }
+      path={ROUTES.doctorPending}
+    />
 
-        {/* ── Doctor — active routes ── */}
-        <Route
-            element={
-                <PrivateRoute>
-                    <RoleRoute allowedRoles={["ROLE_DOCTOR"]}>
-                        <DoctorActiveRoute>
-                            <DoctorLayout/>
-                        </DoctorActiveRoute>
-                    </RoleRoute>
-                </PrivateRoute>
-            }
-        >
-            <Route path={ROUTES.doctorDashboard} element={<DoctorDashboard/>}/>
-            <Route path={ROUTES.doctorProfile} element={<DoctorProfilePage/>}/>
-            <Route path={ROUTES.doctorClinics} element={<DoctorClinicsPage/>}/>
-            <Route path={ROUTES.doctorAppointments} element={<DoctorAppointmentsPage/>}/>
-            <Route path={ROUTES.doctorNotifications} element={<NotificationsPage/>}/>
-            <Route path={ROUTES.doctorFeedback} element={<MyReceivedFeedbackPage/>}/>
-        </Route>
+    {/* ── Doctor — active routes ── */}
+    <Route
+      element={
+        <PrivateRoute>
+          <RoleRoute allowedRoles={["ROLE_DOCTOR"]}>
+            <DoctorActiveRoute>
+              <DoctorLayout />
+            </DoctorActiveRoute>
+          </RoleRoute>
+        </PrivateRoute>
+      }
+    >
+      <Route path={ROUTES.doctorDashboard} element={<DoctorDashboard />} />
+      <Route path={ROUTES.doctorProfile} element={<DoctorProfilePage />} />
+      <Route path={ROUTES.doctorClinics} element={<DoctorClinicsPage />} />
+      <Route
+        path={ROUTES.doctorAppointments}
+        element={<DoctorAppointmentsPage />}
+      />
+      <Route
+        path={ROUTES.doctorNotifications}
+        element={<NotificationsPage />}
+      />
+      <Route
+        path={ROUTES.doctorFeedback}
+        element={<MyReceivedFeedbackPage />}
+      />
+    </Route>
 
-        {/* ── Admin Routes ── */}
-        <Route element={
-            <PrivateRoute>
-                <RoleRoute allowedRoles={["ROLE_ADMIN"]}>
-                    <AdminLayout/>
-                </RoleRoute>
-            </PrivateRoute>
-        }>
-            <Route path={ROUTES.adminDashboard} element={<AdminDashboard/>}/>
-        </Route>
+    {/* ── Admin Routes ── */}
+    <Route
+      element={
+        <PrivateRoute>
+          <RoleRoute allowedRoles={["ROLE_ADMIN"]}>
+            <AdminLayout />
+          </RoleRoute>
+        </PrivateRoute>
+      }
+    >
+      <Route path={ROUTES.adminDashboard} element={<AdminDashboard />} />
+    </Route>
 
-        {/* Catch-all */}
-        <Route path="*" element={<Navigate to={ROUTES.home} replace/>}/>
-    </Routes>
+    {/* Catch-all */}
+    <Route path="*" element={<Navigate to={ROUTES.home} replace />} />
+  </Routes>
 );
 
 export default AppRoutes;

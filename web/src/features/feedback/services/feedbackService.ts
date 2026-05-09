@@ -1,5 +1,5 @@
-import {apiClient} from '../../../lib/axios';
-import type {ResponseWrapper} from '../../../types/api.types';
+import { apiClient } from '../../../lib/axios';
+import type { ResponseWrapper } from '../../../types/api.types';
 import type {
     DoctorFeedbackSummary,
     FeedbackResponse,
@@ -10,7 +10,6 @@ import type {
 
 export const feedbackService = {
     /**
-     * POST /api/feedback/doctor/:doctorId
      * Patient submits feedback after a COMPLETED appointment.
      */
     submitFeedback: async (
@@ -25,7 +24,6 @@ export const feedbackService = {
     },
 
     /**
-     * GET /api/feedback/doctor/:doctorId — public, no auth required
      * Used on doctor's public profile page.
      */
     getDoctorFeedback: async (
@@ -35,13 +33,12 @@ export const feedbackService = {
     ): Promise<ResponseWrapper<DoctorFeedbackSummary>> => {
         const res = await apiClient.get<ResponseWrapper<DoctorFeedbackSummary>>(
             `/feedback/doctor/${doctorId}`,
-            {params: {page, size}},
+            { params: { page, size } },
         );
         return res.data;
     },
 
     /**
-     * GET /api/feedback/patient/my
      * Returns paginated feedback the authenticated patient has submitted.
      */
     getMySubmittedFeedback: async (
@@ -50,13 +47,12 @@ export const feedbackService = {
     ): Promise<ResponseWrapper<PatientFeedbackPage>> => {
         const res = await apiClient.get<ResponseWrapper<PatientFeedbackPage>>(
             '/feedback/patient/my',
-            {params: {page, size}},
+            { params: { page, size } },
         );
         return res.data;
     },
 
     /**
-     * GET /api/feedback/doctor/my
      * Returns paginated feedback the authenticated doctor has received.
      */
     getMyReceivedFeedback: async (
@@ -65,13 +61,12 @@ export const feedbackService = {
     ): Promise<ResponseWrapper<PatientFeedbackPage>> => {
         const res = await apiClient.get<ResponseWrapper<PatientFeedbackPage>>(
             '/feedback/doctor/my',
-            {params: {page, size}},
+            { params: { page, size } },
         );
         return res.data;
     },
 
     /**
-     * PUT /api/feedback/:feedbackId
      * Patient updates their existing feedback.
      */
     updateFeedback: async (
@@ -86,7 +81,6 @@ export const feedbackService = {
     },
 
     /**
-     * DELETE /api/feedback/:feedbackId
      * Patient deletes their feedback (eligibility is preserved for re-submission).
      */
     deleteFeedback: async (feedbackId: string): Promise<void> => {

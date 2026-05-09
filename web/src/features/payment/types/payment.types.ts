@@ -12,14 +12,15 @@ export interface RazorpayInitiateResponse {
     id: string;
     appointmentId: string;
     patientId: string;
-    amount: number;       // paise  e.g. 50000 = ₹500
-    currency: string;     // "INR"
+    amount: number;
+    currency: string;
     gateway: 'RAZORPAY';
     status: PaymentStatus;
     createdAt: string;
     razorpayOrderId: string;
     razorpayPaymentId: string | null;
-    /** Razorpay publishable key — injected by service layer */
+    
+    // Razorpay publishable key - injected by service layer
     razorpayKey: string;
 }
 
@@ -36,8 +37,8 @@ export interface StripeInitiateResponse {
     id: string;
     appointmentId: string;
     patientId: string;
-    amount: number; // paise / cents
-    currency: string; // "INR"
+    amount: number;
+    currency: string;
     gateway: 'STRIPE';
     status: PaymentStatus;
     createdAt: string;

@@ -1,10 +1,10 @@
-import {useState} from 'react';
-import {useNavigate} from 'react-router-dom';
-import {useAppMutation} from '../../../shared/hooks/useAppMutation';
-import {authService} from '../authService';
-import {useAuthStore} from '../../../store/authStore';
-import {AppError} from '../../../shared/utils/errorParser';
-import {ROUTES} from '../../../routes/routePaths';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAppMutation } from '../../../shared/hooks/useAppMutation';
+import { authService } from '../../auth/services/authService';
+import { useAuthStore } from '../../../store/authStore';
+import { AppError } from '../../../shared/utils/errorParser';
+import { ROUTES } from '../../../routes/routePaths';
 
 export type RegisterTab = 'patient' | 'doctor';
 
@@ -26,7 +26,7 @@ const EMPTY: FormState = {
 
 export function useRegister() {
     const navigate = useNavigate();
-    const {setAuth} = useAuthStore();
+    const { setAuth } = useAuthStore();
 
     const [activeTab, setActiveTab] = useState<RegisterTab>('patient');
     const [form, setForm] = useState<FormState>(EMPTY);
@@ -34,11 +34,11 @@ export function useRegister() {
     const [formError, setFormError] = useState<string | null>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const {name, value} = e.target;
-        setForm((prev) => ({...prev, [name]: value}));
+        const { name, value } = e.target;
+        setForm((prev) => ({ ...prev, [name]: value }));
         // Clear field error on change
         if (fieldErrors[name]) {
-            setFieldErrors((prev) => ({...prev, [name]: ''}));
+            setFieldErrors((prev) => ({ ...prev, [name]: '' }));
         }
     };
 
@@ -68,7 +68,7 @@ export function useRegister() {
         return Object.keys(errors).length === 0;
     };
 
-    const {mutate: registerPatient, isPending: isPatientPending} = useAppMutation({
+    const { mutate: registerPatient, isPending: isPatientPending } = useAppMutation({
         mutationFn: () =>
             authService.registerPatient({
                 firstName: form.firstName.trim(),
@@ -77,22 +77,22 @@ export function useRegister() {
                 password: form.password,
             }),
         onSuccess: (res) => {
-            const {user, token} = res.data;
+            const { user, token } = res.data;
             setAuth(user, token.accessToken, token.refreshToken);
-            navigate(ROUTES.patientDashboard, {replace: true});
+            navigate(ROUTES.patientDashboard, { replace: true });
         },
         onError: (error: AppError) => {
             if (error.isValidation) {
                 setFieldErrors(error.toFieldErrorMap());
             } else if (error.isConflict) {
-                setFieldErrors({phoneNumber: error.message});
+                setFieldErrors({ phoneNumber: error.message });
             } else {
                 setFormError(error.message);
             }
         },
     });
 
-    const {mutate: registerDoctor, isPending: isDoctorPending} = useAppMutation({
+    const { mutate: registerDoctor, isPending: isDoctorPending } = useAppMutation({
         mutationFn: () =>
             authService.registerDoctor({
                 firstName: form.firstName.trim(),
@@ -101,16 +101,16 @@ export function useRegister() {
                 password: form.password,
             }),
         onSuccess: (res) => {
-            const {user, token} = res.data;
+            const { user, token } = res.data;
             setAuth(user, token.accessToken, token.refreshToken);
             // Doctor goes to onboarding after register
-            navigate(ROUTES.doctorOnboarding, {replace: true});
+            navigate(ROUTES.doctorOnboarding, { replace: true });
         },
         onError: (error: AppError) => {
             if (error.isValidation) {
                 setFieldErrors(error.toFieldErrorMap());
             } else if (error.isConflict) {
-                setFieldErrors({phoneNumber: error.message});
+                setFieldErrors({ phoneNumber: error.message });
             } else {
                 setFormError(error.message);
             }

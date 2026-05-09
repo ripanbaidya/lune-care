@@ -15,9 +15,9 @@ export interface NotificationResponse {
     category: NotificationCategory;
     title: string;
     body: string;
-    referenceId: string;       // appointmentId — use for deep-linking
+    referenceId: string;
     isRead: boolean;
-    createdAt: string;         // ISO instant string
+    createdAt: string;
 }
 
 export interface NotificationPage {

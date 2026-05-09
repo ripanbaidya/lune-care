@@ -1,45 +1,45 @@
-import {useState} from 'react';
-import {useNavigate} from 'react-router-dom';
-import {useAppMutation} from '../../../shared/hooks/useAppMutation';
-import {authService} from '../authService';
-import {useAuthStore} from '../../../store/authStore';
-import {AppError} from '../../../shared/utils/errorParser.ts';
-import {ROUTES} from '../../../routes/routePaths';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAppMutation } from '../../../shared/hooks/useAppMutation';
+import { authService } from '../../auth/services/authService';
+import { useAuthStore } from '../../../store/authStore';
+import { AppError } from '../../../shared/utils/errorParser.ts';
+import { ROUTES } from '../../../routes/routePaths';
 
 export function useLogin() {
     const navigate = useNavigate();
-    const {setAuth} = useAuthStore();
+    const { setAuth } = useAuthStore();
 
     const [phoneNumber, setPhoneNumber] = useState('');
     const [password, setPassword] = useState('');
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
     const [formError, setFormError] = useState<string | null>(null);
 
-    const {mutate, isPending} = useAppMutation({
-        mutationFn: () => authService.login({phoneNumber, password}),
+    const { mutate, isPending } = useAppMutation({
+        mutationFn: () => authService.login({ phoneNumber, password }),
 
         onSuccess: (res) => {
-            const {user, token} = res.data;
+            const { user, token } = res.data;
             setAuth(user, token.accessToken, token.refreshToken);
 
             if (user.role === 'ROLE_DOCTOR') {
                 // Status-aware routing
                 switch (user.status) {
                     case 'ACTIVE':
-                        navigate(ROUTES.doctorDashboard, {replace: true});
+                        navigate(ROUTES.doctorDashboard, { replace: true });
                         break;
                     case 'PENDING_VERIFICATION':
-                        navigate(ROUTES.doctorPending, {replace: true});
+                        navigate(ROUTES.doctorPending, { replace: true });
                         break;
                     case 'ONBOARDING':
                     default:
-                        navigate(ROUTES.doctorOnboarding, {replace: true});
+                        navigate(ROUTES.doctorOnboarding, { replace: true });
                         break;
                 }
             } else if (user.role === 'ROLE_ADMIN') {
-                navigate(ROUTES.adminDashboard, {replace: true});
+                navigate(ROUTES.adminDashboard, { replace: true });
             } else {
-                navigate(ROUTES.patientDashboard, {replace: true});
+                navigate(ROUTES.patientDashboard, { replace: true });
             }
         },
 

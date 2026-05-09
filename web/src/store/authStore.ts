@@ -1,6 +1,6 @@
-import {create} from 'zustand';
-import {persist} from 'zustand/middleware';
-import type {UserResponse} from '../features/auth/auth.types';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import type { UserResponse } from '../features/auth/types/auth.types';
 
 interface AuthState {
     user: UserResponse | null;
@@ -19,18 +19,18 @@ export const useAuthStore = create<AuthState>()(
             refreshToken: null,
 
             setAuth: (user, accessToken, refreshToken) =>
-                set({user, accessToken, refreshToken}),
+                set({ user, accessToken, refreshToken }),
 
             updateUser: (partial) =>
                 set((state) => ({
-                    user: state.user ? {...state.user, ...partial} : null,
+                    user: state.user ? { ...state.user, ...partial } : null,
                 })),
 
             clearAuth: () =>
-                set({user: null, accessToken: null, refreshToken: null}),
+                set({ user: null, accessToken: null, refreshToken: null }),
         }),
         {
-            name: 'lunecare-auth',
+            name: 'auth',
             partialize: (state) => ({
                 user: state.user,
                 accessToken: state.accessToken,

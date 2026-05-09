@@ -2,10 +2,11 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { useRegister } from "../hooks/useRegister";
 import { ROUTES } from "../../../routes/routePaths";
-import { FormError } from "../../../shared/components/ui/FormError.tsx";
 import { FieldErrorMessage } from "../../../shared/components/ui/FieldErrorMessage.tsx";
 import Spinner from "../../../shared/components/ui/Spinner.tsx";
-import { Eye, EyeOff, Check } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
+import FormCard from "../components/FormCard";
+import PasswordStrengthIndicator from "../components/PasswordStrengthIndicator";
 
 export default function RegisterPage() {
   const {
@@ -21,35 +22,6 @@ export default function RegisterPage() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-
-  // Password strength indicator
-  const getPasswordStrength = (password: string) => {
-    if (!password) return { level: 0, label: "", color: "" };
-    let strength = 0;
-    if (password.length >= 8) strength++;
-    if (password.length >= 12) strength++;
-    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
-    if (/\d/.test(password)) strength++;
-    if (/[^a-zA-Z\d]/.test(password)) strength++;
-
-    const levels = ["", "Weak", "Fair", "Good", "Strong", "Very Strong"];
-    const colors = [
-      "",
-      "text-red-400",
-      "text-orange-400",
-      "text-yellow-400",
-      "text-green-400",
-      "text-emerald-400",
-    ];
-
-    return {
-      level: Math.min(strength, 5),
-      label: levels[Math.min(strength, 5)],
-      color: colors[Math.min(strength, 5)],
-    };
-  };
-
-  const passwordStrength = getPasswordStrength(form.password);
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-4 py-10 relative overflow-hidden">
@@ -77,48 +49,53 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* Premium Dark Card */}
-        <div className="bg-gradient-to-b from-gray-900/80 to-black/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-gray-800/50 p-8 space-y-6">
-          {/* Tab Switcher */}
-          <div className="flex gap-3 bg-gray-950/50 border border-gray-800 rounded-xl p-1">
-            <button
-              type="button"
-              onClick={() => switchTab("patient")}
-              className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
-                activeTab === "patient"
-                  ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-600/25"
-                  : "text-gray-400 hover:text-gray-200 hover:bg-gray-900/50"
-              }`}
-            >
-              👤 Patient
-            </button>
-            <button
-              type="button"
-              onClick={() => switchTab("doctor")}
-              className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
-                activeTab === "doctor"
-                  ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-600/25"
-                  : "text-gray-400 hover:text-gray-200 hover:bg-gray-900/50"
-              }`}
-            >
-              👨‍⚕️ Doctor
-            </button>
-          </div>
+        {/* Tab Switcher */}
+        <div className="flex gap-3 bg-gray-950/50 border border-gray-800 rounded-xl p-1 mb-6">
+          <button
+            type="button"
+            onClick={() => switchTab("patient")}
+            className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
+              activeTab === "patient"
+                ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-600/25"
+                : "text-gray-400 hover:text-gray-200 hover:bg-gray-900/50"
+            }`}
+          >
+            Patient
+          </button>
+          <button
+            type="button"
+            onClick={() => switchTab("doctor")}
+            className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
+              activeTab === "doctor"
+                ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-600/25"
+                : "text-gray-400 hover:text-gray-200 hover:bg-gray-900/50"
+            }`}
+          >
+            Doctor
+          </button>
+        </div>
 
-          {/* Header */}
-          <div>
-            <h2 className="text-2xl font-bold text-white">
-              Create {activeTab === "patient" ? "Patient" : "Doctor"} Account
-            </h2>
-            <p className="text-sm text-gray-400 mt-2">
-              {activeTab === "patient"
-                ? "Access your health records and connect with healthcare providers"
-                : "Start providing care to patients on LuneCare"}
+        {/* Form Card */}
+        <FormCard
+          title={`Create ${activeTab === "patient" ? "Patient" : "Doctor"} Account`}
+          subtitle={
+            activeTab === "patient"
+              ? "Access your health records and connect with healthcare providers"
+              : "Start providing care to patients on LuneCare"
+          }
+          formError={formError}
+          footer={
+            <p className="text-center text-sm text-gray-400">
+              Already have an account?{" "}
+              <Link
+                to={ROUTES.login}
+                className="text-blue-400 font-semibold hover:text-blue-300 transition-colors"
+              >
+                Sign in
+              </Link>
             </p>
-          </div>
-
-          <FormError error={formError} />
-
+          }
+        >
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name Row */}
             <div className="grid grid-cols-2 gap-3">
@@ -192,7 +169,7 @@ export default function RegisterPage() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-
+              <PasswordStrengthIndicator password={form.password} />
               <FieldErrorMessage message={fieldErrors.password} />
             </div>
 
@@ -225,8 +202,7 @@ export default function RegisterPage() {
             {/* Doctor Info Alert */}
             {activeTab === "doctor" && (
               <div className="bg-gradient-to-br from-amber-900/30 to-amber-900/10 border border-amber-700/40 rounded-xl p-4 space-y-2">
-                <p className="text-xs font-semibold text-amber-300 flex items-center gap-2">
-                  <span className="text-sm">📋</span>
+                <p className="text-xs font-semibold text-amber-300">
                   Verification Required
                 </p>
                 <p className="text-xs text-amber-200/80">
@@ -253,18 +229,7 @@ export default function RegisterPage() {
               )}
             </button>
           </form>
-
-          {/* Footer */}
-          <p className="text-center text-sm text-gray-400">
-            Already have an account?{" "}
-            <Link
-              to={ROUTES.login}
-              className="text-blue-400 font-semibold hover:text-blue-300 transition-colors"
-            >
-              Sign in
-            </Link>
-          </p>
-        </div>
+        </FormCard>
 
         {/* Help Text */}
         <p className="text-center text-xs text-gray-600 mt-6">
