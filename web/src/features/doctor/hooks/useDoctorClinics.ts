@@ -1,12 +1,12 @@
 import {useQueryClient} from '@tanstack/react-query';
 import {useAppQuery} from '../../../shared/hooks/useAppQuery';
 import {useAppMutation} from '../../../shared/hooks/useAppMutation';
-import {doctorService} from '../service/doctorClinicService';
+import {doctorService} from '../services/doctorClinicService';
 import type {
     ClinicResponse,
     CreateClinicRequest,
     UpdateClinicRequest
-} from '../types/doctor.clinic.types';
+} from '../types/doctor-clinic.types';
 import type {ResponseWrapper} from '../../../types/api.types';
 
 export const DOCTOR_CLINICS_QUERY_KEY = ['doctor', 'clinics'] as const;

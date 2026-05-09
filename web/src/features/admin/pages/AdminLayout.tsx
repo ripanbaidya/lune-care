@@ -1,16 +1,15 @@
 import React, { useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
 import {
   LayoutDashboard,
   LogOut,
   Menu,
-  ShieldCheck,
-  Stethoscope,
   X,
 } from "lucide-react";
 import { ROUTES } from "../../../routes/routePaths";
 import clsx from "clsx";
-import { useLogout } from "../../../shared/hooks/useLogout.ts";
+import { useLogout } from "../../../shared/hooks/useLogout";
+import PortalBrandLink from "../../../shared/components/layout/PortalBrandLink";
 
 const NAV_ITEMS = [
   {
@@ -48,28 +47,11 @@ const AdminLayout: React.FC = () => {
     </nav>
   );
 
-  const SidebarBrand = () => (
-    <div className="flex items-center gap-2.5 px-5 py-5 border-b border-gray-800/60">
-      <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20">
-        <Stethoscope size={16} className="text-white" />
-      </div>
-      <div>
-        <span className="text-base font-bold text-white">LuneCare</span>
-        <div className="flex items-center gap-1 mt-0.5">
-          <ShieldCheck size={10} className="text-blue-400" />
-          <p className="text-[10px] text-blue-400 font-semibold leading-none tracking-wide uppercase">
-            Admin Portal
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-black text-white">
       {/* ── Desktop Sidebar ── */}
       <aside className="hidden md:flex flex-col w-60 min-h-screen bg-gray-950/80 border-r border-gray-800/60 fixed left-0 top-0 z-30 backdrop-blur-xl">
-        <SidebarBrand />
+        <PortalBrandLink subtitle="Admin Portal" showShield />
         <NavList />
         <div className="px-3 py-4 border-t border-gray-800/60">
           <button
@@ -83,15 +65,15 @@ const AdminLayout: React.FC = () => {
 
       {/* ── Mobile Top Bar ── */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-gray-950/90 border-b border-gray-800/60 backdrop-blur-xl flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-2">
+        <Link to={ROUTES.home} className="flex items-center gap-2">
           <div className="w-7 h-7 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-            <Stethoscope size={14} className="text-white" />
+            <span className="text-white text-xs font-bold">L</span>
           </div>
           <span className="text-base font-bold text-white">LuneCare</span>
           <span className="text-[10px] text-blue-400 font-semibold uppercase tracking-wide">
             Admin
           </span>
-        </div>
+        </Link>
         <button onClick={() => setMobileOpen(true)} className="text-gray-400">
           <Menu size={22} />
         </button>

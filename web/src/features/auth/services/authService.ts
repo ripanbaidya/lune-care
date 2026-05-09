@@ -1,5 +1,5 @@
 import { apiClient } from '../../../lib/axios';
-import type { ResponseWrapper } from '../../../types/api.types.ts';
+import type { ResponseWrapper } from '../../../types/api.types';
 import type {
     AuthResponse,
     LoginRequest,
@@ -7,7 +7,7 @@ import type {
     DoctorRegisterRequest,
     LogoutRequest,
     TokenResponse,
-} from '../types/auth.types.ts';
+} from '../types/auth.types';
 
 export const authService = {
     login: async (data: LoginRequest): Promise<ResponseWrapper<AuthResponse>> => {

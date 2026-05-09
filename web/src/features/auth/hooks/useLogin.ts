@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppMutation } from '../../../shared/hooks/useAppMutation';
 import { authService } from '../../auth/services/authService';
 import { useAuthStore } from '../../../store/authStore';
-import { AppError } from '../../../shared/utils/errorParser.ts';
+import { AppError } from '../../../shared/utils/errorParser';
 import { ROUTES } from '../../../routes/routePaths';
 
 export function useLogin() {

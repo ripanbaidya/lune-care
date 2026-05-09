@@ -1,7 +1,7 @@
 import {useQueryClient} from '@tanstack/react-query';
 import {useAppQuery} from '../../../shared/hooks/useAppQuery';
 import {useAppMutation} from '../../../shared/hooks/useAppMutation';
-import {doctorService} from '../service/doctorService';
+import {doctorService} from '../services/doctorService';
 import type {
     DoctorProfileResponse,
     UpdateDoctorProfileRequest,
@@ -10,6 +10,7 @@ import type {
     DoctorDocumentResponse
 } from '../types/doctor.types';
 import type {ResponseWrapper} from '../../../types/api.types';
+import {useAuthStore} from '../../../store/authStore';
 
 export const DOCTOR_PROFILE_QUERY_KEY = ['doctor', 'profile'] as const;
 
@@ -22,30 +23,36 @@ export function useDoctorProfile() {
 
 export function useUpdateDoctorProfile() {
     const qc = useQueryClient();
+    const {updateUser} = useAuthStore();
     return useAppMutation<ResponseWrapper<DoctorProfileResponse>, UpdateDoctorProfileRequest>({
         mutationFn: (data) => doctorService.updateProfile(data),
         onSuccess: (res) => {
             qc.setQueryData(DOCTOR_PROFILE_QUERY_KEY, res);
+            updateUser({profilePhotoUrl: res.data.profilePhotoUrl});
         },
     });
 }
 
 export function useUploadDoctorPhoto() {
     const qc = useQueryClient();
+    const {updateUser} = useAuthStore();
     return useAppMutation<ResponseWrapper<DoctorProfileResponse>, File>({
         mutationFn: (file) => doctorService.uploadProfilePhoto(file),
         onSuccess: (res) => {
             qc.setQueryData(DOCTOR_PROFILE_QUERY_KEY, res);
+            updateUser({profilePhotoUrl: res.data.profilePhotoUrl});
         },
     });
 }
 
 export function useRemoveDoctorPhoto() {
     const qc = useQueryClient();
+    const {updateUser} = useAuthStore();
     return useAppMutation<ResponseWrapper<DoctorProfileResponse>, void>({
         mutationFn: () => doctorService.removeProfilePhoto(),
         onSuccess: (res) => {
             qc.setQueryData(DOCTOR_PROFILE_QUERY_KEY, res);
+            updateUser({profilePhotoUrl: res.data.profilePhotoUrl});
         },
     });
 }

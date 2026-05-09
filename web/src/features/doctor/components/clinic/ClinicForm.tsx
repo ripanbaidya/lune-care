@@ -6,7 +6,7 @@ import Spinner from "../../../../shared/components/ui/Spinner";
 import {
   CLINIC_TYPE_LABELS,
   type CreateClinicRequest,
-} from "../../types/doctor.clinic.types";
+} from "../../types/doctor-clinic.types";
 
 const CLINIC_TYPES = [
   "IN_PERSON",

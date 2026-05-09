@@ -1,4 +1,5 @@
 import React from "react";
+import { LockKeyhole } from "lucide-react";
 import Spinner from "../../../../shared/components/ui/Spinner";
 import StripeCardForm from "./StripeCardForm";
 import PaymentGatewaySelect from "./PaymentGatewaySelect";
@@ -39,17 +40,23 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
   onStripeCancel,
 }) => {
   return (
-    <div className="bg-gradient-to-br from-gray-900/40 via-gray-900/20 to-black/40 rounded-2xl border border-white/10 px-6 py-6 shadow-md hover:border-white/20 transition-all duration-300 backdrop-blur-xl">
-      <p className="text-xs font-bold text-gray-400/70 uppercase tracking-widest mb-5">
-        Complete Payment
-      </p>
+    <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-gray-900/55 via-gray-900/30 to-black/50 px-5 py-5 shadow-[0_14px_36px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <p className="text-xs font-bold text-gray-400/80 uppercase tracking-[0.18em]">
+          Complete Payment
+        </p>
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/25 bg-blue-500/10 px-2 py-1 text-[10px] font-semibold text-blue-300">
+          <LockKeyhole size={11} />
+          Secured Checkout
+        </div>
+      </div>
 
       {stripeState ? (
         /* Stripe Card Form */
         <div>
-          <div className="flex items-center gap-2 mb-5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600/30 flex items-center justify-center border border-indigo-500/20">
-              <span className="text-sm">🔵</span>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-blue-600/20 flex items-center justify-center border border-blue-500/20">
+              <span className="text-sm text-blue-200">◆</span>
             </div>
             <p className="text-sm font-semibold text-gray-200">
               Enter card details

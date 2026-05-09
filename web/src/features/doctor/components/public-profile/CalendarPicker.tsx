@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { DayOfWeek } from "../../types/doctor.clinic.types";
+import type { DayOfWeek } from "../../types/doctor-clinic.types";
 
 interface CalendarPickerProps {
   availableDates: Set<string>;

@@ -1,7 +1,7 @@
 import React from "react";
 import { FormError } from "../../../../shared/components/ui/FormError";
 import { FieldErrorMessage } from "../../../../shared/components/ui/FieldErrorMessage";
-import type { AddressRequest } from "../../types/patient.address.types";
+import type { AddressRequest } from "../../types/patient-address.types";
 
 interface AddressFormProps {
   form: AddressRequest;

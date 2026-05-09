@@ -23,14 +23,14 @@ interface DoctorDisplayFieldsProps {
     firstName?: string;
     lastName?: string;
     phoneNumber?: string;
-    email?: string;
-    dateOfBirth?: string;
-    gender?: DoctorGender;
-    specialization?: Specialization;
-    qualification?: string;
-    yearsOfExperience?: number;
+    email?: string | null;
+    dateOfBirth?: string | null;
+    gender?: DoctorGender | null;
+    specialization?: Specialization | null;
+    qualification?: string | null;
+    yearsOfExperience?: number | null;
     languagesSpoken?: string[];
-    bio?: string;
+    bio?: string | null;
   };
 }
 

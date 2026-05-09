@@ -8,11 +8,11 @@ import {
   XCircle,
 } from "lucide-react";
 import Spinner from "../../../../shared/components/ui/Spinner";
-import type { AppointmentResponse } from "../../types/doctor.appointment.types";
+import type { AppointmentResponse } from "../../types/doctor-appointment.types";
 import {
   APPOINTMENT_STATUS_COLORS,
   APPOINTMENT_STATUS_LABELS,
-} from "../../types/doctor.appointment.types";
+} from "../../types/doctor-appointment.types";
 import { toast } from "sonner";
 
 const fmtTime = (t: string) => {

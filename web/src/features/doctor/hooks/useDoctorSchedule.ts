@@ -1,8 +1,8 @@
 import {useQueryClient} from '@tanstack/react-query';
 import {useAppQuery} from '../../../shared/hooks/useAppQuery';
 import {useAppMutation} from '../../../shared/hooks/useAppMutation';
-import {doctorService} from '../service/doctorClinicService';
-import type {ClinicScheduleResponse, ClinicScheduleRequest} from '../types/doctor.clinic.types';
+import {doctorService} from '../services/doctorClinicService';
+import type {ClinicScheduleResponse, ClinicScheduleRequest} from '../types/doctor-clinic.types';
 import type {ResponseWrapper} from '../../../types/api.types';
 import {DOCTOR_CLINICS_QUERY_KEY} from './useDoctorClinics';
 

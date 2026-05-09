@@ -5,6 +5,7 @@ import { NOTIFICATION_CATEGORY_ICON } from "../types/notification.types";
 import type { NotificationResponse } from "../types/notification.types";
 import Spinner from "../../../shared/components/ui/Spinner";
 import { appointmentDetailPath } from "../../../routes/routePaths";
+import { useAuth } from "../../../shared/hooks/useAuth";
 
 function formatRelativeTime(isoString: string): string {
   const diff = Date.now() - new Date(isoString).getTime();
@@ -38,13 +39,14 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
   isDeleting,
 }) => {
   const navigate = useNavigate();
+  const { isPatient } = useAuth();
   const icon = NOTIFICATION_CATEGORY_ICON[notification.category] ?? "🔔";
 
   const handleCardClick = () => {
     if (!notification.isRead) {
       onMarkRead(notification.id);
     }
-    if (notification.referenceId) {
+    if (isPatient && notification.referenceId) {
       navigate(appointmentDetailPath(notification.referenceId));
     }
   };
@@ -93,7 +95,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
             <Clock size={10} />
             {formatRelativeTime(notification.createdAt)}
           </span>
-          {notification.referenceId && (
+          {isPatient && notification.referenceId && (
             <button
               onClick={handleCardClick}
               className="flex items-center gap-1 text-xs text-blue-400 font-medium hover:text-blue-300 transition-colors"

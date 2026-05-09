@@ -6,7 +6,7 @@ import type {
     UpdateClinicRequest,
     ClinicScheduleResponse,
     ClinicScheduleRequest,
-} from '../types/doctor.clinic.types';
+} from '../types/doctor-clinic.types';
 
 export const doctorService = {
 

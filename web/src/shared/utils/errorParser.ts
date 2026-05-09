@@ -1,4 +1,4 @@
-import type {ErrorDetail, ErrorType, FieldError} from '../../types/api.types.ts';
+import type {ErrorDetail, ErrorType, FieldError} from '../../types/api.types';
 
 export class AppError extends Error {
     readonly type: ErrorType;

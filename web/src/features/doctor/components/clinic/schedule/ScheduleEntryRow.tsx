@@ -4,7 +4,7 @@ import {
   DAY_LABELS,
   type DayOfWeek,
   type ScheduleEntry,
-} from "../../../types/doctor.clinic.types";
+} from "../../../types/doctor-clinic.types";
 
 const ALL_DAYS: DayOfWeek[] = [
   "MONDAY",

@@ -1,7 +1,7 @@
 import React from "react";
 import { MapPin, Trash2 } from "lucide-react";
 import Spinner from "../../../../shared/components/ui/Spinner";
-import type { AddressResponse } from "../../types/patient.address.types";
+import type { AddressResponse } from "../../types/patient-address.types";
 
 interface AddressDisplayProps {
   address: AddressResponse;

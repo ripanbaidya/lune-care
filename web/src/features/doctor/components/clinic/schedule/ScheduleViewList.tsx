@@ -1,7 +1,7 @@
 import React from "react";
 import { Trash2 } from "lucide-react";
 import Spinner from "../../../../../shared/components/ui/Spinner";
-import { DAY_LABELS } from "../../../types/doctor.clinic.types";
+import { DAY_LABELS, type DayOfWeek } from "../../../types/doctor-clinic.types";
 
 interface ScheduleRow {
   id: string;
@@ -40,7 +40,7 @@ const ScheduleViewList: React.FC<ScheduleViewListProps> = ({
               s.active ? "text-blue-400" : "text-gray-500"
             }`}
           >
-            {DAY_LABELS[s.dayOfWeek] ?? s.dayOfWeek}
+            {DAY_LABELS[s.dayOfWeek as DayOfWeek] ?? s.dayOfWeek}
           </span>
           <span className="text-xs text-gray-300">
             {s.startTime.slice(0, 5)} – {s.endTime.slice(0, 5)}

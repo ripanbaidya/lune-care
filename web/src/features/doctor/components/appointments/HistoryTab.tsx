@@ -108,7 +108,7 @@ const HistoryTab: React.FC = () => {
             }}
             className={`px-4 py-2 text-sm font-medium transition-colors ${
               filter === t.key
-                ? "bg-teal-600 text-white"
+                ? "bg-blue-600 text-white"
                 : "bg-white/5 text-gray-400 hover:bg-white/10"
             }`}
           >

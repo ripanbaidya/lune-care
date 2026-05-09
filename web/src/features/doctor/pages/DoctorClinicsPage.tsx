@@ -15,7 +15,7 @@ import {
     type ClinicResponse,
     type CreateClinicRequest,
     type UpdateClinicRequest,
-} from "../types/doctor.clinic.types";
+} from "../types/doctor-clinic.types";
 
 type PageMode = "view" | "create" | { editId: string };
 

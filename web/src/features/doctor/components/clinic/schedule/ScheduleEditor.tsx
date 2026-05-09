@@ -5,7 +5,7 @@ import Spinner from "../../../../../shared/components/ui/Spinner";
 import {
   type DayOfWeek,
   type ScheduleEntry,
-} from "../../../types/doctor.clinic.types";
+} from "../../../types/doctor-clinic.types";
 import ScheduleEntryRow from "./ScheduleEntryRow";
 
 const ALL_DAYS: DayOfWeek[] = [

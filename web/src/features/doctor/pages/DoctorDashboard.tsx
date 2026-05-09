@@ -15,20 +15,27 @@ import { useDoctorClinics } from "../hooks/useDoctorClinics";
 
 import { ROUTES } from "../../../routes/routePaths";
 import { SPECIALIZATION_LABELS } from "../types/doctor.types";
-import { CLINIC_TYPE_LABELS } from "../types/doctor.clinic.types";
+import { CLINIC_TYPE_LABELS } from "../types/doctor-clinic.types";
 
 import DashboardCard from "../../../shared/components/dashboard/DashboardCard";
 import HeroStrip from "../../../shared/components/dashboard/HeroStrip";
 import InfoRow from "../../../shared/components/dashboard/InfoRow";
 import QuickStats, { type StatItem } from "../../../shared/components/dashboard/QuickStats";
+import { useAuthStore } from "../../../store/authStore";
 
 const DoctorDashboard: React.FC = () => {
   const { data: profileRes, isLoading: profileLoading } = useDoctorProfile();
   const { data: clinicsRes, isLoading: clinicsLoading } = useDoctorClinics();
+  const { updateUser } = useAuthStore();
 
   const profile = profileRes?.data;
   const clinics = clinicsRes?.data ?? [];
   const activeClinics = clinics.filter((c) => c.active);
+
+  React.useEffect(() => {
+    if (!profile) return;
+    updateUser({ profilePhotoUrl: profile.profilePhotoUrl });
+  }, [profile, updateUser]);
 
   const stats: StatItem[] = [
     {

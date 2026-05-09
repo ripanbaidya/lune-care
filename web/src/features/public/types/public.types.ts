@@ -1,4 +1,4 @@
-import type { ClinicType } from '../../doctor/types/doctor.clinic.types';
+import type { ClinicType } from '../../doctor/types/doctor-clinic.types';
 import type { Specialization } from '../../doctor/types/doctor.types';
 
 export interface PublicSchedule {

@@ -1,5 +1,5 @@
 import React from "react";
-import type { AppointmentResponse } from "../../types/doctor.appointment.types";
+import type { AppointmentResponse } from "../../types/doctor-appointment.types";
 
 interface AppointmentSummaryStripProps {
   appointments: AppointmentResponse[];

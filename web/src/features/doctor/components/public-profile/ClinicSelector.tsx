@@ -1,7 +1,7 @@
 import React from "react";
 import { CheckCircle2, Clock, IndianRupee, MapPin, Phone } from "lucide-react";
 import type { DoctorClinicResult } from "../../hooks/useDoctorSearch";
-import { DAY_LABELS, type DayOfWeek } from "../../types/doctor.clinic.types";
+import { DAY_LABELS, type DayOfWeek } from "../../types/doctor-clinic.types";
 
 interface ClinicSelectorProps {
   clinics: DoctorClinicResult[];

@@ -1,23 +1,38 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "./store/authStore";
-import AppRoutes from "./routes/AppRoutes.tsx";
+import AppRoutes from "./routes/AppRoutes";
+import { ROUTES } from "./routes/routePaths";
+import { clearApiAuthHeader } from "./lib/axios";
 
 const App: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { clearAuth } = useAuthStore();
-  const queryClient = useQueryClient();
 
   useEffect(() => {
+    const privatePrefixes = ["/patient", "/doctor", "/admin"];
+
     const handler = () => {
+      const { accessToken, user } = useAuthStore.getState();
+      const hadAuthenticatedSession = Boolean(accessToken || user);
+      if (!hadAuthenticatedSession) return;
+
       clearAuth();
-      queryClient.clear();
-      navigate("/login", { replace: true });
+      clearApiAuthHeader();
+
+      const onPrivateRoute = privatePrefixes.some((prefix) =>
+        location.pathname.startsWith(prefix),
+      );
+
+      if (onPrivateRoute) {
+        navigate(ROUTES.login, { replace: true });
+      }
     };
+
     window.addEventListener("auth:unauthorized", handler);
     return () => window.removeEventListener("auth:unauthorized", handler);
-  }, []);
+  }, [clearAuth, location.pathname, navigate]);
 
   return <AppRoutes />;
 };

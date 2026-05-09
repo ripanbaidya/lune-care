@@ -17,6 +17,10 @@ export const apiClient = axios.create({
     timeout: 15_000,
 });
 
+export function clearApiAuthHeader() {
+    delete apiClient.defaults.headers.common.Authorization;
+}
+
 type QueueEntry = {
     resolve: (token: string) => void;
     reject: (err: unknown) => void;
@@ -39,6 +43,8 @@ apiClient.interceptors.request.use(
         const token = useAuthStore.getState().accessToken;
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
+        } else if (config.headers.Authorization) {
+            delete config.headers.Authorization;
         }
         return config;
     },
@@ -64,11 +70,16 @@ apiClient.interceptors.response.use(
 
         // TODO: setAuth is declared but its value is never read [Might Need Fix]
         // const {refreshToken, setAuth, clearAuth} = useAuthStore.getState();
-        const {refreshToken, clearAuth} = useAuthStore.getState();
+        const {refreshToken, clearAuth, accessToken, user} = useAuthStore.getState();
+        const hadAuthenticatedSession = Boolean(accessToken || user);
 
         if (!refreshToken) {
-            clearAuth();
-            window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+            // Avoid feedback loops on public pages for anonymous users.
+            if (hadAuthenticatedSession) {
+                clearAuth();
+                clearApiAuthHeader();
+                window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+            }
             return Promise.reject(parseError(error));
         }
 
@@ -119,8 +130,11 @@ apiClient.interceptors.response.use(
             return apiClient(originalRequest);
         } catch (refreshError) {
             processQueue(refreshError, null);
-            clearAuth();
-            window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+            if (hadAuthenticatedSession) {
+                clearAuth();
+                clearApiAuthHeader();
+                window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+            }
             return Promise.reject(parseError(refreshError as AxiosError));
         } finally {
             isRefreshing = false;

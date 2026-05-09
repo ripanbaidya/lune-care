@@ -14,13 +14,20 @@ import InfoRow from "../../../shared/components/dashboard/InfoRow";
 import QuickStats, {
   type StatItem,
 } from "../../../shared/components/dashboard/QuickStats";
+import { useAuthStore } from "../../../store/authStore";
 
 const PatientDashboard: React.FC = () => {
   const { data: profileRes, isLoading: profileLoading } = usePatientProfile();
   const { data: addressRes, isLoading: addressLoading } = usePatientAddress();
+  const { updateUser } = useAuthStore();
 
   const profile = profileRes?.data;
   const address = addressRes?.data;
+
+  React.useEffect(() => {
+    if (!profile) return;
+    updateUser({ profilePhotoUrl: profile.profilePhotoUrl });
+  }, [profile, updateUser]);
 
   const stats: StatItem[] = [
     {

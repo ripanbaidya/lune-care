@@ -124,7 +124,7 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
     REGISTRATION_CERTIFICATE: 'Registration Certificate',
 };
 
-// Alias used in DoctorPublicProfilePage — keep consistent with doctor.clinic.types.ts
+// Alias used in DoctorPublicProfilePage — keep consistent with doctor-clinic.types.ts
 export const CLINIC_TYPE_LABELS_MAP: Record<string, string> = {
     IN_PERSON: 'In Person',
     ONLINE: 'Online',

@@ -1,8 +1,8 @@
 import {useQueryClient} from '@tanstack/react-query';
 import {useAppQuery} from '../../../shared/hooks/useAppQuery';
 import {useAppMutation} from '../../../shared/hooks/useAppMutation';
-import {doctorAppointmentService} from '../service/doctorAppointmentService';
-import type {AppointmentResponse, AppointmentPage} from '../types/doctor.appointment.types';
+import {doctorAppointmentService} from '../services/doctorAppointmentService';
+import type {AppointmentResponse, AppointmentPage} from '../types/doctor-appointment.types';
 import type {ResponseWrapper} from '../../../types/api.types';
 
 export const DOCTOR_TODAY_APPOINTMENTS_KEY = ['doctor', 'appointments', 'today'] as const;

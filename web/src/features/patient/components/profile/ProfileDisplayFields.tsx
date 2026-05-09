@@ -23,10 +23,10 @@ interface ProfileDisplayFieldsProps {
     firstName?: string;
     lastName?: string;
     phoneNumber?: string;
-    email?: string;
-    dateOfBirth?: string;
-    gender?: Gender;
-    bloodGroup?: BloodGroup;
+    email?: string | null;
+    dateOfBirth?: string | null;
+    gender?: Gender | null;
+    bloodGroup?: BloodGroup | null;
   };
 }
 

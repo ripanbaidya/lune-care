@@ -15,11 +15,11 @@ const HomeDoctorList: React.FC<HomeDoctorListProps> = ({ doctors, isLoading }) =
     <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-20">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold mb-1">
-            Available Doctors
+          <h2 className="text-3xl sm:text-4xl font-bold mb-1">
+            Curated Doctors
           </h2>
-          <p className="text-gray-400 text-sm">
-            Book your next appointment today
+          <p className="text-gray-400 text-base">
+            Handpicked experts with verified profiles and transparent slots
           </p>
         </div>
         {doctors.length > 0 && (
@@ -27,7 +27,7 @@ const HomeDoctorList: React.FC<HomeDoctorListProps> = ({ doctors, isLoading }) =
             to="/find-doctors"
             className="hidden sm:flex items-center gap-2 px-4 py-2 text-blue-400 hover:text-blue-300 font-semibold transition-colors group"
           >
-            View all
+            View all doctors
             <ArrowRight
               size={16}
               className="group-hover:translate-x-1 transition-transform"
@@ -37,18 +37,18 @@ const HomeDoctorList: React.FC<HomeDoctorListProps> = ({ doctors, isLoading }) =
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-12">
+        <div className="flex items-center justify-center py-12 rounded-2xl border border-white/10 bg-white/[0.02]">
           <div className="text-center">
             <div className="inline-block">
               <div className="w-12 h-12 border-4 border-gray-800 border-t-blue-500 rounded-full animate-spin mb-4"></div>
             </div>
             <p className="text-gray-400">
-              Finding the best doctors for you...
+              Loading premium doctor recommendations...
             </p>
           </div>
         </div>
       ) : doctors.length === 0 ? (
-        <div className="py-12 text-center">
+        <div className="py-12 text-center rounded-2xl border border-white/10 bg-white/[0.02]">
           <div className="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-4">
             <Search className="text-gray-600" size={28} />
           </div>

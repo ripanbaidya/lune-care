@@ -4,7 +4,7 @@ import { CalendarDays, ChevronRight, Clock, IndianRupee } from "lucide-react";
 import {
   APPOINTMENT_STATUS_COLORS,
   APPOINTMENT_STATUS_LABELS,
-} from "../../../doctor/types/doctor.appointment.types";
+} from "../../../doctor/types/doctor-appointment.types";
 import type { AppointmentBookingResponse } from "../../../appointment/services/appointmentService";
 import { appointmentDetailPath } from "../../../../routes/routePaths";
 

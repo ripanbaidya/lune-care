@@ -21,6 +21,7 @@ export interface UserResponse {
     id: string;
     role: Role;
     status: AccountStatus;
+    profilePhotoUrl?: string | null;
 }
 
 export interface TokenResponse {

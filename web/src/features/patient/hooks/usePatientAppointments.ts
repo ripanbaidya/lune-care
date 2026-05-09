@@ -3,7 +3,7 @@ import {useAppQuery} from '../../../shared/hooks/useAppQuery';
 import {useAppMutation} from '../../../shared/hooks/useAppMutation';
 import {appointmentService} from '../../appointment/services/appointmentService';
 import type {ResponseWrapper} from '../../../types/api.types';
-import type {SlotResponse} from '../../doctor/types/doctor.appointment.types';
+import type {SlotResponse} from '../../doctor/types/doctor-appointment.types';
 import type {AppointmentBookingResponse, AppointmentPage} from '../../appointment/services/appointmentService';
 import {AppError} from '../../../shared/utils/errorParser';
 

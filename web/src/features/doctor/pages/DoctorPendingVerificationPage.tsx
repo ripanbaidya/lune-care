@@ -1,26 +1,11 @@
 import React from 'react';
 import {Clock, LogOut, Stethoscope} from 'lucide-react';
-import {useNavigate} from 'react-router-dom';
-import {useAuthStore} from '../../../store/authStore';
-import {authService} from '../../auth/services/authService';
-import {ROUTES} from '../../../routes/routePaths';
 import {useAccountStatusPoller} from '../../../shared/hooks/useAccountStatus';
-import Spinner from "../../../shared/components/ui/Spinner.tsx";
+import Spinner from "../../../shared/components/ui/Spinner";
+import {useLogout} from "../../../shared/hooks/useLogout";
 
 const DoctorPendingVerificationPage: React.FC = () => {
-    const {clearAuth, refreshToken} = useAuthStore();
-    const navigate = useNavigate();
-
-    const handleLogout = async () => {
-        try {
-            if (refreshToken) await authService.logout({refreshToken});
-        } catch {
-            // best-effort
-        } finally {
-            clearAuth();
-            navigate(ROUTES.login, {replace: true});
-        }
-    };
+    const handleLogout = useLogout();
 
     useAccountStatusPoller();
 

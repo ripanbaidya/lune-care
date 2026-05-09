@@ -4,7 +4,7 @@ import { FormError } from "../../../shared/components/ui/FormError";
 interface FormCardProps {
   title: string;
   subtitle: string;
-  formError?: string;
+  formError?: string | null;
   children: ReactNode;
   footer?: ReactNode;
 }

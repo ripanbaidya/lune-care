@@ -2,7 +2,7 @@ import { IndianRupee, MapPin, Search, UserCircle } from "lucide-react";
 import React from "react";
 import { Link } from "react-router-dom";
 import Spinner from "../../../../shared/components/ui/Spinner";
-import { CLINIC_TYPE_LABELS } from "../../../doctor/types/doctor.clinic.types";
+import { CLINIC_TYPE_LABELS } from "../../../doctor/types/doctor-clinic.types";
 import {
   type Specialization,
   SPECIALIZATION_LABELS,

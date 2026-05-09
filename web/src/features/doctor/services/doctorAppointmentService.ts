@@ -1,6 +1,6 @@
 import {apiClient} from '../../../lib/axios';
 import type {ResponseWrapper} from '../../../types/api.types';
-import type {AppointmentResponse, AppointmentPage} from '../types/doctor.appointment.types';
+import type {AppointmentResponse, AppointmentPage} from '../types/doctor-appointment.types';
 
 export const doctorAppointmentService = {
     // GET /api/appointment/doctor/today

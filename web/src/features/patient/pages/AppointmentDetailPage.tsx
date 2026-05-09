@@ -267,6 +267,8 @@ const AppointmentDetailPage: React.FC = () => {
     return <AppointmentNotFound isLoading={true} />;
   }
 
+  const appointmentData = appointment!;
+
   return (
     <div className="space-y-6 pb-8">
       {/* ── Header ── */}
@@ -280,7 +282,7 @@ const AppointmentDetailPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-white">Appointment Details</h1>
           <p className="text-xs text-gray-500 mt-1 font-mono">
-            {appointment.id}
+            {appointmentData.id}
           </p>
         </div>
       </div>
@@ -288,17 +290,17 @@ const AppointmentDetailPage: React.FC = () => {
       {/* ── Status Banner ── */}
       <AppointmentStatusBanner
         status={status}
-        cancellationReason={appointment.cancellationReason}
-        appointmentDate={appointment.appointmentDate}
+        cancellationReason={appointmentData.cancellationReason}
+        appointmentDate={appointmentData.appointmentDate}
       />
 
       {/* ── Appointment Details ── */}
       <AppointmentDetailsCard
-        appointmentDate={appointment.appointmentDate}
-        startTime={appointment.startTime}
-        endTime={appointment.endTime}
-        consultationFees={appointment.consultationFees}
-        paymentId={appointment.paymentId}
+        appointmentDate={appointmentData.appointmentDate}
+        startTime={appointmentData.startTime}
+        endTime={appointmentData.endTime}
+        consultationFees={appointmentData.consultationFees}
+        paymentId={appointmentData.paymentId}
       />
 
       {/* ── Payment Section (Only for PENDING_PAYMENT) ── */}
@@ -306,7 +308,7 @@ const AppointmentDetailPage: React.FC = () => {
         <PaymentSection
           selectedGateway={selectedGateway}
           onGatewayChange={setSelectedGateway}
-          consultationFees={appointment.consultationFees ?? 0}
+          consultationFees={appointmentData.consultationFees ?? 0}
           paymentProcessing={paymentProcessing}
           isInitiating={isInitiating}
           isVerifying={isVerifying}
@@ -325,8 +327,8 @@ const AppointmentDetailPage: React.FC = () => {
       {/* ── Feedback Section (Only for COMPLETED) ── */}
       {isCompleted && (
         <FeedbackSection
-          appointmentId={appointment.id}
-          doctorId={appointment.doctorId}
+          appointmentId={appointmentData.id}
+          doctorId={appointmentData.doctorId}
           feedbackSubmitted={feedbackSubmitted}
           showFeedbackForm={showFeedbackForm}
           onShowFormChange={setShowFeedbackForm}

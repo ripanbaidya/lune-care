@@ -8,7 +8,7 @@ import LoginPage from "../features/auth/pages/LoginPage";
 import RegisterPage from "../features/auth/pages/RegisterPage";
 
 // Public pages
-import HomePage from "../features/public/pages/HomePage.tsx";
+import HomePage from "../features/public/pages/HomePage";
 import DoctorPublicProfilePage from "../features/doctor/pages/DoctorPublicProfilePage";
 
 // Patient pages
@@ -17,10 +17,10 @@ import PatientProfilePage from "../features/patient/pages/PatientProfilePage";
 import PatientAddressPage from "../features/patient/pages/PatientAddressPage";
 import PatientAppointmentsPage from "../features/patient/pages/PatientAppointmentsPage";
 import AppointmentDetailPage from "../features/patient/pages/AppointmentDetailPage";
-import FindDoctorsPage from "../features/public/pages/FindDoctorsPage.tsx";
+import FindDoctorsPage from "../features/public/pages/FindDoctorsPage";
 import PaymentHistoryPage from "../features/payment/pages/PaymentHistoryPage";
 
-import NotificationsPage from "../features/notification/pages/NotificationPage";
+import NotificationsPage from "../features/notification/pages/NotificationsPage";
 import MySubmittedFeedbackPage from "../features/feedback/pages/MySubmittedFeedbackPage";
 import MyReceivedFeedbackPage from "../features/feedback/pages/MyReceivedFeedbackPage";
 
@@ -35,8 +35,8 @@ import DoctorActiveRoute from "../features/doctor/DoctorActiveRoute";
 import DoctorDashboard from "../features/doctor/pages/DoctorDashboard";
 import DoctorProfilePage from "../features/doctor/pages/DoctorProfilePage";
 import DoctorClinicsPage from "../features/doctor/pages/DoctorClinicsPage";
-import DoctorAppointmentsPage from "../features/doctor/pages/DoctorAppointmentsPage.tsx";
-import GuestRoute from "../shared/components/guards/GuestRoute.tsx";
+import DoctorAppointmentsPage from "../features/doctor/pages/DoctorAppointmentsPage";
+import GuestRoute from "../shared/components/guards/GuestRoute";
 
 const AppRoutes: React.FC = () => (
   <Routes>

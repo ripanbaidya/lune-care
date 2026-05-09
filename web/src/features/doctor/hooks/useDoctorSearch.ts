@@ -59,5 +59,7 @@ export function useDoctorSearch(params: SearchParams) {
         queryKey: ['doctor', 'search', params],
         queryFn: () => searchDoctors(params),
         staleTime: 1000 * 60 * 2,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
     });
 }

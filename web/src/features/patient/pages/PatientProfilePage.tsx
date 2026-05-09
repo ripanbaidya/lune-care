@@ -7,7 +7,7 @@ import {
 } from "../hooks/usePatientProfile";
 import { FormError } from "../../../shared/components/ui/FormError";
 import Spinner from "../../../shared/components/ui/Spinner";
-import { type UpdateProfileRequest } from "../types/patient.types.ts";
+import { type UpdateProfileRequest } from "../types/patient.types";
 import { AppError } from "../../../shared/utils/errorParser";
 import { toast } from "sonner";
 import ProfileHeader from "../components/profile/ProfileHeader";

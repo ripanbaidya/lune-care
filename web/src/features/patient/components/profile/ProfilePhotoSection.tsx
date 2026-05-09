@@ -3,7 +3,7 @@ import { Camera, Trash2, UserCircle } from "lucide-react";
 import Spinner from "../../../../shared/components/ui/Spinner";
 
 interface ProfilePhotoSectionProps {
-  profilePhotoUrl?: string;
+  profilePhotoUrl?: string | null;
   isUploading: boolean;
   isRemoving: boolean;
   onPhotoChange: (e: React.ChangeEvent<HTMLInputElement>) => void;

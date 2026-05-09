@@ -1,5 +1,5 @@
 import axios from 'axios';
-import {AppError} from './errorParser.ts';
+import {AppError} from './errorParser';
 import type {ErrorResponse} from '../../types/api.types';
 
 export function parseError(error: unknown): AppError {

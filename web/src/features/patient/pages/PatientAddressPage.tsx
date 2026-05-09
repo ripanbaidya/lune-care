@@ -10,7 +10,7 @@ import { AddressHeader } from "../components/address/AddressHeader";
 import { AddressForm } from "../components/address/AddressForm";
 import { AddressDisplay } from "../components/address/AddressDisplay";
 import { AddressEmpty } from "../components/address/AddressEmpty";
-import type { AddressRequest } from "../types/patient.address.types";
+import type { AddressRequest } from "../types/patient-address.types";
 import { AppError } from "../../../shared/utils/errorParser";
 import { toast } from "sonner";
 

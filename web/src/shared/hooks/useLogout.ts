@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
 import { authService } from '../../features/auth/services/authService';
 import { ROUTES } from '../../routes/routePaths';
+import { clearApiAuthHeader } from '../../lib/axios';
 
 export function useLogout() {
     const { clearAuth, refreshToken } = useAuthStore();
@@ -16,6 +17,7 @@ export function useLogout() {
             // best-effort — server-side token invalidation
         } finally {
             clearAuth();
+            clearApiAuthHeader();
             queryClient.clear(); // ← kills all cached queries, stops background refetches
             navigate(ROUTES.login, { replace: true });
         }

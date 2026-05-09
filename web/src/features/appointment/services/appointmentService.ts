@@ -1,6 +1,6 @@
 import {apiClient} from '../../../lib/axios';
 import type {ResponseWrapper} from '../../../types/api.types';
-import type {SlotResponse} from '../../doctor/types/doctor.appointment.types';
+import type {SlotResponse} from '../../doctor/types/doctor-appointment.types';
 
 export interface AppointmentBookingResponse {
     id: string;

@@ -1,9 +1,11 @@
 import React from "react";
-import { Stethoscope } from "lucide-react";
+import { Globe, MessageCircle, Send, Stethoscope } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ROUTES } from "../../../../routes/routePaths";
 
 const HomeFooter: React.FC = () => {
   return (
-    <footer className="border-t border-gray-800/50 bg-gray-950/50 py-12">
+    <footer className="border-t border-gray-800/50 bg-gradient-to-b from-gray-950/80 to-black py-14">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           <div>
@@ -14,16 +16,27 @@ const HomeFooter: React.FC = () => {
               <span className="font-bold text-white">LuneCare</span>
             </div>
             <p className="text-gray-400 text-sm">
-              Connecting patients with healthcare providers globally.
+              Premium healthcare operations platform for modern clinics and
+              patient-first teams.
             </p>
+            <div className="flex items-center gap-2 mt-4">
+              {[Globe, MessageCircle, Send].map((Icon, index) => (
+                <button
+                  key={index}
+                  className="w-8 h-8 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-blue-500/10 hover:border-blue-500/40 text-gray-400 hover:text-blue-300 transition-all flex items-center justify-center"
+                >
+                  <Icon size={14} />
+                </button>
+              ))}
+            </div>
           </div>
           <div>
             <h4 className="font-semibold text-white mb-3">Product</h4>
             <ul className="space-y-2 text-sm text-gray-400">
               <li>
-                <a href="#" className="hover:text-blue-400 transition-colors">
+                <Link to={ROUTES.findDoctors} className="hover:text-blue-400 transition-colors">
                   Find Doctors
-                </a>
+                </Link>
               </li>
               <li>
                 <a href="#" className="hover:text-blue-400 transition-colors">
@@ -74,7 +87,7 @@ const HomeFooter: React.FC = () => {
           </div>
         </div>
         <div className="border-t border-gray-800 pt-8 text-center text-sm text-gray-500">
-          <p>&copy; 2026 LuneCare. All rights reserved.</p>
+          <p>&copy; 2026 LuneCare. Crafted for exceptional care delivery.</p>
         </div>
       </div>
     </footer>

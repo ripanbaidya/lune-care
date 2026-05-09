@@ -12,7 +12,7 @@ import Spinner from "../../../../shared/components/ui/Spinner";
 import {
   CLINIC_TYPE_LABELS,
   type ClinicResponse,
-} from "../../types/doctor.clinic.types";
+} from "../../types/doctor-clinic.types";
 import ClinicSchedulePanel from "./schedule/ClinicSchedulePanel";
 
 interface ClinicCardProps {

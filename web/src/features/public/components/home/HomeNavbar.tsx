@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { LayoutDashboard, LogOut, Menu, Stethoscope, X } from "lucide-react";
+import { LogOut, Menu, Stethoscope, UserCircle, X } from "lucide-react";
 import { useAuth } from "../../../../shared/hooks/useAuth";
 import { useAuthStore } from "../../../../store/authStore";
-import { authService } from "../../../auth/services/authService";
 import { ROUTES } from "../../../../routes/routePaths";
+import { useLogout } from "../../../../shared/hooks/useLogout";
 
 interface HomeNavbarProps {
   onNavigateDashboard?: () => void;
@@ -13,19 +13,9 @@ interface HomeNavbarProps {
 const HomeNavbar: React.FC<HomeNavbarProps> = ({ onNavigateDashboard }) => {
   const navigate = useNavigate();
   const { isAuthenticated, isPatient, isDoctor } = useAuth();
-  const { clearAuth, refreshToken } = useAuthStore();
+  const { user } = useAuthStore();
+  const logout = useLogout();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const handleLogout = async () => {
-    try {
-      if (refreshToken) await authService.logout({ refreshToken });
-    } catch {
-      /* best-effort */
-    } finally {
-      clearAuth();
-      navigate(ROUTES.login, { replace: true });
-    }
-  };
 
   const getDashboardRoute = () => {
     if (isPatient) return ROUTES.patientDashboard;
@@ -59,16 +49,24 @@ const HomeNavbar: React.FC<HomeNavbarProps> = ({ onNavigateDashboard }) => {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => {
-                  navigate(getDashboardRoute());
+                  navigate(getDashboardRoute(), { replace: true });
                   onNavigateDashboard?.();
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm font-semibold rounded-lg hover:from-blue-500 hover:to-blue-600 transition-all shadow-lg shadow-blue-600/25 active:scale-95"
+                className="p-1 rounded-full ring-2 ring-gray-700 hover:ring-blue-500/60 transition-all"
+                title="Open account"
               >
-                <LayoutDashboard size={16} />
-                Dashboard
+                {user?.profilePhotoUrl ? (
+                  <img
+                    src={user.profilePhotoUrl}
+                    alt="Profile"
+                    className="h-9 w-9 rounded-full object-cover"
+                  />
+                ) : (
+                  <UserCircle size={36} className="text-gray-300" />
+                )}
               </button>
               <button
-                onClick={handleLogout}
+                onClick={logout}
                 className="p-2 text-gray-400 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-all"
                 title="Logout"
               >
@@ -117,16 +115,25 @@ const HomeNavbar: React.FC<HomeNavbarProps> = ({ onNavigateDashboard }) => {
               <>
                 <button
                   onClick={() => {
-                    navigate(getDashboardRoute());
+                    navigate(getDashboardRoute(), { replace: true });
                     setMobileMenuOpen(false);
                     onNavigateDashboard?.();
                   }}
-                  className="w-full text-left px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm font-semibold rounded-lg hover:from-blue-500 hover:to-blue-600 transition-all"
+                  className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm font-semibold rounded-lg hover:from-blue-500 hover:to-blue-600 transition-all flex items-center gap-2"
                 >
-                  Dashboard
+                  {user?.profilePhotoUrl ? (
+                    <img
+                      src={user.profilePhotoUrl}
+                      alt="Profile"
+                      className="h-6 w-6 rounded-full object-cover"
+                    />
+                  ) : (
+                    <UserCircle size={20} />
+                  )}
+                  Account
                 </button>
                 <button
-                  onClick={handleLogout}
+                  onClick={logout}
                   className="w-full text-left px-4 py-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
                 >
                   Logout

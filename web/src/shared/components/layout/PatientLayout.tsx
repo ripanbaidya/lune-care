@@ -1,5 +1,5 @@
 import { Outlet } from "react-router-dom";
-import PatientSidebar from "./PatientSidebar.tsx";
+import PatientSidebar from "./PatientSidebar";
 
 const PatientLayout: React.FC = () => (
   <div className="flex min-h-screen bg-black">

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import {
   Bell,
   CalendarDays,
@@ -10,14 +10,14 @@ import {
   Menu,
   Search,
   Star,
-  Stethoscope,
   User,
   X,
 } from "lucide-react";
 import { ROUTES } from "../../../routes/routePaths";
 import clsx from "clsx";
-import { useUnreadNotificationCount } from "../../../features/notification/hooks/useNotifications.ts";
-import { useLogout } from "../../hooks/useLogout.ts";
+import { useUnreadNotificationCount } from "../../../features/notification/hooks/useNotifications";
+import { useLogout } from "../../hooks/useLogout";
+import PortalBrandLink from "./PortalBrandLink";
 
 interface NavItem {
   label: string;
@@ -95,12 +95,7 @@ const PatientSidebar: React.FC = () => {
     <>
       {/* ── Desktop Sidebar ── */}
       <aside className="hidden md:flex flex-col w-60 min-h-screen bg-gradient-to-b from-gray-950 to-black border-r border-gray-800/50 fixed left-0 top-0 z-30">
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-gray-800/50">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/30">
-            <Stethoscope size={16} className="text-white" />
-          </div>
-          <span className="text-lg font-bold text-white">LuneCare</span>
-        </div>
+        <PortalBrandLink />
 
         <NavList />
 
@@ -117,12 +112,12 @@ const PatientSidebar: React.FC = () => {
 
       {/* ── Mobile Top Bar ── */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-gradient-to-b from-gray-950 to-black border-b border-gray-800/50 flex items-center justify-between px-4 py-3 backdrop-blur-sm">
-        <div className="flex items-center gap-2">
+        <Link to={ROUTES.home} className="flex items-center gap-2">
           <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/30">
-            <Stethoscope size={14} className="text-white" />
+            <span className="text-white text-xs font-bold">L</span>
           </div>
           <span className="text-base font-bold text-white">LuneCare</span>
-        </div>
+        </Link>
         <button
           onClick={() => setMobileOpen(true)}
           className="text-gray-400 hover:text-gray-300 transition-colors"

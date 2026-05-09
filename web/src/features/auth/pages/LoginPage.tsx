@@ -2,9 +2,9 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { useLogin } from "../hooks/useLogin";
 import { ROUTES } from "../../../routes/routePaths";
-import { FormError } from "../../../shared/components/ui/FormError.tsx";
-import { FieldErrorMessage } from "../../../shared/components/ui/FieldErrorMessage.tsx";
-import Spinner from "../../../shared/components/ui/Spinner.tsx";
+import { FormError } from "../../../shared/components/ui/FormError";
+import { FieldErrorMessage } from "../../../shared/components/ui/FieldErrorMessage";
+import Spinner from "../../../shared/components/ui/Spinner";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {

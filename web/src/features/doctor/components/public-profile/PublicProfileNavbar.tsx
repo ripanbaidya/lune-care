@@ -1,31 +1,22 @@
 import React from "react";
-import { ArrowLeft, Stethoscope } from "lucide-react";
+import { ArrowLeft, Stethoscope, UserCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { ROUTES } from "../../../../routes/routePaths";
 import { useAuthStore } from "../../../../store/authStore";
 import { useAuth } from "../../../../shared/hooks/useAuth";
-import { authService } from "../../../auth/services/authService";
+import { useLogout } from "../../../../shared/hooks/useLogout";
 
 const PublicProfileNavbar: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, isPatient } = useAuth();
-  const { clearAuth, refreshToken } = useAuthStore();
+  const { user } = useAuthStore();
+  const logout = useLogout();
 
   const getDashboardRoute = () => {
     if (isPatient) return ROUTES.patientDashboard;
     const { user } = useAuthStore.getState();
     if (user?.role === "ROLE_DOCTOR") return ROUTES.doctorDashboard;
     return ROUTES.home;
-  };
-
-  const handleLogout = async () => {
-    try {
-      if (refreshToken) await authService.logout({ refreshToken });
-    } catch {
-    } finally {
-      clearAuth();
-      navigate(ROUTES.login, { replace: true });
-    }
   };
 
   return (
@@ -51,12 +42,21 @@ const PublicProfileNavbar: React.FC = () => {
             <>
               <Link
                 to={getDashboardRoute()}
-                className="text-sm text-blue-400 font-medium hover:text-blue-300 transition-colors hidden sm:block"
+                className="hidden sm:block p-1 rounded-full ring-2 ring-gray-700 hover:ring-blue-500/60 transition-all"
+                title="Open account"
               >
-                Dashboard
+                {user?.profilePhotoUrl ? (
+                  <img
+                    src={user.profilePhotoUrl}
+                    alt="Profile"
+                    className="h-8 w-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <UserCircle size={32} className="text-gray-300" />
+                )}
               </Link>
               <button
-                onClick={handleLogout}
+                onClick={logout}
                 className="text-xs text-gray-500 hover:text-red-400 transition-colors"
               >
                 Logout

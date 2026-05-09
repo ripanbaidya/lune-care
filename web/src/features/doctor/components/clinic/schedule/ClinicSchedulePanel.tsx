@@ -11,7 +11,7 @@ import {
   type DayOfWeek,
   type ClinicScheduleRequest,
   type ScheduleEntry,
-} from "../../../types/doctor.clinic.types";
+} from "../../../types/doctor-clinic.types";
 import { AppError } from "../../../../../shared/utils/errorParser";
 import { toast } from "sonner";
 import ScheduleViewList from "./ScheduleViewList";

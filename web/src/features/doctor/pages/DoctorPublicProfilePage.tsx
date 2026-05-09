@@ -19,7 +19,7 @@ import type {
   DoctorClinicResult,
   DoctorSearchResult,
 } from "../hooks/useDoctorSearch";
-import type { DayOfWeek } from "../types/doctor.clinic.types";
+import type { DayOfWeek } from "../types/doctor-clinic.types";
 
 import CalendarPicker from "../components/public-profile/CalendarPicker";
 import ClinicSelector from "../components/public-profile/ClinicSelector";
@@ -222,7 +222,7 @@ const DoctorPublicProfilePage: React.FC = () => {
         {/* ── Reviews Section — compact, dark ── */}
         {doctor && (
           <div className="mt-6 bg-gradient-to-br from-gray-900/60 via-gray-900/40 to-black/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-lg px-5 py-5">
-            <DoctorFeedbackSection doctorId={doctorId ?? ""} pageSize={5} />
+            <DoctorFeedbackSection doctorId={doctor.userId} pageSize={5} />
           </div>
         )}
       </div>
