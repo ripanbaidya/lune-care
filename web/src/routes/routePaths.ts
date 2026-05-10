@@ -5,6 +5,12 @@ export const PUBLIC_ROUTES = {
     login: '/login',
     register: '/register',
     findDoctors: '/find-doctors',
+    about: '/about',
+    contact: '/contact',
+    careers: '/careers',
+    developer: '/developer',
+    privacyPolicy: '/privacy-policy',
+    termsOfService: '/terms-of-service',
 } as const;
 
 export const PATIENT_ROUTES = {

@@ -9,6 +9,12 @@ import RegisterPage from "../features/auth/pages/RegisterPage";
 
 // Public pages
 import HomePage from "../features/public/pages/HomePage";
+import AboutPage from "../features/public/pages/AboutPage";
+import ContactPage from "../features/public/pages/ContactPage";
+import CareersPage from "../features/public/pages/CareersPage";
+import DeveloperPage from "../features/public/pages/DeveloperPage";
+import PrivacyPolicyPage from "../features/public/pages/PrivacyPolicyPage";
+import TermsOfServicePage from "../features/public/pages/TermsOfServicePage";
 import DoctorPublicProfilePage from "../features/doctor/pages/DoctorPublicProfilePage";
 
 // Patient pages
@@ -42,6 +48,12 @@ const AppRoutes: React.FC = () => (
   <Routes>
     {/* ── Fully Public Routes ── */}
     <Route path={ROUTES.home} element={<HomePage />} />
+    <Route path={ROUTES.about} element={<AboutPage />} />
+    <Route path={ROUTES.contact} element={<ContactPage />} />
+    <Route path={ROUTES.careers} element={<CareersPage />} />
+    <Route path={ROUTES.developer} element={<DeveloperPage />} />
+    <Route path={ROUTES.privacyPolicy} element={<PrivacyPolicyPage />} />
+    <Route path={ROUTES.termsOfService} element={<TermsOfServicePage />} />
     <Route path="/doctors/:doctorId" element={<DoctorPublicProfilePage />} />
 
     {/* ── Auth Pages ── */}
