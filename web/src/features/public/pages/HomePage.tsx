@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { ChevronUp } from "lucide-react";
 import { useDoctorSearch } from "../hooks/useDoctorSearch";
 import { type Specialization } from "../../doctor/types/doctor.types";
 import HomeNavbar from "../components/home/HomeNavbar";
@@ -27,6 +28,7 @@ const FEATURED_SPECIALIZATIONS: Specialization[] = [
 const HomePage: React.FC = () => {
   const [searchName, setSearchName] = useState("");
   const [activeSpec, setActiveSpec] = useState<string>("");
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   const { data, isLoading } = useDoctorSearch({
     name: searchName || undefined,
@@ -35,6 +37,21 @@ const HomePage: React.FC = () => {
   });
 
   const doctors = data?.data?.content ?? [];
+
+  useEffect(() => {
+    const onScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const handleScrollTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <div className="home-premium min-h-screen bg-black text-white scroll-smooth">
@@ -59,6 +76,17 @@ const HomePage: React.FC = () => {
         <HomePremiumCta />
         <HomeFooter />
       </div>
+
+      {showScrollTop && (
+        <button
+          type="button"
+          onClick={handleScrollTop}
+          aria-label="Scroll to top"
+          className="fixed bottom-6 right-6 z-50 h-11 w-11 rounded-full border border-blue-400/30 bg-blue-600/90 text-white shadow-lg shadow-blue-900/40 transition-all hover:bg-blue-500 hover:scale-105 active:scale-95"
+        >
+          <ChevronUp size={20} className="mx-auto" />
+        </button>
+      )}
     </div>
   );
 };
