@@ -39,7 +39,7 @@ const HomeNavbar: React.FC<HomeNavbarProps> = ({ onNavigateDashboard }) => {
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-6">
           <Link
-            to="/find-doctors"
+            to={ROUTES.findDoctors}
             className="text-sm text-gray-400 hover:text-blue-400 font-medium transition-colors"
           >
             Find Doctors
@@ -105,7 +105,7 @@ const HomeNavbar: React.FC<HomeNavbarProps> = ({ onNavigateDashboard }) => {
         <div className="md:hidden border-t border-gray-800/50 bg-gray-950/80 backdrop-blur-xl">
           <div className="px-4 py-4 space-y-3">
             <Link
-              to="/find-doctors"
+              to={ROUTES.findDoctors}
               className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-900 rounded-lg transition-all"
               onClick={() => setMobileMenuOpen(false)}
             >
