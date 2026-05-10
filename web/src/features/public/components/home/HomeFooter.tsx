@@ -1,9 +1,34 @@
 import React from "react";
-import { Globe, MessageCircle, Send, Stethoscope } from "lucide-react";
+import { Stethoscope } from "lucide-react";
+import { FaFacebookF, FaGithub, FaInstagram } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import { ROUTES } from "../../../../routes/routePaths";
 
 const HomeFooter: React.FC = () => {
+  const socialLinks = [
+    {
+      icon: FaFacebookF,
+      href: "https://facebook.com",
+      label: "Facebook",
+      hoverClass:
+        "hover:bg-blue-500/10 hover:border-blue-500/40 hover:text-blue-400",
+    },
+    {
+      icon: FaInstagram,
+      href: "https://instagram.com",
+      label: "Instagram",
+      hoverClass:
+        "hover:bg-pink-500/10 hover:border-pink-500/40 hover:text-pink-400",
+    },
+    {
+      icon: FaGithub,
+      href: "https://github.com/ripanbaidya",
+      label: "GitHub",
+      hoverClass:
+        "hover:bg-gray-200/10 hover:border-gray-300/40 hover:text-gray-100",
+    },
+  ];
+
   return (
     <footer className="border-t border-gray-800/50 bg-gradient-to-b from-gray-950/80 to-black py-14">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -20,13 +45,17 @@ const HomeFooter: React.FC = () => {
               patient-first teams.
             </p>
             <div className="flex items-center gap-2 mt-4">
-              {[Globe, MessageCircle, Send].map((Icon, index) => (
-                <button
-                  key={index}
-                  className="w-8 h-8 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-blue-500/10 hover:border-blue-500/40 text-gray-400 hover:text-blue-300 transition-all flex items-center justify-center"
+              {socialLinks.map(({ icon: Icon, href, label, hoverClass }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  className={`w-8 h-8 rounded-full border border-white/10 bg-white/[0.03] text-gray-400 transition-all flex items-center justify-center ${hoverClass}`}
                 >
                   <Icon size={14} />
-                </button>
+                </a>
               ))}
             </div>
           </div>
@@ -34,7 +63,10 @@ const HomeFooter: React.FC = () => {
             <h4 className="font-semibold text-white mb-3">Product</h4>
             <ul className="space-y-2 text-sm text-gray-400">
               <li>
-                <Link to={ROUTES.findDoctors} className="hover:text-blue-400 transition-colors">
+                <Link
+                  to={ROUTES.findDoctors}
+                  className="hover:text-blue-400 transition-colors"
+                >
                   Find Doctors
                 </Link>
               </li>
@@ -54,19 +86,36 @@ const HomeFooter: React.FC = () => {
             <h4 className="font-semibold text-white mb-3">Company</h4>
             <ul className="space-y-2 text-sm text-gray-400">
               <li>
-                <a href="#" className="hover:text-blue-400 transition-colors">
+                <Link
+                  to={ROUTES.about}
+                  className="hover:text-blue-400 transition-colors"
+                >
                   About Us
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-blue-400 transition-colors">
+                <Link
+                  to={ROUTES.contact}
+                  className="hover:text-blue-400 transition-colors"
+                >
                   Contact
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-blue-400 transition-colors">
+                <Link
+                  to={ROUTES.careers}
+                  className="hover:text-blue-400 transition-colors"
+                >
                   Careers
-                </a>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to={ROUTES.developer}
+                  className="hover:text-blue-400 transition-colors"
+                >
+                  Developer
+                </Link>
               </li>
             </ul>
           </div>
@@ -74,14 +123,20 @@ const HomeFooter: React.FC = () => {
             <h4 className="font-semibold text-white mb-3">Legal</h4>
             <ul className="space-y-2 text-sm text-gray-400">
               <li>
-                <a href="#" className="hover:text-blue-400 transition-colors">
+                <Link
+                  to={ROUTES.privacyPolicy}
+                  className="hover:text-blue-400 transition-colors"
+                >
                   Privacy Policy
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-blue-400 transition-colors">
+                <Link
+                  to={ROUTES.termsOfService}
+                  className="hover:text-blue-400 transition-colors"
+                >
                   Terms of Service
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
