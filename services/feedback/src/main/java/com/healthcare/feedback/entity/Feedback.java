@@ -12,7 +12,7 @@ import java.time.Instant;
 /**
  * Persisted feedback document.
  * <p><b>Uniqueness:</b> One feedback per appointment, enforced via a unique
- * index on {@code appointmentId}. If a patient deletes their feedback the
+ * index on {@code appointmentId}. If a patient deletes their feedback, the
  * unique index entry is also removed, allowing re-submission.
  * <p><b>Index strategy:</b>
  * <ul>

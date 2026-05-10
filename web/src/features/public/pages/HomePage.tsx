@@ -37,7 +37,7 @@ const HomePage: React.FC = () => {
   const doctors = data?.data?.content ?? [];
 
   return (
-    <div className="min-h-screen bg-black text-white scroll-smooth">
+    <div className="home-premium min-h-screen bg-black text-white scroll-smooth">
       <HomeNavbar />
 
       {/* Add padding to account for fixed navbar */}

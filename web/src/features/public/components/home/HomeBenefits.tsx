@@ -42,7 +42,7 @@ const HomeBenefits: React.FC = () => {
             return (
               <div
                 key={item.label}
-                className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"
+                className="home-premium-card home-admin-hover p-5"
               >
                 <Icon size={18} className="text-blue-300 mb-3" />
                 <p className="text-2xl font-bold text-white">{item.metric}</p>
@@ -53,14 +53,14 @@ const HomeBenefits: React.FC = () => {
         </div>
       </div>
 
-      <div className="mt-12 rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900/70 to-black/70 p-6 sm:p-8">
+      <div className="home-premium-card home-admin-hover mt-12 bg-gradient-to-b from-gray-900/70 to-black/70 p-6 sm:p-8">
         <p className="text-xs uppercase tracking-[0.22em] text-blue-300 font-semibold mb-6">
           Care Journey
         </p>
         <div className="grid sm:grid-cols-4 gap-4">
           {STEPS.map((step, index) => (
             <div key={step.title} className="relative">
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 h-full">
+              <div className="home-premium-card home-admin-hover rounded-xl p-4 h-full">
                 <div className="w-7 h-7 rounded-full bg-blue-500/15 border border-blue-400/30 text-blue-300 text-xs font-bold flex items-center justify-center mb-3">
                   {index + 1}
                 </div>

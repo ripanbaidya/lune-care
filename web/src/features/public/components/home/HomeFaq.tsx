@@ -39,7 +39,7 @@ const HomeFaq: React.FC = () => {
           return (
             <div
               key={item.q}
-              className="rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden"
+              className="home-premium-card home-admin-hover rounded-xl overflow-hidden"
             >
               <button
                 onClick={() => setActive(isOpen ? -1 : index)}

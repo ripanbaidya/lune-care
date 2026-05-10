@@ -26,7 +26,7 @@ const HomeTrustedLogos: React.FC = () => {
             {[...BRANDS, ...BRANDS].map((brand, index) => (
               <div
                 key={`${brand}-${index}`}
-                className="rounded-xl border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-gray-300 backdrop-blur-md shadow-[0_8px_30px_rgba(0,0,0,0.22)]"
+                className="home-premium-card home-admin-hover rounded-xl px-6 py-3 text-sm text-gray-300 shadow-[0_8px_30px_rgba(0,0,0,0.22)]"
               >
                 {brand}
               </div>

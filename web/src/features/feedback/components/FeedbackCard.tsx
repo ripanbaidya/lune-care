@@ -16,7 +16,7 @@ interface FeedbackCardProps {
    */
   editable?: boolean;
   /**
-   * Show patient ID label (used in doctor's "received feedback" view) 
+   * Show patient ID label (used in doctor's "received feedback" view)
    */
   showPatientId?: boolean;
 }
@@ -41,8 +41,24 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
   const { mutate: updateFeedback, isPending: isUpdating } = useUpdateFeedback();
   const { mutate: deleteFeedback, isPending: isDeleting } = useDeleteFeedback();
 
-  const fmtDate = (iso: string) => {
-    const d = new Date(iso);
+  const fmtDate = (iso: any) => {
+    if (!iso) return "No date";
+
+    let d: Date;
+    if (Array.isArray(iso)) {
+      // Handle Jackson array format: [year, month, day, hour, minute, second]
+      const [year, month, day, hour = 0, minute = 0, second = 0] = iso;
+      d = new Date(year, month - 1, day, hour, minute, second);
+    } else if (typeof iso === "number" || (!isNaN(Number(iso)) && String(iso).trim() !== "")) {
+      // Handle epoch timestamp (if seconds, multiply by 1000)
+      const num = Number(iso);
+      d = new Date(num > 9999999999 ? num : num * 1000);
+    } else {
+      d = new Date(iso);
+    }
+
+    if (isNaN(d.getTime())) return "Invalid date";
+
     return d.toLocaleDateString("en-IN", {
       day: "numeric",
       month: "short",

@@ -1,3 +1,43 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap");
 @import "tailwindcss/base";
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
+
+@layer components {
+  .home-premium {
+    --home-font-body: "Manrope", sans-serif;
+    --home-font-display: "Sora", sans-serif;
+    font-family: var(--home-font-body);
+    letter-spacing: -0.01em;
+  }
+
+  .home-premium h1,
+  .home-premium h2,
+  .home-premium h3 {
+    font-family: var(--home-font-display);
+    letter-spacing: -0.03em;
+  }
+
+  .home-admin-hover {
+    border: 1px solid rgba(31, 41, 55, 0.6);
+    background-color: rgba(17, 24, 39, 0.32) !important;
+    transition:
+      background-color 240ms ease,
+      border-color 240ms ease,
+      transform 240ms ease,
+      box-shadow 240ms ease;
+  }
+
+  .home-admin-hover:hover {
+    border-color: rgba(75, 85, 99, 0.85);
+    background-color: rgba(17, 24, 39, 0.62) !important;
+    transform: translateY(-2px);
+    box-shadow:
+      0 14px 36px rgba(0, 0, 0, 0.35),
+      inset 0 1px 0 rgba(148, 163, 184, 0.12);
+  }
+
+  .home-premium-card {
+    @apply rounded-2xl backdrop-blur-xl shadow-[0_18px_40px_rgba(0,0,0,0.28)];
+  }
+}

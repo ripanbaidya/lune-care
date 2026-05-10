@@ -90,7 +90,7 @@ const HomeHero: React.FC<HomeHeroProps> = ({ searchName, onSearchChange }) => {
           </div>
 
           {/* Product strip */}
-          <div className="mt-12 rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900/70 to-black/70 backdrop-blur-xl p-5 text-left">
+          <div className="home-premium-card home-admin-hover mt-12 bg-gradient-to-b from-gray-900/70 to-black/70 p-5 text-left">
             <div className="grid sm:grid-cols-3 gap-4">
               {[
                 { label: "Avg Booking Time", value: "< 45 sec" },
@@ -99,7 +99,7 @@ const HomeHero: React.FC<HomeHeroProps> = ({ searchName, onSearchChange }) => {
               ].map((item) => (
                 <div
                   key={item.label}
-                  className="rounded-xl border border-white/10 bg-white/[0.03] p-4"
+                  className="home-admin-hover home-premium-card rounded-xl p-4"
                 >
                   <p className="text-xs uppercase tracking-wider text-gray-500">
                     {item.label}

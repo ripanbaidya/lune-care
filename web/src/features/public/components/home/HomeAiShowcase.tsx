@@ -5,7 +5,7 @@ import HomeSectionHeader from "./HomeSectionHeader";
 const HomeAiShowcase: React.FC = () => {
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-20 sm:py-24">
-      <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-blue-950/35 via-gray-950/80 to-black/90 p-6 sm:p-10 relative overflow-hidden">
+      <div className="home-premium-card home-admin-hover rounded-3xl bg-gradient-to-br from-blue-950/35 via-gray-950/80 to-black/90 p-6 sm:p-10 relative overflow-hidden">
         <div className="absolute -top-28 -right-16 h-64 w-64 rounded-full bg-blue-500/20 blur-3xl" />
         <div className="absolute -bottom-28 -left-16 h-64 w-64 rounded-full bg-indigo-500/20 blur-3xl" />
 
@@ -17,7 +17,7 @@ const HomeAiShowcase: React.FC = () => {
           />
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="home-premium-card home-admin-hover col-span-2 p-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-white">Forecasted Load</p>
                 <LineChart size={16} className="text-blue-300" />
@@ -32,7 +32,7 @@ const HomeAiShowcase: React.FC = () => {
                 ))}
               </div>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="home-premium-card home-admin-hover p-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-gray-300">Automation Rate</p>
                 <Zap size={15} className="text-blue-300" />
@@ -40,7 +40,7 @@ const HomeAiShowcase: React.FC = () => {
               <p className="mt-2 text-2xl font-bold text-white">72%</p>
               <p className="text-xs text-gray-500 mt-1">+18% this quarter</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="home-premium-card home-admin-hover p-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-gray-300">Triage Confidence</p>
                 <BrainCircuit size={15} className="text-blue-300" />
@@ -48,7 +48,7 @@ const HomeAiShowcase: React.FC = () => {
               <p className="mt-2 text-2xl font-bold text-white">96.4%</p>
               <p className="text-xs text-gray-500 mt-1">Across active clinics</p>
             </div>
-            <div className="col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="home-premium-card home-admin-hover col-span-2 p-4">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-semibold text-white">Operational Radar</p>
                 <Radar size={16} className="text-blue-300" />
@@ -62,7 +62,7 @@ const HomeAiShowcase: React.FC = () => {
                   "Payment completion",
                   "Patient response",
                 ].map((k) => (
-                  <div key={k} className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-gray-300">
+                  <div key={k} className="home-premium-card home-admin-hover rounded-lg px-3 py-2 text-gray-300">
                     <Sparkles size={11} className="inline mr-1 text-blue-300" />
                     {k}
                   </div>

@@ -45,7 +45,7 @@ const HomeTestimonials: React.FC = () => {
           {TESTIMONIALS.map((item) => (
             <article
               key={item.name}
-              className="rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900/60 to-black/60 p-6 hover:border-blue-400/40 transition-all duration-300"
+              className="home-premium-card home-admin-hover rounded-2xl bg-gradient-to-b from-gray-900/60 to-black/60 p-6 hover:border-blue-500/40"
             >
               <div className="flex items-center gap-3">
                 <img

@@ -68,7 +68,7 @@ const HomeFeatureBento: React.FC = () => {
       />
 
       <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="sm:col-span-3 rounded-2xl border border-blue-500/20 bg-gradient-to-r from-blue-600/15 to-indigo-600/10 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="sm:col-span-3 home-premium-card home-admin-hover border-blue-500/20 bg-gradient-to-r from-blue-600/15 to-indigo-600/10 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-widest text-blue-300 font-semibold">
               Platform Snapshot
@@ -94,7 +94,7 @@ const HomeFeatureBento: React.FC = () => {
           return (
             <article
               key={feature.title}
-              className={`group rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-md transition-all duration-300 hover:border-blue-400/40 hover:bg-blue-500/[0.07] hover:-translate-y-0.5 ${feature.className}`}
+              className={`home-premium-card home-admin-hover p-6 hover:border-blue-500/40 hover:bg-blue-500/[0.07] ${feature.className}`}
             >
               <div className="w-11 h-11 rounded-xl border border-blue-400/30 bg-blue-500/10 flex items-center justify-center mb-5">
                 <Icon size={20} className="text-blue-300" />
