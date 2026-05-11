@@ -9,7 +9,7 @@ import axios, {
 import {parseError} from '../shared/utils/errorUtils';
 import {useAuthStore} from '../store/authStore';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL_DEV ?? 'http://localhost:8080/api';
 
 export const apiClient = axios.create({
     baseURL: BASE_URL,
