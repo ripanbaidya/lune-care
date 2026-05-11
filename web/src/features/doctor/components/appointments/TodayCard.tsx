@@ -20,9 +20,11 @@ const fmtTime = (t: string) => {
   return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 };
 
-const fmtDate = (d: string) => {
+const fmtDate = (d?: string) => {
   if (!d) return "—";
-  return new Date(d).toLocaleDateString("en-IN", {
+  const parsed = new Date(d);
+  if (Number.isNaN(parsed.getTime())) return "—";
+  return parsed.toLocaleDateString("en-IN", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -99,7 +101,7 @@ const TodayCard: React.FC<TodayCardProps> = ({
         </span>
         <span className="flex items-center gap-1">
           <CalendarDays size={11} className="text-gray-600" />
-          {fmtDate(appt.slotDate)}
+          {fmtDate(appt.slotDate || appt.appointmentDate)}
         </span>
       </div>
 

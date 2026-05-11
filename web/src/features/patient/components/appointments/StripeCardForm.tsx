@@ -180,7 +180,7 @@ const StripeCardForm: React.FC<StripeCardFormProps> = ({
           ) : (
             <>
               <CreditCard size={14} />
-              Pay ₹{(amount / 100).toFixed(2)}
+              Pay ₹{amount.toLocaleString("en-IN")}
             </>
           )}
         </button>
