@@ -3,7 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { ROUTES } from "./routePaths";
 import PrivateRoute from "../shared/components/guards/PrivateRoute";
 import RoleRoute from "../shared/components/guards/RoleRoute";
-import PatientLayout from "../shared/components/layout/PatientLayout";
+import PatientLayout from "../features/patient/pages/PatientLayout";
 import LoginPage from "../features/auth/pages/LoginPage";
 import RegisterPage from "../features/auth/pages/RegisterPage";
 
