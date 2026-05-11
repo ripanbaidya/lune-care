@@ -1,0 +1,17 @@
+UI / API Test Pages
+--------------------
+
+html files for testing some of api's and API workflow verification.
+These pages consume API responses from the backend and simulate real user flows
+(e.g., card entry, redirect, callback handling).
+
+## Files
+
+1. razorpay_test.html - Triggers Razorpay Checkout.
+Paste orderId + amount from /api/payment/initiate, complete payment in the Razorpay modal,
+then copy the returned razorpayPaymentId/razorpaySignature into Postman for /api/payment/verify.
+
+2. stripe_test.html - Mounts Stripe Elements card form.
+Paste clientSecret + stripePaymentIntentId from /api/payment/initiate,
+enter test card 4242 4242 4242 4242 and future date and any 3 digit number and confirm,
+then copy the returned PaymentIntent ID into Postman for /api/payment/verify.
