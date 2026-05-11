@@ -1,8 +1,26 @@
-# LuneCare - Spring Boot Microservices Platform
+# LuneCare ⚕️
 
-Enterprise-grade healthcare appointment platform built using Spring Boot microservices, Spring Cloud, event-driven messaging, and full observability.
+<p align="center">
 
----
+</p>
+
+<div align="center">
+
+**Enterprise-grade healthcare appointment platform built using Spring Boot microservices, Spring Cloud, event-driven
+messaging, and full observability.**
+
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
+[![Java](https://img.shields.io/badge/Java-21-orange?style=for-the-badge&logo=openjdk)](https://openjdk.org/projects/jdk/21/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4-brightgreen?style=for-the-badge&logo=spring)](https://spring.io/projects/spring-boot)
+[![Spring Cloud](https://img.shields.io/badge/Spring%20Cloud-Microservices-green?style=for-the-badge&logo=spring)](https://spring.io/projects/spring-cloud)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)](https://react.dev)
+[![Observability](https://img.shields.io/badge/Observability-OpenTelemetry-purple?style=for-the-badge&logo=opentelemetry)](https://opentelemetry.io/)
+[![Event Driven](https://img.shields.io/badge/Architecture-Event%20Driven-blue?style=for-the-badge&logo=apachekafka)](https://kafka.apache.org/)
+[![Resilience4j](https://img.shields.io/badge/Resilience4j-Fault%20Tolerance-red?style=for-the-badge)](https://resilience4j.readme.io/)
+
+</div>
+
+![architecture](/public/diagrams/architecture-diagram.png)
 
 ## 1. Project Overview
 
@@ -12,11 +30,13 @@ Enterprise-grade healthcare appointment platform built using Spring Boot microse
 
 ### Problem Statement
 
-Traditional appointment systems often become hard to scale when authentication, doctor onboarding, scheduling, payments, and notifications are tightly coupled in a monolith.
+Traditional appointment systems often become hard to scale when authentication, doctor onboarding, scheduling, payments,
+and notifications are tightly coupled in a monolith.
 
 ### Why This Application Was Built
 
-This project was built to demonstrate production-style microservice architecture skills for a senior backend role, including:
+This project was built to demonstrate production-style microservice architecture skills for a senior backend role,
+including:
 
 - service decomposition
 - centralized config and discovery
@@ -26,7 +46,8 @@ This project was built to demonstrate production-style microservice architecture
 
 ### High-Level Objective
 
-Deliver a modular healthcare platform where patients can find doctors, book/pay for appointments, receive notifications, and submit feedback while admins can verify doctors.
+Deliver a modular healthcare platform where patients can find doctors, book/pay for appointments, receive notifications,
+and submit feedback while admins can verify doctors.
 
 ### Business Value
 
@@ -84,9 +105,9 @@ LuneCare supports end-to-end lifecycle:
 - **Eureka**: service registry/discovery.
 - **Domain Services**: 8 business microservices.
 - **Datastores**:
-  - PostgreSQL (schema-per-service for relational workloads)
-  - MongoDB (document model for notification/feedback)
-  - Redis (token blacklist, gateway rate limiting, slot lock/cache use cases)
+    - PostgreSQL (schema-per-service for relational workloads)
+    - MongoDB (document model for notification/feedback)
+    - Redis (token blacklist, gateway rate limiting, slot lock/cache use cases)
 - **Messaging**: RabbitMQ topic exchange for domain events + Spring Cloud Bus refresh.
 - **Observability**: Actuator + Micrometer + Prometheus + Grafana + Loki (+ optional Tempo/OTel).
 
@@ -101,7 +122,8 @@ LuneCare supports end-to-end lifecycle:
 
 ### Sync vs Async Communication
 
-- **Synchronous (Feign)**: strong consistency paths (auth->profile creation, payment->appointment confirm, admin aggregation).
+- **Synchronous (Feign)**: strong consistency paths (auth->profile creation, payment->appointment confirm, admin
+  aggregation).
 - **Asynchronous (RabbitMQ)**: decoupled post-state side effects (notifications, refunds, feedback eligibility).
 
 ### Architectural Decisions
@@ -119,7 +141,7 @@ LuneCare supports end-to-end lifecycle:
 ### Backend
 
 | Technology                  | What it is                | Why chosen / Problem solved                      |
-| --------------------------- | ------------------------- | ------------------------------------------------ |
+|-----------------------------|---------------------------|--------------------------------------------------|
 | Java 21                     | LTS JVM runtime           | modern language/runtime for enterprise services  |
 | Spring Boot 3.4.x           | app framework             | rapid service bootstrap with production features |
 | Spring Security             | authz framework           | role-based endpoint protection                   |
@@ -175,7 +197,7 @@ LuneCare supports end-to-end lifecycle:
 ## 5. Complete Microservice Breakdown
 
 | Service         | Port | Purpose                                              | Database                    | Key Dependencies                       |
-| --------------- | ---: | ---------------------------------------------------- | --------------------------- | -------------------------------------- |
+|-----------------|-----:|------------------------------------------------------|-----------------------------|----------------------------------------|
 | `api-gateway`   | 8080 | ingress, JWT validation, route+rate limit            | Redis                       | Eureka, auth public key                |
 | `config-server` | 8888 | centralized config from Git + bus refresh            | -                           | RabbitMQ                               |
 | `eureka-server` | 8761 | service discovery registry                           | -                           | config-server                          |
@@ -206,13 +228,16 @@ LuneCare supports end-to-end lifecycle:
 - `POST /api/users/logout`
 - `GET /api/users/me`
 - Internal:
-  - `PATCH /api/internal/auth/update-status`
-  - `GET /api/internal/users/count?role=ROLE_PATIENT|ROLE_DOCTOR|ROLE_ADMIN`
+    - `PATCH /api/internal/auth/update-status`
+    - `GET /api/internal/users/count?role=ROLE_PATIENT|ROLE_DOCTOR|ROLE_ADMIN`
 
 Sample request (`POST /api/auth/login`):
 
 ```json
-{ "phoneNumber": "9876543210", "password": "secret123" }
+{
+  "phoneNumber": "9876543210",
+  "password": "secret123"
+}
 ```
 
 Sample response shape:
@@ -224,7 +249,10 @@ Sample response shape:
   "message": "Login Successful",
   "data": {
     "user": {},
-    "tokens": { "accessToken": "...", "refreshToken": "..." }
+    "tokens": {
+      "accessToken": "...",
+      "refreshToken": "..."
+    }
   },
   "timestamp": "..."
 }
@@ -233,47 +261,47 @@ Sample response shape:
 ### Patient Service
 
 - Profile:
-  - `GET /api/patient/profile`
-  - `PUT /api/patient/profile`
-  - `PATCH /api/patient/profile/upload-photo` (multipart `file`)
-  - `DELETE /api/patient/profile/remove-photo`
+    - `GET /api/patient/profile`
+    - `PUT /api/patient/profile`
+    - `PATCH /api/patient/profile/upload-photo` (multipart `file`)
+    - `DELETE /api/patient/profile/remove-photo`
 - Address:
-  - `POST /api/patient/addresses`
-  - `GET /api/patient/addresses`
-  - `PATCH /api/patient/addresses`
-  - `DELETE /api/patient/addresses`
+    - `POST /api/patient/addresses`
+    - `GET /api/patient/addresses`
+    - `PATCH /api/patient/addresses`
+    - `DELETE /api/patient/addresses`
 - Internal:
-  - `POST /api/internal/patient/create-profile`
+    - `POST /api/internal/patient/create-profile`
 
 ### Doctor Service
 
 - Doctor:
-  - `GET /api/doctor/profile`
-  - `PUT /api/doctor/profile`
-  - `PATCH /api/doctor/profile/upload-photo`
-  - `DELETE /api/doctor/profile/remove-photo`
-  - `POST /api/doctor/onboarding/complete`
+    - `GET /api/doctor/profile`
+    - `PUT /api/doctor/profile`
+    - `PATCH /api/doctor/profile/upload-photo`
+    - `DELETE /api/doctor/profile/remove-photo`
+    - `POST /api/doctor/onboarding/complete`
 - Clinics:
-  - `POST /api/doctor/clinics`
-  - `GET /api/doctor/clinics`
-  - `PUT /api/doctor/clinics/{clinicId}`
-  - `DELETE /api/doctor/clinics/{clinicId}`
+    - `POST /api/doctor/clinics`
+    - `GET /api/doctor/clinics`
+    - `PUT /api/doctor/clinics/{clinicId}`
+    - `DELETE /api/doctor/clinics/{clinicId}`
 - Clinic schedules:
-  - `POST /api/doctor/clinics/{clinicId}/schedule`
-  - `GET /api/doctor/clinics/{clinicId}/schedule`
-  - `PUT /api/doctor/clinics/{clinicId}/schedule`
-  - `DELETE /api/doctor/clinics/{clinicId}/schedule/{dayOfWeek}`
+    - `POST /api/doctor/clinics/{clinicId}/schedule`
+    - `GET /api/doctor/clinics/{clinicId}/schedule`
+    - `PUT /api/doctor/clinics/{clinicId}/schedule`
+    - `DELETE /api/doctor/clinics/{clinicId}/schedule/{dayOfWeek}`
 - Documents:
-  - `PATCH /api/doctor/documents/upload`
+    - `PATCH /api/doctor/documents/upload`
 - Public:
-  - `GET /api/doctor/search`
-  - `GET /api/doctor/{doctorId}/public`
+    - `GET /api/doctor/search`
+    - `GET /api/doctor/{doctorId}/public`
 - Internal:
-  - `POST /api/internal/doctor/create-profile`
-  - `GET /api/internal/doctor/clinics/{clinicId}/fees`
-  - `GET /api/internal/doctor/pending-verification`
-  - `GET /api/internal/doctor/{doctorId}/documents`
-  - `PATCH /api/internal/doctor/{doctorId}/verification-status`
+    - `POST /api/internal/doctor/create-profile`
+    - `GET /api/internal/doctor/clinics/{clinicId}/fees`
+    - `GET /api/internal/doctor/pending-verification`
+    - `GET /api/internal/doctor/{doctorId}/documents`
+    - `PATCH /api/internal/doctor/{doctorId}/verification-status`
 
 ### Appointment Service
 
@@ -287,16 +315,18 @@ Sample response shape:
 - `GET /api/appointment/doctor/today`
 - `GET /api/appointment/doctor/history?page=0&size=10`
 - Internal:
-  - `POST /api/internal/appointment/slots/generate`
-  - `DELETE /api/internal/appointment/slots/cancel-available/{clinicId}/{dayOfWeek}`
-  - `POST /api/internal/appointment/confirm-payment`
-  - `GET /api/internal/appointment/{appointmentId}`
-  - `POST /api/internal/appointment/{appointmentId}/release-slot`
+    - `POST /api/internal/appointment/slots/generate`
+    - `DELETE /api/internal/appointment/slots/cancel-available/{clinicId}/{dayOfWeek}`
+    - `POST /api/internal/appointment/confirm-payment`
+    - `GET /api/internal/appointment/{appointmentId}`
+    - `POST /api/internal/appointment/{appointmentId}/release-slot`
 
 Sample request (`POST /api/appointment/book`):
 
 ```json
-{ "slotId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890" }
+{
+  "slotId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+}
 ```
 
 ### Payment Service
@@ -309,7 +339,10 @@ Sample request (`POST /api/appointment/book`):
 Sample request (`POST /api/payment/initiate`):
 
 ```json
-{ "appointmentId": "<id>", "gatewayType": "RAZORPAY" }
+{
+  "appointmentId": "<id>",
+  "gatewayType": "RAZORPAY"
+}
 ```
 
 Sample request (`POST /api/payment/verify`, Razorpay):
@@ -362,7 +395,12 @@ All services use a consistent error envelope:
     "status": 400,
     "timestamp": "...",
     "path": "/api/...",
-    "errors": [{ "field": "name", "message": "must not be blank" }]
+    "errors": [
+      {
+        "field": "name",
+        "message": "must not be blank"
+      }
+    ]
   }
 }
 ```
@@ -388,11 +426,11 @@ All services use a consistent error envelope:
 - Producer: `appointment`
 - Exchange: configured topic exchange (`rabbitmq.exchange.name`)
 - Routing keys produced:
-  - `appointment.confirmed`
-  - `appointment.cancelled`
-  - `appointment.completed`
-  - `appointment.no_show`
-  - `appointment.payment_failed`
+    - `appointment.confirmed`
+    - `appointment.cancelled`
+    - `appointment.completed`
+    - `appointment.no_show`
+    - `appointment.payment_failed`
 
 Consumers:
 
@@ -411,7 +449,8 @@ Consumers:
 ### Queues & Bindings
 
 - Notification queue: bound with `appointment.#`.
-- Payment queue: bound with `appointment.cancelled` (and in appointment config also `appointment.confirmed` binding exists for payment queue).
+- Payment queue: bound with `appointment.cancelled` (and in appointment config also `appointment.confirmed` binding
+  exists for payment queue).
 - Feedback queue: bound with `appointment.completed`.
 
 ### Retry / DLQ
@@ -495,9 +534,9 @@ Consumers:
 - Cloud Bus refresh endpoint available (`/actuator/busrefresh`) to propagate config updates.
 - Encryption support in config server (`encrypt.key`) for encrypted `{cipher}` values.
 - Secret handling expectation:
-  - keep `.env` out of VCS
-  - inject via environment variables/secrets manager in prod
-  - keep RSA keys under mounted secret path
+    - keep `.env` out of VCS
+    - inject via environment variables/secrets manager in prod
+    - keep RSA keys under mounted secret path
 
 ---
 
@@ -547,7 +586,8 @@ Consumers:
 ### Tracing
 
 - Tempo config present.
-- OTel Java agent config scaffold present in compose (`JAVA_TOOL_OPTIONS`, OTLP endpoint), but rollout is partial/commented in places.
+- OTel Java agent config scaffold present in compose (`JAVA_TOOL_OPTIONS`, OTLP endpoint), but rollout is
+  partial/commented in places.
 
 ### Dashboards & Alerts
 
