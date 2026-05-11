@@ -25,7 +25,8 @@ export interface AppointmentResponse {
     doctorId: string;
     patientId: string;
     clinicId: string;
-    slotDate: string;
+    slotDate?: string;
+    appointmentDate?: string;
     startTime: string;
     endTime: string;
     status: AppointmentStatus;
