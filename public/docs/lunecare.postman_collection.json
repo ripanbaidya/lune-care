@@ -1,0 +1,3023 @@
+{
+  "info": {
+    "_postman_id": "f824a2e8-72c9-42a3-885e-71148c05aa0d",
+    "name": "LuneCare",
+    "description": "```\nMedX is a production-grade distributed doctor appointment booking platform built with a microservices architecture.It demonstrates real-world engineering patterns including the SAGA pattern for distributed transactions,optimistic locking for concurrent slot booking, event-driven communication via Kafka, and strategy patternfor multi-payment gateway support (Razorpay + Stripe).\n\n ```",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "47578179"
+  },
+  "item": [
+    {
+      "name": "Infrastructure",
+      "item": [
+        {
+          "name": "eureka-server",
+          "item": [
+            {
+              "name": "Eureka Server URL",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:8761/",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "8761",
+                  "path": [
+                    ""
+                  ]
+                },
+                "description": "# Retrieve Service Registry Information\n\nThis endpoint is used to retrieve information from the service registry. It provides details about the services that are currently registered with the server.\n\n## Request\n\n- **Method**: GET\n    \n- **URL**: `http://localhost:8761/`\n    \n\n### Headers\n\n- **Accept**: Specifies the media type(s) that are acceptable for the response. Commonly used values include `application/json`.\n    \n- **Authorization**: If authentication is required, include a valid token in the header."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "config-server",
+          "item": [
+            {
+              "name": "Bus Refresh",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:8888/actuator/busrefresh",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "8888",
+                  "path": [
+                    "actuator",
+                    "busrefresh"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Encrypt Value",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "ripanbaidya7980@gmail.com",
+                  "options": {
+                    "raw": {
+                      "language": "text"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://{{host}}:8888/encrypt",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "8888",
+                  "path": [
+                    "encrypt"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Decrypt Value",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "bef52af5c546bd6e31168a07bf24e9321f85a30c5be548bb25643bb351b1169bcbabab3953abcaaccab6d3893eb58851"
+                },
+                "url": {
+                  "raw": "http://{{host}}:8888/decrypt",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "8888",
+                  "path": [
+                    "decrypt"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "api-gateway",
+          "item": [
+            {
+              "name": "API Gateway URL",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:8080/actuator/health",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "8080",
+                  "path": [
+                    "actuator",
+                    "health"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Services",
+      "item": [
+        {
+          "name": "Auth",
+          "item": [
+            {
+              "name": "Users",
+              "item": [
+                {
+                  "name": "Logout User",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{access_token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "header"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/users/logout",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "users",
+                        "logout"
+                      ]
+                    },
+                    "description": "## Logout User\n\nThis endpoint allows a user to log out by invalidating their refresh token. When a user logs out, their session is terminated, and they will no longer be able to obtain new access tokens using the provided refresh token.\n\n### Request\n\n- **Method**: POST\n    \n- **URL**: `http://{{host}}:{{port}}/api/users/logout`\n    \n\n#### Request Body\n\nThe request body must be in JSON format and should include the following parameter:\n\n- **refreshToken** (string): The refresh token that is to be invalidated upon logout. This token is used to authenticate the user session.\n    \n\n**Example Request Body:**\n\n``` json\n{\n  \"refreshToken\": \"{{refresh_token}}\"\n}\n\n ```\n\n### Response\n\nUpon a successful logout, the server will respond with a status indicating the result of the operation. The response structure may vary based on the implementation but typically includes:\n\n- **status** (string): Indicates whether the logout was successful or if there was an error.\n    \n- **message** (string): A human-readable message providing additional context about the logout operation.\n    \n\n**Example Response:**\n\n``` json\n{\n  \"status\": \"success\",\n  \"message\": \"User logged out successfully.\"\n}\n\n ```\n\n### Notes\n\n- Ensure that the refresh token provided is valid and has not already been invalidated.\n    \n- This operation is crucial for maintaining user security and session management."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get User Profile",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{access_token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/users/me",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "users",
+                        "me"
+                      ]
+                    },
+                    "description": "## Get User Profile\n\nThis endpoint retrieves the profile information of the currently authenticated user.\n\n### Request\n\n- **Method**: `GET`\n    \n- **Endpoint**: `http://{{host}}:{{port}}/api/users/me`\n    \n\n### Response\n\nUpon a successful request, the response will contain the user's profile details in JSON format. The expected response structure includes keys such as `id`, `name`, `email`, and other relevant user information.\n\n### Example Response\n\n``` json\n{\n  \"id\": \"string\",\n  \"phoneNumber\": \"string\"\n  \"role\": \"string\",\n  \"status\": \"string\",\n}\n\n ```\n\n### Notes\n\n- Ensure that the request is made with valid authentication credentials to access the user data."
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Authentication",
+              "item": [
+                {
+                  "name": "Login User",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{   \n    \"phoneNumber\": \"7980717584\",\n    // \"phoneNumber\": \"8240967184\",\n    \"password\": \"password123\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/auth/login",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "auth",
+                        "login"
+                      ]
+                    },
+                    "description": "# Login API\n\nThis endpoint is used for user authentication in the application. It allows users to log in by providing their phone number and password.\n\n## Request\n\n### Method\n\n`POST`\n\n### URL\n\n`http://{{hostname}}:{{port}}/api/auth/login`\n\n### Request Body\n\nThe request body must be in JSON format and should include the following parameters:\n\n- **phoneNumber** (string): The phone number associated with the user account. This is a required field.\n    \n- **password** (string): The password for the user account. This is also a required field.\n    \n\n#### Example Request Body\n\n``` json\n{\n  \"phoneNumber\": \"8240967184\",\n  \"password\": \"password123\"\n}\n\n ```\n\n## Response\n\nUpon a successful login, the API will return a response containing user authentication details. The structure of the response may include:\n\n- **status** (string): Indicates the success or failure of the login attempt.\n    \n- **message** (string): A message providing more details about the login attempt.\n    \n- **token** (string): A token that can be used for subsequent authenticated requests.\n    \n\n### Important Notes\n\n- Ensure that the phone number is in the correct format and is registered in the system.\n    \n- The password should meet the application's security requirements.\n    \n- If the login fails, the response will provide an appropriate error message for the user to understand the reason for the failure.\n    \n\nThis API is essential for user sessions and should be used securely to protect user credentials."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Register Patient",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"firstName\": \"Ripan 2\",\n    \"lastName\": \"Baidya\",\n    \"phoneNumber\": \"7980717585\",\n    \"password\": \"password123\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/auth/register/patient",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "auth",
+                        "register",
+                        "patient"
+                      ]
+                    },
+                    "description": "### Register Patient API\n\nThis endpoint allows for the registration of a new patient in the system. It accepts user details and creates a new patient record.\n\n#### HTTP Method\n\n`POST`\n\n#### Endpoint\n\n`http://{{host}}:{{port}}/api/auth/register/patient`\n\n#### Request Body\n\nThe request body must be in JSON format and include the following parameters:\n\n- **firstName** (string): The first name of the patient.\n    \n- **lastName** (string): The last name of the patient.\n    \n- **phoneNumber** (string): The contact number for the patient.\n    \n- **password** (string): A secure password for the patient's account.\n    \n\n**Example Request Body:**\n\n``` json\n{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"phoneNumber\": \"1234567890\",\n  \"password\": \"securePassword\"\n}\n\n ```\n\n#### Response Structure\n\nUpon successful registration, the API will return a response with a status code of `201 Created`. The response will be in JSON format and may include the following fields:\n\n- **success** (boolean): Indicates whether the registration was successful.\n    \n- **status** (integer): A status code representing the result of the registration process.\n    \n- **message** (string): A descriptive message providing additional information about the registration process.\n    \n- **data** (object): Contains relevant data related to the newly registered patient, including:\n    \n    - **user** (object): Information about the registered user, including:\n        \n        - **id** (string): The unique identifier for the user.\n            \n        - **role** (string): The role assigned to the user.\n            \n        - **status** (string): The current status of the user.\n            \n    - **token** (object): Contains authentication tokens, including:\n        \n        - **accessToken** (string): The token used for accessing protected resources.\n            \n        - **refreshToken** (string): The token used to obtain a new access token.\n            \n        - **tokenType** (string): The type of the token.\n            \n        - **expiresInMillis** (integer): The time in milliseconds until the token expires.\n            \n\n**Example Response:**\n\n``` json\n{\n  \"success\": true,\n  \"status\": 0,\n  \"message\": \"\",\n  \"data\": {\n    \"user\": {\n      \"id\": \"\",\n      \"role\": \"\",\n      \"status\": \"\"\n    },\n    \"token\": {\n      \"accessToken\": \"\",\n      \"refreshToken\": \"\",\n      \"tokenType\": \"\",\n      \"expiresInMillis\": 0\n    }\n  },\n  \"timestamp\": \"\"\n}\n\n ```\n\n#### Important Notes\n\n- Ensure that all required fields are provided in the request body.\n    \n- The phone number must be unique for each patient.\n    \n- Passwords should be stored securely and follow best practices for security.\n    \n\nThis API is essential for onboarding new patients into the healthcare system and should be used in conjunction with proper validation and error handling mechanisms."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Register Doctor",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"firstName\": \"Torsha\",\n    \"lastName\": \"Dey\",\n    \"phoneNumber\": \"8240967184\",\n    \"password\": \"password123\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/auth/register/doctor",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "auth",
+                        "register",
+                        "doctor"
+                      ]
+                    },
+                    "description": "## Register Doctor API\n\nThis endpoint is used to register a new doctor in the system. It requires the submission of essential personal information for the doctor, which will be used to create a new account. This process is crucial for managing healthcare professionals within the application.\n\n### Request\n\n**Method:** POST  \n**URL:** `http://{{hostname}}:{{port}}/api/auth/register/doctor`\n\n#### Request Body\n\nThe request body must be in JSON format and should include the following parameters:\n\n- `firstName` (string): The first name of the doctor. This is a mandatory field.\n    \n- `lastName` (string): The last name of the doctor. This is a mandatory field.\n    \n- `phoneNumber` (string): The contact phone number of the doctor. This should be a valid phone number format and is required.\n    \n- `password` (string): The password for the doctor's account. This should meet security requirements and is mandatory.\n    \n\n**Example Request Body:**\n\n``` json\n{\n  \"firstName\": \"Torsha\",\n  \"lastName\": \"Dey\",\n  \"phoneNumber\": \"8240967184\",\n  \"password\": \"password123\"\n}\n\n ```\n\n### Response\n\nUpon a successful registration, the API will return a response indicating the status of the registration. The structure of the response will typically include:\n\n- A success message confirming the registration.\n    \n- A unique identifier for the newly created doctor account.\n    \n\nEnsure that all required fields are provided in the request body to avoid validation errors. Proper validation of input parameters is essential to ensure a smooth registration process."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Refresh Token",
+                  "request": {
+                    "auth": {
+                      "type": "noauth"
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://{{hostname}}:{{port}}/api/auth/refresh",
+                      "protocol": "http",
+                      "host": [
+                        "{{hostname}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "auth",
+                        "refresh"
+                      ]
+                    },
+                    "description": "## Refresh Token API\n\nThis endpoint is used to refresh the authentication token for a user session. It allows clients to obtain a new access token using a valid refresh token, ensuring that users can maintain their authenticated state without needing to log in again.\n\n### Request\n\n- **Method**: POST\n    \n- **URL**: `http://{{hostname}}:{{port}}/api/auth/refresh-token`\n    \n\n#### Request Body\n\nThe request must include a JSON object with the following parameter:\n\n- **refreshToken** (string): A valid refresh token that was issued during the initial authentication. This token is required to generate a new access token.\n    \n\n**Example Request Body**:\n\n``` json\n{\n  \"refreshToken\": \"your_valid_refresh_token_here\"\n}\n\n ```\n\n### Response\n\nUpon a successful request, the server will respond with a JSON object containing the new access token. The structure of the response is as follows:\n\n- **accessToken** (string): The newly generated access token that can be used for subsequent authenticated requests.\n    \n- **expiresIn** (integer): The duration in seconds until the access token expires.\n    \n\n**Example Response**:\n\n``` json\n{\n  \"accessToken\": \"new_access_token_here\",\n  \"expiresIn\": 3600\n}\n\n ```\n\n### Important Notes\n\n- Ensure that the refresh token is valid and has not expired; otherwise, the request will fail.\n    \n- This endpoint is crucial for maintaining user sessions without requiring frequent logins.\n    \n- If the refresh token is invalid, the server will return an error response indicating the issue.\n    \n\nBy using this endpoint, clients can efficiently manage user authentication and enhance the user experience by minimizing disruptions during active sessions."
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Internal",
+              "item": [
+                {
+                  "name": "Update Account Status",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/internal/auth/update-status",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "internal",
+                        "auth",
+                        "update-status"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Crate Patient Profile",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/internal/patient/create-profile",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "internal",
+                        "patient",
+                        "create-profile"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Crate Doctor Profile",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/internal/doctor/create-profile",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "internal",
+                        "doctor",
+                        "create-profile"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Patient",
+          "item": [
+            {
+              "name": "Profile",
+              "item": [
+                {
+                  "name": "Fetch Patient Profile",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{access_token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer <token>"
+                      }
+                    ],
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/patient/profile",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "patient",
+                        "profile"
+                      ]
+                    },
+                    "description": "## Endpoint: Get Patient Profile\n\n### Purpose\n\nThis endpoint retrieves the profile information of a specific patient. It is used to fetch detailed data associated with a patient's record, including personal and medical information.\n\n### Request Format\n\n- **Method**: GET\n    \n- **URL**: `http://{{host}}:{{port}}/api/patient/profile`\n    \n- **Headers**:\n    \n    - `Authorization`: Bearer token for authentication (required).\n        \n    - `Content-Type`: application/json (optional, but recommended for clarity).\n        \n\n### Response Format\n\nOn a successful request, the response will return a JSON object containing the patient's profile details. The structure of the response typically includes:\n\n- `success`: Indicates whether the request was successful.\n    \n- `status`: Status code of the response.\n    \n- `message`: Additional message regarding the request.\n    \n- `data`: Object containing the patient's profile information, which includes:\n    \n    - `id`: Unique identifier for the patient.\n        \n    - `userId`: Identifier associated with the user.\n        \n    - `firstName`: First name of the patient.\n        \n    - `lastName`: Last name of the patient.\n        \n    - `phoneNumber`: Patient's phone number.\n        \n    - `email`: Patient's email address (may be null).\n        \n    - `dateOfBirth`: Patient's date of birth (may be null).\n        \n    - `gender`: Gender of the patient (may be null).\n        \n    - `bloodGroup`: Blood group of the patient (may be null).\n        \n    - `profilePhotoUrl`: URL of the patient's profile photo (may be null).\n        \n- `timestamp`: The time at which the response was generated.\n    \n\n### Example Response\n\n``` json\n{\n  \"success\": true,\n  \"status\": 0,\n  \"message\": \"\",\n  \"data\": {\n    \"id\": \"\",\n    \"userId\": \"\",\n    \"firstName\": \"\",\n    \"lastName\": \"\",\n    \"phoneNumber\": \"\",\n    \"email\": null,\n    \"dateOfBirth\": null,\n    \"gender\": null,\n    \"bloodGroup\": null,\n    \"profilePhotoUrl\": null\n  },\n  \"timestamp\": \"\"\n}\n\n ```\n\nEnsure that the appropriate authorization token is included in the headers to access the patient profile data."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Update Patient Profile",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{access_token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer <token>"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"firstName\": \"\",\n    \"lastName\": \"\",\n    \"email\": \"ripanbaidya7980@gmail.com\",\n    \"dateOfBirth\": \"2024-11-12\",\n    \"gender\": \"MALE\",\n    \"bloodGroup\": \"O_POSITIVE\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/patient/profile",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "patient",
+                        "profile"
+                      ]
+                    },
+                    "description": "## Update Patient Profile\n\nThis endpoint allows you to update the profile information of a patient. It accepts a PUT request to modify the existing patient details based on the provided input parameters.\n\n### Request\n\n**URL:** `http://{{host}}:{{port}}/api/patient/profile`  \n**Method:** PUT  \n**Content-Type:** application/json\n\n#### Request Body Parameters\n\nThe request body must contain the following parameters in JSON format:\n\n- `firstName` (string): The first name of the patient.\n    \n- `lastName` (string): The last name of the patient.\n    \n- `email` (string): The email address of the patient.\n    \n- `dateOfBirth` (string): The date of birth of the patient in YYYY-MM-DD format.\n    \n- `gender` (string): The gender of the patient (e.g., \"MALE\", \"FEMALE\").\n    \n- `bloodGroup` (string): The blood group of the patient (e.g., \"O_POSITIVE\").\n    \n\n### Response\n\nUpon a successful update, the server responds with a JSON object containing the following fields:\n\n- `success` (boolean): Indicates whether the update was successful.\n    \n- `status` (integer): The status code of the response.\n    \n- `message` (string): A message providing additional information about the response.\n    \n- `data` (object): Contains the updated patient information, including:\n    \n    - `id` (string): The unique identifier for the patient.\n        \n    - `userId` (string): The user ID associated with the patient.\n        \n    - `firstName` (string): The updated first name of the patient.\n        \n    - `lastName` (string): The updated last name of the patient.\n        \n    - `phoneNumber` (string): The phone number of the patient.\n        \n    - `email` (string): The updated email address of the patient.\n        \n    - `dateOfBirth` (string): The updated date of birth of the patient.\n        \n    - `gender` (string): The updated gender of the patient.\n        \n    - `bloodGroup` (string): The updated blood group of the patient.\n        \n    - `profilePhotoUrl` (string or null): The URL of the patient's profile photo, if available.\n        \n- `timestamp` (string): The timestamp of the response.\n    \n\n### Example Response\n\n``` json\n{\n  \"success\": true,\n  \"status\": 0,\n  \"message\": \"\",\n  \"data\": {\n    \"id\": \"\",\n    \"userId\": \"\",\n    \"firstName\": \"\",\n    \"lastName\": \"\",\n    \"phoneNumber\": \"\",\n    \"email\": \"\",\n    \"dateOfBirth\": \"\",\n    \"gender\": \"\",\n    \"bloodGroup\": \"\",\n    \"profilePhotoUrl\": null\n  },\n  \"timestamp\": \"\"\n}\n\n ```\n\nThis endpoint is crucial for maintaining up-to-date patient information within the system."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Upload Profile Picture",
+                  "protocolProfileBehavior": {
+                    "disabledSystemHeaders": {}
+                  },
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{access_token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "uuid": "bda69679-fd39-438b-80a6-8662088535a7",
+                          "src": "/private/var/folders/_2/4l288nq11cb28q0b7498yjyw0000gn/T/TemporaryItems/com.apple.Photos.NSItemProvider/uuid=FAEE35E9-F978-46C2-A319-75E708EB68BD&code=001&library=1&type=1&mode=1&loc=true&cap=true.jpeg/linkedin-profile.jpeg"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/patient/profile/upload-photo",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "patient",
+                        "profile",
+                        "upload-photo"
+                      ]
+                    },
+                    "description": "## Upload Patient Profile Photo\n\nThis endpoint allows users to upload a profile photo for a patient. It is designed to update the patient's profile with a new image, which can be used for identification purposes within the system.\n\n### Request\n\n- **Method**: PATCH\n    \n- **URL**: `http://{{host}}:{{port}}/api/patient/profile/upload-photo`\n    \n- **Content-Type**: `multipart/form-data`\n    \n\n#### Request Body Parameters\n\n| Key | Type | Description |\n| --- | --- | --- |\n| file | file | The image file to be uploaded as the patient's profile photo. |\n\n### Response\n\nUpon a successful request, the server responds with a JSON object containing the following structure:\n\n- **success**: (boolean) Indicates whether the operation was successful.\n    \n- **status**: (integer) Status code of the response.\n    \n- **message**: (string) A message providing additional information about the request.\n    \n- **data**: (object) Contains the updated patient profile information:\n    \n    - **id**: (string) The unique identifier of the patient.\n        \n    - **userId**: (string) The identifier for the user associated with the patient.\n        \n    - **firstName**: (string) The first name of the patient.\n        \n    - **lastName**: (string) The last name of the patient.\n        \n    - **phoneNumber**: (string) The contact number of the patient.\n        \n    - **email**: (string) The email address of the patient.\n        \n    - **dateOfBirth**: (string) The date of birth of the patient.\n        \n    - **gender**: (string) The gender of the patient.\n        \n    - **bloodGroup**: (string) The blood group of the patient.\n        \n    - **profilePhotoUrl**: (string) The URL of the uploaded profile photo.\n        \n- **timestamp**: (string) The time at which the response was generated.\n    \n\n### Status Codes\n\n- **200 OK**: The photo was successfully uploaded and the patient profile was updated.\n    \n\nThis endpoint is essential for maintaining accurate and up-to-date patient information within the system."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete Profile Picture",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{access_token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/patient/profile/remove-photo",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "patient",
+                        "profile",
+                        "remove-photo"
+                      ]
+                    },
+                    "description": "## Delete Patient Profile Photo\n\nThis endpoint allows you to remove a photo associated with a patient's profile. It is useful for managing patient data and ensuring that outdated or unwanted images are deleted from the system.\n\n### Request\n\n- **Method**: DELETE\n    \n- **Endpoint**: `http://{{host}}:{{port}}/api/patient/profile/remove-photo`\n    \n\n#### Request Parameters\n\nThis endpoint does not require any additional parameters in the request body. However, it is essential to ensure that the correct patient identifier is included in the request URL or headers to specify which patient's photo is to be removed.\n\n### Response\n\nUpon successful deletion of the photo, the response will generally include:\n\n- **Status Code**: `204 No Content` - This indicates that the request was successful and there is no additional content to send in the response.\n    \n\n### Important Notes\n\n- Ensure that the user has the necessary permissions to delete a patient's photo.\n    \n- It is recommended to verify the patient's identity before performing this action to prevent unauthorized deletions.\n    \n\n### Usage Example\n\nTo remove a photo for a specific patient, you would send a DELETE request to the endpoint as follows:\n\n```\nDELETE http://{{host}}:{{port}}/api/patient/profile/remove-photo\n\n ```\n\nMake sure to include the necessary authentication headers and any required patient identifiers."
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Address",
+              "item": [
+                {
+                  "name": "Add Address",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{access_token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"addressLine\": \"42, 5th Cross, Indiranagar 1st Stage\",\n    \"city\": \"Bengaluru\",\n    \"state\": \"Karnataka\",\n    \"pinCode\": \"560038\",\n    \"country\": \"India\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/patient/addresses",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "patient",
+                        "addresses"
+                      ]
+                    },
+                    "description": "## Add Patient Address\n\nThis endpoint allows you to add a new address for a patient. It accepts a JSON payload containing the address details and returns a confirmation of the successful addition.\n\n### Request\n\n**Method:** POST  \n**URL:** `http://{{host}}:{{port}}/api/patient/addresses`\n\n#### Request Body\n\nThe request body must be in JSON format and should include the following parameters:\n\n- **addressLine** (string): The street address of the patient.\n    \n- **city** (string): The city where the patient resides.\n    \n- **state** (string): The state where the patient resides.\n    \n- **pinCode** (string): The postal code for the address.\n    \n- **country** (string): The country of the address.\n    \n\n**Example Request Body:**\n\n``` json\n{\n  \"addressLine\": \"123 Main St\",\n  \"city\": \"Anytown\",\n  \"state\": \"CA\",\n  \"pinCode\": \"12345\",\n  \"country\": \"USA\"\n}\n\n ```\n\n### Response\n\nUpon a successful request, the API will return a JSON response with the following structure:\n\n- **success** (boolean): Indicates whether the request was successful.\n    \n- **status** (integer): The status code of the response.\n    \n- **message** (string): A message providing additional context (if any).\n    \n- **data** (object): Contains the address details that were added.\n    \n    - **addressLine** (string): The street address.\n        \n    - **city** (string): The city.\n        \n    - **state** (string): The state.\n        \n    - **pinCode** (string): The postal code.\n        \n    - **country** (string): The country.\n        \n- **timestamp** (string): The time when the response was generated.\n    \n\n**Example Response:**\n\n``` json\n{\n  \"success\": true,\n  \"status\": 0,\n  \"message\": \"\",\n  \"data\": {\n    \"addressLine\": \"\",\n    \"city\": \"\",\n    \"state\": \"\",\n    \"pinCode\": \"\",\n    \"country\": \"\"\n  },\n  \"timestamp\": \"\"\n}\n\n ```\n\n### Important Notes\n\n- Ensure that all fields are provided in the request body to avoid validation errors.\n    \n- The response will echo back the structure of the address in the `data` field, but the actual values may be empty as this is a confirmation of the operation."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Fetch Address Details",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{access_token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/patient/addresses",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "patient",
+                        "addresses"
+                      ]
+                    },
+                    "description": "### Retrieve Patient Addresses\n\nThis endpoint allows you to retrieve the addresses associated with a specific patient. It is a GET request that returns the address details in a structured JSON format.\n\n#### Request Parameters\n\nNo input parameters are required for this request.\n\n#### Response Structure\n\nThe response will be in JSON format and includes the following fields:\n\n- **success** (boolean): Indicates whether the request was successful.\n    \n- **status** (integer): Status code of the response.\n    \n- **message** (string): A message providing additional information about the request.\n    \n- **data** (object): Contains the address details:\n    \n    - **addressLine** (string): The street address of the patient.\n        \n    - **city** (string): The city where the patient resides.\n        \n    - **state** (string): The state of the patient's address.\n        \n    - **pinCode** (string): The postal code for the address.\n        \n    - **country** (string): The country of the patient's residence.\n        \n- **timestamp** (string): The time at which the response was generated.\n    \n\n#### Example Response\n\n``` json\n{\n  \"success\": true,\n  \"status\": 0,\n  \"message\": \"\",\n  \"data\": {\n    \"addressLine\": \"\",\n    \"city\": \"\",\n    \"state\": \"\",\n    \"pinCode\": \"\",\n    \"country\": \"\"\n  },\n  \"timestamp\": \"\"\n}\n\n ```\n\nThis endpoint is essential for applications that need to display or manage patient address information."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete Address",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{access_token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/patient/addresses",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "patient",
+                        "addresses"
+                      ]
+                    },
+                    "description": "## DELETE Patient Address\n\nThis endpoint is used to delete a patient's address from the system. It allows clients to remove specific address entries associated with a patient.\n\n### Request Format\n\n- **Method**: DELETE\n    \n- **URL**: `http://{{host}}:{{port}}/api/patient/addresses`\n    \n\n### Expected Request Body\n\nThis endpoint does not require a request body. However, it is important to ensure that the appropriate headers are included in the request.\n\n### Important Headers\n\n- **Authorization**: A valid token must be included in the request headers to authenticate the user making the request.\n    \n- **Content-Type**: This should be set to `application/xml` or `application/json` depending on the API specification, although the DELETE request typically does not require a body.\n    \n\n### Expected Response Format\n\n- **Status Code**: `204 No Content`\n    \n- **Content-Type**: `text/xml`\n    \n\nA successful deletion will result in a `204 No Content` status, indicating that the request was processed successfully, and there is no additional content to return.\n\n### Notes\n\n- Ensure that the patient address to be deleted is correctly identified prior to making the request, as this action is irreversible.\n    \n- This endpoint is designed to handle requests that conform to the specified authorization and content type requirements."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Update Address",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{access_token}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"addressLine\": \"40, 5th Cross, Indiranagar 1st Stage\",\n    \"city\": \"Bengaluru\",\n    \"state\": \"Karnataka\",\n    \"pinCode\": \"560038\",\n    \"country\": \"India\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/patient/addresses",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "patient",
+                        "addresses"
+                      ]
+                    },
+                    "description": "### Update Patient Address\n\n#### API\n\n`PATCH http://localhost:8080/api/patient/addresses`\n\nThis endpoint allows users to update the address information for a patient. It is designed to modify existing address details by providing the necessary parameters in the request body.\n\n#### Request Body Parameters\n\nThe request body should be in JSON format and include the following parameters:\n\n- **addressLine** (string): The street address of the patient.\n    \n- **city** (string): The city where the patient resides.\n    \n- **state** (string): The state where the patient resides.\n    \n- **pinCode** (string): The postal code for the patient's address.\n    \n- **country** (string): The country of residence for the patient.\n    \n\n#### Example Request Body\n\n``` json\n{\n  \"addressLine\": \"123 Main St\",\n  \"city\": \"Springfield\",\n  \"state\": \"IL\",\n  \"pinCode\": \"62701\",\n  \"country\": \"USA\"\n}\n\n ```\n\n#### Response Structure\n\nUpon a successful request, the server will respond with a JSON object containing the following fields:\n\n- **success** (boolean): Indicates whether the update was successful.\n    \n- **status** (integer): A status code representing the result of the operation (0 for success).\n    \n- **message** (string): A message providing additional information about the operation (can be empty).\n    \n- **data** (object): An object containing the updated address details, which will be returned as empty strings if the update was successful.\n    \n- **timestamp** (string): The timestamp of the response.\n    \n\n#### Example Response\n\n``` json\n{\n  \"success\": true,\n  \"status\": 0,\n  \"message\": \"\",\n  \"data\": {\n    \"addressLine\": \"\",\n    \"city\": \"\",\n    \"state\": \"\",\n    \"pinCode\": \"\",\n    \"country\": \"\"\n  },\n  \"timestamp\": \"\"\n}\n\n ```\n\n#### Important Notes\n\n- Ensure that all required fields are included in the request body to avoid validation errors.\n    \n- The response will confirm the success of the operation, but the data fields in the response will be empty strings as a placeholder.\n    \n- This endpoint is intended for updating existing addresses; it may not create new address entries."
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Internal",
+              "item": [
+                {
+                  "name": "Create Patient Profile",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"userId\": \"\",\n    \"firstName\": \"\",\n    \"lastName\": \"\",\n    \"phoneNumber\": \"\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/internal/patient/create-profile",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "internal",
+                        "patient",
+                        "create-profile"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Doctor",
+          "item": [
+            {
+              "name": "Profile",
+              "item": [
+                {
+                  "name": "Fetch Profile",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{accss_token_doctor}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer <token>"
+                      }
+                    ],
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/doctor/profile",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "doctor",
+                        "profile"
+                      ]
+                    },
+                    "description": "## Get Doctor Profile\n\nThis endpoint retrieves the profile information of a doctor from the system. It is a read-only operation that allows users to access detailed information regarding a specific doctor's profile.\n\n### Request\n\n- **Method:** GET\n    \n- **URL:** `http://localhost:8080/api/doctor/profile`\n    \n\n### Response\n\nUpon a successful request, the server will return a response with the following structure:\n\n- **Status Code:** 200 OK\n    \n- **Content-Type:** application/json\n    \n\n#### Response Body\n\n``` json\n{\n    \"success\": true,\n    \"status\": 0,\n    \"message\": \"\",\n    \"data\": {\n        \"id\": \"\",\n        \"userId\": \"\",\n        \"firstName\": \"\",\n        \"lastName\": \"\",\n        \"phoneNumber\": \"\",\n        \"profilePhotoUrl\": null,\n        \"onboardingCompleted\": true,\n        \"email\": \"\",\n        \"gender\": \"\",\n        \"dateOfBirth\": \"\",\n        \"specialization\": \"\",\n        \"qualification\": \"\",\n        \"yearsOfExperience\": 0,\n        \"bio\": \"\",\n        \"languagesSpoken\": [\"\"]\n    },\n    \"timestamp\": \"\"\n}\n\n ```\n\n#### Response Fields\n\n- **success**: Indicates whether the request was successful.\n    \n- **status**: A numeric status code representing the result of the request.\n    \n- **message**: A message providing additional context about the request's outcome.\n    \n- **data**: An object containing the doctor's profile information:\n    \n    - **id**: Unique identifier for the doctor.\n        \n    - **userId**: Identifier for the user associated with the doctor.\n        \n    - **firstName**: Doctor's first name.\n        \n    - **lastName**: Doctor's last name.\n        \n    - **phoneNumber**: Contact number for the doctor.\n        \n    - **profilePhotoUrl**: URL to the doctor's profile photo.\n        \n    - **onboardingCompleted**: Boolean indicating if the onboarding process is complete.\n        \n    - **email**: Doctor's email address.\n        \n    - **gender**: Doctor's gender.\n        \n    - **dateOfBirth**: Doctor's date of birth.\n        \n    - **specialization**: Field of specialization for the doctor.\n        \n    - **qualification**: Doctor's qualifications.\n        \n    - **yearsOfExperience**: Total years of experience in the field.\n        \n    - **bio**: A short biography of the doctor.\n        \n    - **languagesSpoken**: An array of languages spoken by the doctor.\n        \n- **timestamp**: The time when the response was generated.\n    \n\n### Important Notes\n\n- Ensure that the user is authenticated and has the necessary permissions to access this endpoint.\n    \n- The `data` object may contain empty strings or null values if certain information is not available for the doctor.\n    \n- The `languagesSpoken` field will return an array, which may include empty strings if no languages are specified.\n    \n\nThis endpoint is essential for applications that require access to doctor profiles for display or management purposes."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Update Doctor Profile",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{accss_token_doctor}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"firstName\": \"\",\n    \"lastName\": \"\",\n    \"email\": \"tdey@gmail.com\",\n    \"gender\": \"\",\n    \"dateOfBirth\": \"\",\n    \"specialization\": \"\",\n    \"qualification\": \"\",\n    \"yearsOfExperience\": 2,\n    \"bio\": \"\",\n    \"languagesSpoken\": []\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/doctor/profile",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "doctor",
+                        "profile"
+                      ]
+                    },
+                    "description": "## Update Doctor Profile\n\nThis endpoint allows you to update the profile information of a doctor. By sending a PUT request to the specified URL, you can modify various attributes of the doctor's profile.\n\n### Request Body Parameters\n\nThe request body should be a JSON object containing the following fields:\n\n- **firstName** (string): The first name of the doctor.\n    \n- **lastName** (string): The last name of the doctor.\n    \n- **email** (string): The email address of the doctor.\n    \n- **gender** (string): The gender of the doctor.\n    \n- **dateOfBirth** (string): The date of birth of the doctor in ISO format.\n    \n- **specialization** (string): The area of specialization for the doctor.\n    \n- **qualification** (string): The qualifications held by the doctor.\n    \n- **yearsOfExperience** (integer): The number of years the doctor has been practicing.\n    \n- **bio** (string): A brief biography of the doctor.\n    \n- **languagesSpoken** (array of strings): A list of languages spoken by the doctor.\n    \n\n### Response Structure\n\nOn a successful update, the response will return a JSON object with the following structure:\n\n- **success** (boolean): Indicates whether the operation was successful.\n    \n- **status** (integer): The status code of the operation.\n    \n- **message** (string): A message providing additional information about the operation (if any).\n    \n- **data** (object): Contains the updated profile information, including:\n    \n    - **id** (string): The unique identifier for the doctor profile.\n        \n    - **userId** (string): The user ID associated with the doctor.\n        \n    - **firstName** (string): The updated first name of the doctor.\n        \n    - **lastName** (string): The updated last name of the doctor.\n        \n    - **phoneNumber** (string): The phone number of the doctor.\n        \n    - **profilePhotoUrl** (string|null): The URL of the doctor's profile photo, if available.\n        \n    - **onboardingCompleted** (boolean): Indicates if the onboarding process has been completed.\n        \n    - **email** (string): The updated email address of the doctor.\n        \n    - **gender** (string): The updated gender of the doctor.\n        \n    - **dateOfBirth** (string): The updated date of birth of the doctor.\n        \n    - **specialization** (string): The updated area of specialization for the doctor.\n        \n    - **qualification** (string): The updated qualifications held by the doctor.\n        \n    - **yearsOfExperience** (integer): The updated number of years the doctor has been practicing.\n        \n    - **bio** (string): The updated biography of the doctor.\n        \n    - **languagesSpoken** (array of strings): The updated list of languages spoken by the doctor.\n        \n- **timestamp** (string): The timestamp of the response.\n    \n\n### Status Code\n\n- **200 OK**: Indicates that the profile was successfully updated.\n    \n\nMake sure to provide the necessary details in the request body to ensure a successful update of the doctor's profile."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Upload Profile Photo",
+                  "protocolProfileBehavior": {
+                    "disabledSystemHeaders": {}
+                  },
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{accss_token_doctor}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "uuid": "bda69679-fd39-438b-80a6-8662088535a7",
+                          "src": "/private/var/folders/_2/4l288nq11cb28q0b7498yjyw0000gn/T/TemporaryItems/com.apple.Photos.NSItemProvider/uuid=EC9377AE-EA96-4A6D-917E-24C6233ED520&code=001&library=1&type=1&mode=1&loc=true&cap=true.jpeg/WhatsApp Image 2026-04-01 at 14.15.47.jpeg"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/doctor/profile/upload-photo",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "doctor",
+                        "profile",
+                        "upload-photo"
+                      ]
+                    },
+                    "description": "# Upload Doctor Profile Photo\n\nThis endpoint allows you to upload a profile photo for a doctor. It is a PATCH request that updates the doctor's profile with the provided image file.\n\n## Request\n\n### Method\n\n`PATCH`\n\n### URL\n\n`http://localhost:8080/api/doctor/profile/upload-photo`\n\n### Request Body\n\nThe request body must be sent as `form-data` and should include the following parameter:\n\n- **file** (type: file): The image file to be uploaded as the doctor's profile photo.\n    \n\n### Example\n\nTo upload a profile photo, you would send a request with the file parameter containing the image file you wish to upload.\n\n## Response\n\n### Status Code\n\n`200 OK`\n\n### Content-Type\n\n`application/json`\n\n### Response Structure\n\nThe response will be a JSON object with the following structure:\n\n``` json\n{\n  \"success\": true,\n  \"status\": 0,\n  \"message\": \"\",\n  \"data\": {\n    \"id\": \"\",\n    \"userId\": \"\",\n    \"firstName\": \"\",\n    \"lastName\": \"\",\n    \"phoneNumber\": \"\",\n    \"profilePhotoUrl\": \"\",\n    \"onboardingCompleted\": true,\n    \"email\": \"\",\n    \"gender\": \"\",\n    \"dateOfBirth\": \"\",\n    \"specialization\": \"\",\n    \"qualification\": \"\",\n    \"yearsOfExperience\": 0,\n    \"bio\": \"\",\n    \"languagesSpoken\": [\"\"]\n  },\n  \"timestamp\": \"\"\n}\n\n ```\n\n### Response Fields\n\n- **success**: Indicates whether the operation was successful.\n    \n- **status**: A status code indicating the result of the operation.\n    \n- **message**: A message providing additional information about the operation (if any).\n    \n- **data**: An object containing the updated doctor's profile information, including:\n    \n    - `id`: The unique identifier for the doctor.\n        \n    - `userId`: The user's identifier associated with the doctor.\n        \n    - `firstName`: The doctor's first name.\n        \n    - `lastName`: The doctor's last name.\n        \n    - `phoneNumber`: The doctor's phone number.\n        \n    - `profilePhotoUrl`: The URL of the uploaded profile photo.\n        \n    - `onboardingCompleted`: A boolean indicating if the onboarding process is complete.\n        \n    - `email`: The doctor's email address.\n        \n    - `gender`: The doctor's gender.\n        \n    - `dateOfBirth`: The doctor's date of birth.\n        \n    - `specialization`: The doctor's area of specialization.\n        \n    - `qualification`: The doctor's qualifications.\n        \n    - `yearsOfExperience`: The number of years of experience the doctor has.\n        \n    - `bio`: A short biography of the doctor.\n        \n    - `languagesSpoken`: An array of languages spoken by the doctor.\n        \n- **timestamp**: The time at which the response was generated.\n    \n\n### Important Notes\n\n- Ensure that the file being uploaded is in a supported image format.\n    \n- The response will include the updated profile information, which can be used to confirm that the upload was successful."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete Profile Photo",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{accss_token_doctor}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/doctor/profile/remove-photo",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "doctor",
+                        "profile",
+                        "remove-photo"
+                      ]
+                    },
+                    "description": "## Delete Doctor Profile Photo\n\nThis endpoint is used to remove a profile photo for a doctor. When invoked, it deletes the current profile photo associated with the doctor's account.\n\n### Request Parameters\n\nThis endpoint does not require any input parameters in the request body. The request is sent as an HTTP DELETE request to the specified URL.\n\n### Response Structure\n\nUpon successful execution, the response will return a JSON object with the following structure:\n\n- **success**: A boolean indicating whether the operation was successful.\n    \n- **status**: An integer representing the status code of the operation.\n    \n- **message**: A string that may contain additional information about the operation.\n    \n- **data**: An object containing the following fields:\n    \n    - **id**: The unique identifier for the doctor.\n        \n    - **userId**: The unique identifier for the user.\n        \n    - **firstName**: The first name of the doctor.\n        \n    - **lastName**: The last name of the doctor.\n        \n    - **phoneNumber**: The phone number of the doctor.\n        \n    - **profilePhotoUrl**: The URL of the doctor's profile photo (will be null after deletion).\n        \n    - **onboardingCompleted**: A boolean indicating if the onboarding process is completed.\n        \n    - **email**: The email address of the doctor.\n        \n    - **gender**: The gender of the doctor.\n        \n    - **dateOfBirth**: The date of birth of the doctor.\n        \n    - **specialization**: The medical specialization of the doctor.\n        \n    - **qualification**: The qualifications held by the doctor.\n        \n    - **yearsOfExperience**: The number of years of experience the doctor has.\n        \n    - **bio**: A brief biography of the doctor.\n        \n    - **languagesSpoken**: An array of languages spoken by the doctor.\n        \n\n### Example Response\n\n``` json\n{\n  \"success\": true,\n  \"status\": 0,\n  \"message\": \"\",\n  \"data\": {\n    \"id\": \"\",\n    \"userId\": \"\",\n    \"firstName\": \"\",\n    \"lastName\": \"\",\n    \"phoneNumber\": \"\",\n    \"profilePhotoUrl\": null,\n    \"onboardingCompleted\": true,\n    \"email\": \"\",\n    \"gender\": \"\",\n    \"dateOfBirth\": \"\",\n    \"specialization\": \"\",\n    \"qualification\": \"\",\n    \"yearsOfExperience\": 0,\n    \"bio\": \"\",\n    \"languagesSpoken\": [\"\"]\n  },\n  \"timestamp\": \"\"\n}\n\n ```\n\nThis response confirms the successful removal of the profile photo and provides the updated details of the doctor."
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Clinics",
+              "item": [
+                {
+                  "name": "Add Clinics",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{accss_token_doctor}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"name\": \"GreenLife Health Center\",\n    \"type\": \"PRIVATE_CLINIC\",\n    \"consultationFees\": 500.00,\n    \"consultationDurationMinutes\": 30,\n    \"contactNumber\": \"8240967188\",\n    \"addressLine\": \"BTM Layout 2nd Stage\",\n    \"city\": \"Bengaluru\",\n    \"state\": \"Karnataka\",\n    \"pincode\": \"560076\",\n    \"country\": \"India\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/doctor/clinics",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "doctor",
+                        "clinics"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get All Clinics of Doctor",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{accss_token_doctor}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/doctor/clinics",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "doctor",
+                        "clinics"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete Clinic",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{accss_token_doctor}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/doctor/clinics/:clinicId",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "doctor",
+                        "clinics",
+                        ":clinicId"
+                      ],
+                      "variable": [
+                        {
+                          "key": "clinicId",
+                          "value": "93efefe9-f8e8-4c82-b9f4-30bbe227ab03"
+                        }
+                      ]
+                    },
+                    "description": "### Delete Clinic\n\n### API - /api/doctor/clinics/{clinicId}\n\nThis endpoint is used to delete a specific clinic associated with a doctor from the system. The clinic is identified by its unique `clinicId`.\n\n#### Request Parameters\n\n- **clinicId** (path parameter): A unique identifier for the clinic that you wish to delete. This should be a valid UUID format.\n    \n\n#### Response\n\n- **Status Code**: `204 No Content`\n    \n    - Indicates that the request was successful and the clinic has been deleted. There is no content returned in the response body.\n        \n\n#### Example\n\nTo delete a clinic with the ID `cd36a250-d92d-44b0-889c-ae14d2e727a3`, the request would be made to:\n\n```\nDELETE http://localhost:{{port}}/api/doctor/clinics/cd36a250-d92d-44b0-889c-ae14d2e727a3\n\n ```\n\nUpon successful deletion, the response will have a status of `204` with no additional content.\n\nThis endpoint is essential for managing clinic records and ensuring that outdated or unnecessary clinics can be removed from the system efficiently."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Update Clinic Information",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{accss_token_doctor}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"consultationFees\": 600.00,\n  \"city\": \"Kolkata\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/doctor/clinics/:clinicId",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "doctor",
+                        "clinics",
+                        ":clinicId"
+                      ],
+                      "variable": [
+                        {
+                          "key": "clinicId",
+                          "value": "5d3dbbd1-625f-4f72-828e-7c311aac2714"
+                        }
+                      ]
+                    },
+                    "description": "## Update Clinic Information\n\nThis endpoint allows you to update the details of a specific clinic associated with a doctor. By sending a PUT request to the specified URL, you can modify various attributes of the clinic.\n\n### Request\n\n**URL:** `http://localhost:{{port}}/api/doctor/clinics/{clinicId}`  \n**Method:** PUT\n\n**Path Parameter:**\n\n- `clinicId` (string): The unique identifier of the clinic you wish to update.\n    \n\n**Request Body:**  \nThe request body must be in JSON format and include the following parameters:\n\n- `name` (string): The name of the clinic.\n    \n- `type` (string): The type of the clinic.\n    \n- `consultationFees` (integer): The fees charged for consultation.\n    \n- `consultationDurationMinutes` (integer): The duration of the consultation in minutes.\n    \n- `contactNumber` (string): The contact number for the clinic.\n    \n- `addressLine` (string): The address line of the clinic.\n    \n- `city` (string): The city where the clinic is located.\n    \n- `state` (string): The state where the clinic is located.\n    \n- `pincode` (string): The postal code for the clinic's address.\n    \n- `country` (string): The country where the clinic is located.\n    \n\n### Response\n\nUpon a successful update, the API will return a JSON response with the following structure:\n\n- `success` (boolean): Indicates whether the update was successful.\n    \n- `status` (integer): The status code of the response.\n    \n- `message` (string): A message providing additional information about the request.\n    \n- `data` (object): Contains the updated clinic information:\n    \n    - `id` (string): The unique identifier of the clinic.\n        \n    - `name` (string): The updated name of the clinic.\n        \n    - `type` (string): The updated type of the clinic.\n        \n    - `consultationFees` (integer): The updated consultation fees.\n        \n    - `consultationDurationMinutes` (integer): The updated consultation duration.\n        \n    - `contactNumber` (string): The updated contact number.\n        \n    - `addressLine` (string): The updated address line.\n        \n    - `city` (string): The updated city.\n        \n    - `state` (string): The updated state.\n        \n    - `pincode` (string): The updated postal code.\n        \n    - `country` (string): The updated country.\n        \n    - `active` (boolean): Indicates whether the clinic is active.\n        \n    - `schedules` (array): An array containing the schedules associated with the clinic.\n        \n\n### Important Notes\n\n- Ensure that the `clinicId` is valid and corresponds to an existing clinic.\n    \n- All parameters in the request body should be provided in accordance with the expected data types.\n    \n- A successful response will have a status code of 200.\n    \n\n### Usage Example\n\nTo update a clinic, you may send the following JSON in the request body:\n\n``` json\n{\n  \"name\": \"Updated Clinic Name\",\n  \"type\": \"General\",\n  \"consultationFees\": 500,\n  \"consultationDurationMinutes\": 30,\n  \"contactNumber\": \"7980717584\",\n  \"addressLine\": \"123 Main St\",\n  \"city\": \"Sample City\",\n  \"state\": \"Sample State\",\n  \"pincode\": \"123456\",\n  \"country\": \"Sample Country\"\n}\n\n ```"
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Internal",
+              "item": [
+                {
+                  "name": "Update Doctor Account Status",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [],
+                    "url": {
+                      "raw": "http://localhost/api/internal/auth/update-status",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "path": [
+                        "api",
+                        "internal",
+                        "auth",
+                        "update-status"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Onboarding",
+              "item": [
+                {
+                  "name": "Step 1 - Complete Onboarding",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          ""
+                        ],
+                        "type": "text/javascript",
+                        "packages": {},
+                        "requests": {}
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{accss_token_doctor}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"email\": \"torshadey15@gmail.com\",\n    \"gender\": \"FEMALE\",\n    \"dateOfBirth\": \"2004-01-19\",\n    \"specialization\": \"NEUROLOGIST\",\n    \"qualification\": \"MBBS\",\n    \"yearsOfExperience\": 1,\n    \"bio\": \"I am a passionate neurologist with a keen interest in brain research.\",\n    \"languagesSpoken\": [\n        \"English\",\n        \"Bengali\",\n        \"Hindi\"\n    ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/doctor/onboarding/complete",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "doctor",
+                        "onboarding",
+                        "complete"
+                      ]
+                    },
+                    "description": "## Complete Doctor Onboarding\n\nThis endpoint is used to finalize the onboarding process for a doctor in the system. It requires the submission of various details related to the doctor's profile.\n\n### Request\n\n- **Method**: POST\n    \n- **URL**: `http://localhost:8080/api/doctor/onboarding/complete`\n    \n\n#### Request Body Parameters\n\nThe request body must be in JSON format and include the following parameters:\n\n- `email` (string): The email address of the doctor.\n    \n- `gender` (string): The gender of the doctor.\n    \n- `dateOfBirth` (string): The date of birth of the doctor in a valid date format.\n    \n- `specialization` (string): The area of specialization of the doctor.\n    \n- `qualification` (string): The qualifications attained by the doctor.\n    \n- `yearsOfExperience` (integer): The total years of experience the doctor has.\n    \n- `bio` (string): A brief biography of the doctor.\n    \n- `languagesSpoken` (array of strings): A list of languages that the doctor can communicate in.\n    \n\n### Response\n\nUpon successful completion of the onboarding process, the API will return a response indicating the result of the operation. The structure of the response will typically include:\n\n- A status message indicating whether the onboarding was successful or if there were any errors.\n    \n- Additional details may be provided depending on the outcome of the request.\n    \n\nEnsure that all required fields are filled out correctly to avoid errors during the onboarding process."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Step 2 - Upload Document",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{accss_token_doctor}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "uuid": "a8c398ae-279f-4e73-b7b1-bfcdc1b7113f",
+                          "src": "/Users/ripanbaidya/Downloads/document.pdf"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/doctor/documents/upload?documentType=MEDICAL_LICENSE",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "doctor",
+                        "documents",
+                        "upload"
+                      ],
+                      "query": [
+                        {
+                          "key": "documentType",
+                          "value": "MEDICAL_LICENSE"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Search Doctors",
+              "item": [
+                {
+                  "name": "Search Doctors",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/doctor/search",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "doctor",
+                        "search"
+                      ],
+                      "query": [
+                        {
+                          "key": "name",
+                          "value": "t",
+                          "disabled": true
+                        },
+                        {
+                          "key": "specialization",
+                          "value": "NEUROLOGIST",
+                          "disabled": true
+                        },
+                        {
+                          "key": "city",
+                          "value": "Kolkata",
+                          "disabled": true
+                        },
+                        {
+                          "key": "maxFees",
+                          "value": "1000",
+                          "disabled": true
+                        },
+                        {
+                          "key": "page",
+                          "value": "0",
+                          "disabled": true
+                        },
+                        {
+                          "key": "size",
+                          "value": "0",
+                          "disabled": true
+                        }
+                      ]
+                    },
+                    "description": "# Doctor Search API\n\nThis endpoint allows users to search for doctors based on specific criteria such as name and maximum consultation fees. It returns a list of doctors that match the search parameters.\n\n## Request\n\n**Method:** GET  \n**URL:** `http://localhost:{{port}}/api/doctor/search`\n\n### Query Parameters\n\n- **name** (string, required): The name or part of the name of the doctor to search for. For example, using \"tor\" will search for doctors whose names contain \"tor\".\n    \n- **maxFees** (integer, required): The maximum consultation fees that a user is willing to pay. This filters the results to only include doctors whose fees are less than or equal to this value.\n    \n\n### Example Request\n\n```\nGET /api/doctor/search?name=tor&maxFees=1000\n\n ```\n\n## Response\n\n**Status Code:** 200  \n**Content-Type:** application/json\n\n### Response Structure\n\nThe response contains the following fields:\n\n- **success** (boolean): Indicates whether the request was successful.\n    \n- **status** (integer): Status code of the request.\n    \n- **message** (string): A message providing additional information about the request status.\n    \n- **data** (object): Contains the search results and additional metadata.\n    \n    - **filters** (object): The filters applied in the search.\n        \n        - **name** (string): The name filter used in the search.\n            \n        - **maxFees** (integer): The maximum fees filter used in the search.\n            \n    - **content** (array): An array of doctor objects that match the search criteria. Each doctor object contains:\n        \n        - **id** (string): Unique identifier for the doctor.\n            \n        - **firstName** (string): The first name of the doctor.\n            \n        - **lastName** (string): The last name of the doctor.\n            \n        - **profilePhotoUrl** (string|null): URL to the doctor's profile photo.\n            \n        - **specialization** (string): The specialization of the doctor.\n            \n        - **qualification** (string): The qualifications of the doctor.\n            \n        - **yearsOfExperience** (integer): Number of years the doctor has been practicing.\n            \n        - **bio** (string): A brief biography of the doctor.\n            \n        - **languagesSpoken** (array): List of languages spoken by the doctor.\n            \n        - **clinics** (array): An array of clinics where the doctor practices, each containing:\n            \n            - **id** (string): Unique identifier for the clinic.\n                \n            - **name** (string): Name of the clinic.\n                \n            - **type** (string): Type of the clinic.\n                \n            - **consultationFees** (integer): Consultation fees at the clinic.\n                \n            - **consultationDurationMinutes** (integer): Duration of the consultation in minutes.\n                \n            - **contactNumber** (string): Contact number of the clinic.\n                \n            - **addressLine** (string): Address of the clinic.\n                \n            - **city** (string): City where the clinic is located.\n                \n            - **state** (string): State where the clinic is located.\n                \n            - **pincode** (string): Pincode of the clinic's location.\n                \n            - **country** (string): Country where the clinic is located.\n                \n            - **active** (boolean): Indicates if the clinic is currently active.\n                \n            - **schedules** (array): An array of schedules for the clinic, each containing:\n                \n                - **id** (string): Unique identifier for the schedule.\n                    \n                - **dayOfWeek** (string): Day of the week for the schedule.\n                    \n                - **startTime** (string): Start time of the consultation.\n                    \n                - **endTime** (string): End time of the consultation.\n                    \n                - **active** (boolean): Indicates if the schedule is currently active.\n                    \n    - **page** (object): Pagination information.\n        \n        - **number** (integer): Current page number.\n            \n        - **size** (integer): Size of the page.\n            \n        - **totalElements** (integer): Total number of elements matching the search criteria.\n            \n        - **totalPages** (integer): Total number of pages available.\n            \n\n### Example Response\n\n``` json\n{\n  \"success\": true,\n  \"status\": 0,\n  \"message\": \"\",\n  \"data\": {\n    \"filters\": {\n      \"name\": \"\",\n      \"maxFees\": 0\n    },\n    \"content\": [\n      {\n        \"id\": \"\",\n        \"firstName\": \"\",\n        \"lastName\": \"\",\n        \"profilePhotoUrl\": null,\n        \"specialization\": \"\",\n        \"qualification\": \"\",\n        \"yearsOfExperience\": 0,\n        \"bio\": \"\",\n        \"languagesSpoken\": [\"\"],\n        \"clinics\": [\n          {\n            \"id\": \"\",\n            \"name\": \"\",\n            \"type\": \"\",\n            \"consultationFees\": 0,\n            \"consultationDurationMinutes\": 0,\n            \"contactNumber\": \"\",\n            \"addressLine\": \"\",\n            \"city\": \"\",\n            \"state\": \"\",\n            \"pincode\": \"\",\n            \"country\": \"\",\n            \"active\": true,\n            \"schedules\": [\n              {\n                \"id\": \"\",\n                \"dayOfWeek\": \"\",\n                \"startTime\": \"\",\n                \"endTime\": \"\",\n                \"active\": true\n              }\n            ]\n          }\n        ]\n      }\n    ],\n    \"page\": {\n      \"number\": 0,\n      \"size\": 0,\n      \"totalElements\": 0,\n      \"totalPages\": 0\n    }\n  },\n  \"timestamp\": \"\"\n}\n\n ```"
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get Doctor Details",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/doctor/:doctorId/public",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "doctor",
+                        ":doctorId",
+                        "public"
+                      ],
+                      "variable": [
+                        {
+                          "key": "doctorId",
+                          "value": "395dbd94-4f09-4532-94d2-b8136ee7b4f8"
+                        }
+                      ]
+                    },
+                    "description": "# Get Doctor Details\n\nThis endpoint retrieves detailed information about a specific doctor identified by their unique ID. The request is made using the HTTP GET method, and it returns a JSON response containing the doctor's profile and associated clinics.\n\n## Request\n\n- **Method**: GET\n    \n- **URL**: `http://localhost:{{port}}/api/doctor/{doctorId}/public`\n    \n- **Path Parameter**:\n    \n    - `doctorId`: The unique identifier of the doctor whose details are being requested. This should be a valid UUID.\n        \n\n### Important Headers\n\n- Ensure to include any necessary authentication headers if required by your API.\n    \n\n## Response\n\nUpon a successful request, the API will return a response with the following structure:\n\n- **Status Code**: 200 OK\n    \n- **Content-Type**: application/json\n    \n- { \"success\": true, \"status\": 0, \"message\": \"\", \"data\": { \"id\": \"\", \"firstName\": \"\", \"lastName\": \"\", \"profilePhotoUrl\": null, \"specialization\": \"\", \"qualification\": \"\", \"yearsOfExperience\": 0, \"bio\": \"\", \"languagesSpoken\": \\[\"\"\\], \"clinics\": \\[ { \"id\": \"\", \"name\": \"\", \"type\": \"\", \"consultationFees\": 0, \"consultationDurationMinutes\": 0, \"contactNumber\": \"\", \"addressLine\": \"\", \"city\": \"\", \"state\": \"\", \"pincode\": \"\", \"country\": \"\", \"active\": true, \"schedules\": \\[\\] } \\] }, \"timestamp\": \"\"}\n    \n\n### Response Fields\n\n- `success`: Indicates whether the request was successful.\n    \n- `status`: A status code representing the outcome of the request.\n    \n- `message`: A message providing additional information about the request.\n    \n- `data`: Contains detailed information about the doctor, including:\n    \n    - `id`: The unique identifier of the doctor.\n        \n    - `firstName`: The doctor's first name.\n        \n    - `lastName`: The doctor's last name.\n        \n    - `profilePhotoUrl`: URL to the doctor's profile photo.\n        \n    - `specialization`: The doctor's area of specialization.\n        \n    - `qualification`: The doctor's qualifications.\n        \n    - `yearsOfExperience`: Number of years the doctor has been practicing.\n        \n    - `bio`: A brief biography of the doctor.\n        \n    - `languagesSpoken`: An array of languages spoken by the doctor.\n        \n    - `clinics`: An array of clinics associated with the doctor, each containing:\n        \n        - `id`: The unique identifier of the clinic.\n            \n        - `name`: The name of the clinic.\n            \n        - `type`: The type of clinic.\n            \n        - `consultationFees`: The fees for consultation.\n            \n        - `consultationDurationMinutes`: Duration of the consultation in minutes.\n            \n        - `contactNumber`: Contact number of the clinic.\n            \n        - `addressLine`: Address of the clinic.\n            \n        - `city`: City where the clinic is located.\n            \n        - `state`: State where the clinic is located.\n            \n        - `pincode`: Postal code of the clinic's location.\n            \n        - `country`: Country where the clinic is located.\n            \n        - `active`: Indicates whether the clinic is active.\n            \n        - `schedules`: Array of schedules for the clinic.\n            \n\nThis endpoint is essential for obtaining comprehensive details about a doctor, which can be used in various applications such as patient management systems or healthcare platforms."
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Schedule",
+              "item": [
+                {
+                  "name": "Set Schedule for Clinic",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{accss_token_doctor}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"schedules\": [\n        {\n            \"dayOfWeek\": \"MONDAY\",\n            \"startTime\": \"09:00:00\",\n            \"endTime\": \"13:00:00\"\n        },\n        {\n            \"dayOfWeek\": \"WEDNESDAY\",\n            \"startTime\": \"14:00:00\",\n            \"endTime\": \"18:00:00\"\n        }\n    ],\n    \"startDate\": \"2026-05-05\",\n    \"endDate\": \"2026-05-30\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/doctor/clinics/:clinicId/schedule",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "doctor",
+                        "clinics",
+                        ":clinicId",
+                        "schedule"
+                      ],
+                      "variable": [
+                        {
+                          "key": "clinicId",
+                          "value": "198c8e66-0edd-4a3f-9632-883c91818721"
+                        }
+                      ]
+                    },
+                    "description": "### Schedule a Clinic Appointment\n\nThis endpoint allows users to schedule appointments for a specific clinic identified by its unique ID. The request is made to the clinic's schedule endpoint, where users can specify the available time slots for appointments.\n\n#### Request\n\n- **Method**: POST\n    \n- **URL**: `http://localhost:{{port}}/api/doctor/clinics/{clinicId}/schedule`\n    \n    - Replace `{clinicId}` with the unique identifier of the clinic (e.g., `cd57cc93-dc3e-4fd5-932b-27255c0e3252`).\n        \n\n#### Input Parameters\n\nThe request body should be in JSON format and must include the following structure:\n\n``` json\n{\n  \"schedules\": [\n    {\n      \"dayOfWeek\": \"MONDAY\",\n      \"startTime\": \"08:30\",\n      \"endTime\": \"13:00\"\n    }\n  ]\n}\n\n ```\n\n- **schedules** (Array): A list of schedule objects.\n    \n    - **dayOfWeek** (String): The day of the week for which the schedule is being set (e.g., \"MONDAY\").\n        \n    - **startTime** (String): The starting time for the schedule in HH:mm format (e.g., \"08:30\").\n        \n    - **endTime** (String): The ending time for the schedule in HH:mm format (e.g., \"13:00\").\n        \n\n#### Response\n\nUpon successful scheduling, the API will return a response indicating the result of the operation. The structure of the response will typically include a confirmation message and any relevant details about the scheduled times.\n\nEnsure that the input parameters are correctly formatted to avoid errors during the scheduling process."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get Schedules for Clinic",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{accss_token_doctor}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/doctor/clinics/:clinicId/schedule",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "doctor",
+                        "clinics",
+                        ":clinicId",
+                        "schedule"
+                      ],
+                      "variable": [
+                        {
+                          "key": "clinicId",
+                          "value": "5d3dbbd1-625f-4f72-828e-7c311aac2714"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Update Schedule",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{accss_token_doctor}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"schedules\": [\n        {\n            \"dayOfWeek\": \"MONDAY\",\n            \"startTime\": \"10:00:00\",\n            \"endTime\": \"14:00:00\"\n        }\n    ],\n    \"startDate\": \"2026-04-30\",\n    \"endDate\": \"2026-05-30\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/doctor/clinics/:clinicId/schedule",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "doctor",
+                        "clinics",
+                        ":clinicId",
+                        "schedule"
+                      ],
+                      "variable": [
+                        {
+                          "key": "clinicId",
+                          "value": "5d3dbbd1-625f-4f72-828e-7c311aac2714"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete Specific Schedule",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{accss_token_doctor}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/doctor/clinics/:clinicId/schedule/WEDNESDAY",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "doctor",
+                        "clinics",
+                        ":clinicId",
+                        "schedule",
+                        "WEDNESDAY"
+                      ],
+                      "variable": [
+                        {
+                          "key": "clinicId",
+                          "value": "5d3dbbd1-625f-4f72-828e-7c311aac2714"
+                        }
+                      ]
+                    },
+                    "description": "### DELETE /api/doctor/clinics/{clinicId}/schedule/{day}\n\nThis endpoint is used to delete the schedule for a specific clinic on a specified day of the week.\n\n#### URL Parameters\n\n- `clinicId` (string): The unique identifier for the clinic whose schedule is to be deleted.\n    \n- `day` (string): The day of the week for which the schedule is being deleted. This should be specified in uppercase (e.g., MONDAY, TUESDAY, etc.).\n    \n\n#### Response\n\n- **Status Code**: `204 No Content`\n    \n    - This indicates that the request was successful and that the server has fulfilled the request, but there is no content to send in the response body.\n        \n- **Content-Type**: `text/xml`\n    \n    - The response format is XML, although no content will be returned in this case.\n        \n\nThis DELETE request is typically used in scenarios where a clinic's schedule needs to be updated or removed entirely for a specific day, ensuring that the clinic's operational hours are accurately reflected."
+                  },
+                  "response": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Appointment",
+          "item": [
+            {
+              "name": "internal",
+              "item": [
+                {
+                  "name": "Confirm Payment",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"appointmentId\": \"5075dd82-3a56-4ade-a4c1-54d576e015ae\",\n    \"paymentId\": \"rzp_test_paymentid_123\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "http://localhost:8084/api/internal/appointment/confirm-payment",
+                      "protocol": "http",
+                      "host": [
+                        "localhost"
+                      ],
+                      "port": "8084",
+                      "path": [
+                        "api",
+                        "internal",
+                        "appointment",
+                        "confirm-payment"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Release Lock",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "http://{{host}}:{{port}}/api/internal/appointment/:appointmentId/release-slot",
+                      "protocol": "http",
+                      "host": [
+                        "{{host}}"
+                      ],
+                      "port": "{{port}}",
+                      "path": [
+                        "api",
+                        "internal",
+                        "appointment",
+                        ":appointmentId",
+                        "release-slot"
+                      ],
+                      "variable": [
+                        {
+                          "key": "appointmentId",
+                          "value": "78d6fd77-9505-404c-aeea-6cee43e865d5"
+                        }
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Get Available Slots for Booking",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/appointment/slots/:doctorId/:clinicId?date=2026-05-11",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "appointment",
+                    "slots",
+                    ":doctorId",
+                    ":clinicId"
+                  ],
+                  "query": [
+                    {
+                      "key": "date",
+                      "value": "2026-05-11"
+                    }
+                  ],
+                  "variable": [
+                    {
+                      "key": "doctorId",
+                      "value": "a09390b0-79f9-4f3f-a914-ef692648c65e"
+                    },
+                    {
+                      "key": "clinicId",
+                      "value": "f600b07c-279f-4858-a797-02238d4ca787"
+                    }
+                  ]
+                },
+                "description": "### Get Appointment Slots\n\nThis endpoint retrieves available appointment slots for a specific doctor at a clinic on a given date. It is essential for users looking to schedule appointments and helps in managing the availability of healthcare services efficiently.\n\n### API\n\n``` bash\napi/appointment/slots/{doctorId}/{clinicId}\n\n ```\n\n#### Purpose\n\nThe primary purpose of this request is to check the availability of appointment slots for a specified doctor and clinic on a particular date, allowing users to make informed decisions when booking appointments.\n\n#### Request Parameters\n\n- **Path Parameters:**\n    \n    - `doctorId` (string): The 'userId' of the Doctor table. (Make sure pass correct value)\n        \n    - `clinicId` (string): The unique identifier for the clinic where the doctor practices.\n        \n- **Query Parameters:**\n    \n    - `date` (string, format: YYYY-MM-DD): The date for which the appointment slots are being requested. This parameter must be provided in the correct format to avoid errors.\n        \n\n#### Example Request\n\n``` http\nGET http://localhost:{{port}}/api/appointment/slots/8f8fa740-e78e-404b-af3b-b25d2ae40fbb/cd57cc93-dc3e-4fd5-932b-27255c0e3252?date=2026-04-24\n\n ```\n\n#### Response Structure\n\nThe response will be in JSON format and contains the following fields:\n\n- **success** (boolean): Indicates whether the request was successful.\n    \n- **status** (integer): Status code of the response.\n    \n- **message** (string): A message providing additional information about the request status.\n    \n- **data** (array): An array of available appointment slots, where each slot contains:\n    \n    - `id` (string): The unique identifier for the slot.\n        \n    - `doctorId` (string): The identifier for the doctor associated with the slot.\n        \n    - `clinicId` (string): The identifier for the clinic associated with the slot.\n        \n    - `slotDate` (string): The date of the appointment slot.\n        \n    - `startTime` (string): The start time of the appointment slot.\n        \n    - `endTime` (string): The end time of the appointment slot.\n        \n    - `status` (string): The current status of the appointment slot.\n        \n- **timestamp** (string): The time at which the response was generated.\n    \n\n#### Example Response\n\n``` json\n{\n  \"success\": true,\n  \"status\": 0,\n  \"message\": \"\",\n  \"data\": [\n    {\n      \"id\": \"\",\n      \"doctorId\": \"\",\n      \"clinicId\": \"\",\n      \"slotDate\": \"\",\n      \"startTime\": \"\",\n      \"endTime\": \"\",\n      \"status\": \"\"\n    }\n  ],\n  \"timestamp\": \"\"\n}\n\n ```\n\n#### Important Notes\n\n- Ensure that the `doctorId` and `clinicId` are valid and correspond to existing records in the system.\n    \n- The `date` parameter must be provided in the correct format (YYYY-MM-DD) to avoid errors.\n    \n- The response will return an empty array if there are no available slots for the specified date.\n    \n\nThis detailed description serves as a clear reference for future use of the endpoint, outlining its purpose, expected input parameters, and the structure of the response."
+              },
+              "response": []
+            },
+            {
+              "name": "Book an Appointment",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"slotId\": \"a9535327-ec50-42ce-97fe-a2cf29e1dbba\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/appointment/book",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "appointment",
+                    "book"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Fetch Details of Booked Appointment",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"slotId\": \"\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/appointment/:appointmentId",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "appointment",
+                    ":appointmentId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "appointmentId",
+                      "value": "78d6fd77-9505-404c-aeea-6cee43e865d5"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Fetch Patient's Appointment's History",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/appointment/patient/history",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "appointment",
+                    "patient",
+                    "history"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0",
+                      "disabled": true
+                    },
+                    {
+                      "key": "size",
+                      "value": "0",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Fetch Doctor's Appointment's History",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accss_token_doctor}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/appointment/doctor/history",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "appointment",
+                    "doctor",
+                    "history"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0",
+                      "disabled": true
+                    },
+                    {
+                      "key": "size",
+                      "value": "0",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Fetch Doctor's Todays Appointments",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accss_token_doctor}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/appointment/doctor/today",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "appointment",
+                    "doctor",
+                    "today"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Mark Appointment Complete",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accss_token_doctor}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/appointment/:appointmentId/complete",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "appointment",
+                    ":appointmentId",
+                    "complete"
+                  ],
+                  "variable": [
+                    {
+                      "key": "appointmentId",
+                      "value": "17e61044-602a-4345-8bfa-9716438494be"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Cancel Confirmed Appointment",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "X-User-Role",
+                    "value": "header"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"reason\": \"Emergency\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/appointment/:appointmentId/cancel",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "appointment",
+                    ":appointmentId",
+                    "cancel"
+                  ],
+                  "variable": [
+                    {
+                      "key": "appointmentId",
+                      "value": "78d6fd77-9505-404c-aeea-6cee43e865d5"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Mark Appointment as No-Show",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accss_token_doctor}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "X-User-Role",
+                    "value": "header"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/appointment/:appointmentId/no-show",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "appointment",
+                    ":appointmentId",
+                    "no-show"
+                  ],
+                  "variable": [
+                    {
+                      "key": "appointmentId",
+                      "value": "027a14b4-63b1-462e-8013-4154c2b26795"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Payment",
+          "item": [
+            {
+              "name": "Initiate Payment",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"appointmentId\": \"17e61044-602a-4345-8bfa-9716438494be\",\n    \"gatewayType\": \"RAZORPAY\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/payment/initiate",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "payment",
+                    "initiate"
+                  ]
+                },
+                "description": "## Initiate Payment\n\nThis endpoint is used to initiate a payment process for a specific appointment.\n\n### Request\n\n**Method:** POST  \n**Endpoint:** `http://{{hostname}}:{{port}}/api/payment/initiate`\n\n#### Request Body\n\nThe request body must be in JSON format and should contain the following parameter:\n\n- **appointmentId** (string): A unique identifier for the appointment for which the payment is being initiated. This parameter is required.\n    \n\n### Response\n\nUpon a successful request, the API will return a response indicating the status of the payment initiation. The expected response format is typically JSON, containing relevant information about the payment process.\n\nMake sure to provide a valid `appointmentId` in the request body to ensure successful payment initiation."
+              },
+              "response": []
+            },
+            {
+              "name": "Verify Payment - Razorpay",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"appointmentId\": \"17e61044-602a-4345-8bfa-9716438494be\",\n    \"razorpayPaymentId\": \"pay_SlaD6kSTpYD35Z\",\n    \"razorpayOrderId\": \"order_SlaC9dyXrWM8yv\",\n    \"razorpaySignature\": \"1db309b9ff779478cb0af96ac58a04edebae5a7538550286a5e209555b675b8a\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/payment/verify",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "payment",
+                    "verify"
+                  ]
+                },
+                "description": "## API Endpoint: Verify Payment\n\nThis endpoint is used to verify a payment made through Razorpay. It checks the validity of the payment details provided in the request body against the Razorpay payment gateway.\n\n### Request Format\n\n- **Method**: POST\n    \n- **URL**: `http://{{host}}:{{port}}/api/payment/verify`\n    \n- **Headers**:\n    \n    - `Content-Type: application/json`\n        \n\n### Request Body\n\nThe request body must be in JSON format and should include the following parameters:\n\n- **appointmentId** (string): The unique identifier for the appointment associated with the payment.\n    \n- **razorpayPaymentId** (string): The unique identifier for the payment generated by Razorpay.\n    \n- **razorpayOrderId** (string): The unique identifier for the order created in Razorpay.\n    \n- **razorpaySignature** (string): The signature generated by Razorpay to verify the authenticity of the payment.\n    \n\n**Example Request Body**:\n\n``` json\n{\n  \"appointmentId\": \"ea356a79-6f18-459d-919f-a2f87e...\",\n  \"razorpayPaymentId\": \"pay_Si52kHZX14WeCV\",\n  \"razorpayOrderId\": \"order_Si52C2vtoXOiWd\",\n  \"razorpaySignature\": \"924a4abb10f3345f2bcdfb58f49e0f...\"\n}\n\n ```\n\n### Response Format\n\nUpon successful verification, the server responds with a JSON object that contains the following fields:\n\n- **success** (boolean): Indicates whether the payment verification was successful.\n    \n- **status** (integer): Status code of the response.\n    \n- **message** (string): A message providing additional information about the response.\n    \n- **data** (object): Contains detailed information about the payment, including:\n    \n    - **id** (string): Unique identifier for the payment verification.\n        \n    - **appointmentId** (string): The appointment ID linked to the payment.\n        \n    - **patientId** (string): The ID of the patient associated with the appointment.\n        \n    - **amount** (integer): The amount paid.\n        \n    - **currency** (string): The currency in which the payment was made.\n        \n    - **razorpayOrderId** (string): The Razorpay order ID.\n        \n    - **razorpayPaymentId** (string): The Razorpay payment ID.\n        \n    - **status** (string): The status of the payment.\n        \n    - **gateway** (string): The payment gateway used.\n        \n    - **createdAt** (string): Timestamp of when the payment was created.\n        \n- **timestamp** (string): The time at which the response was generated.\n    \n\n**Example Response**:\n\n``` json\n{\n  \"success\": true,\n  \"status\": 0,\n  \"message\": \"\",\n  \"data\": {\n    \"id\": \"\",\n    \"appointmentId\": \"\",\n    \"patientId\": \"\",\n    \"amount\": 0,\n    \"currency\": \"\",\n    \"razorpayOrderId\": \"\",\n    \"razorpayPaymentId\": \"\",\n    \"status\": \"\",\n    \"gateway\": \"\",\n    \"createdAt\": \"\"\n  },\n  \"timestamp\": \"\"\n}\n\n ```"
+              },
+              "response": []
+            },
+            {
+              "name": "Verify Payment - Stripe",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"appointmentId\": \"355b890a-0c7f-423d-8ca6-3e9fe74323c7\",\n    \"stripePaymentIntentId\": \"pi_3TTNeXQ2TvgU8iYm0IuLeRCR\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/payment/verify",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "payment",
+                    "verify"
+                  ]
+                },
+                "description": "## API Endpoint: Verify Payment\n\nThis endpoint is used to verify a payment made through Razorpay. It checks the validity of the payment details provided in the request body against the Razorpay payment gateway.\n\n### Request Format\n\n- **Method**: POST\n    \n- **URL**: `http://{{host}}:{{port}}/api/payment/verify`\n    \n- **Headers**:\n    \n    - `Content-Type: application/json`\n        \n\n### Request Body\n\nThe request body must be in JSON format and should include the following parameters:\n\n- **appointmentId** (string): The unique identifier for the appointment associated with the payment.\n    \n- **razorpayPaymentId** (string): The unique identifier for the payment generated by Razorpay.\n    \n- **razorpayOrderId** (string): The unique identifier for the order created in Razorpay.\n    \n- **razorpaySignature** (string): The signature generated by Razorpay to verify the authenticity of the payment.\n    \n\n**Example Request Body**:\n\n``` json\n{\n  \"appointmentId\": \"ea356a79-6f18-459d-919f-a2f87e...\",\n  \"razorpayPaymentId\": \"pay_Si52kHZX14WeCV\",\n  \"razorpayOrderId\": \"order_Si52C2vtoXOiWd\",\n  \"razorpaySignature\": \"924a4abb10f3345f2bcdfb58f49e0f...\"\n}\n\n ```\n\n### Response Format\n\nUpon successful verification, the server responds with a JSON object that contains the following fields:\n\n- **success** (boolean): Indicates whether the payment verification was successful.\n    \n- **status** (integer): Status code of the response.\n    \n- **message** (string): A message providing additional information about the response.\n    \n- **data** (object): Contains detailed information about the payment, including:\n    \n    - **id** (string): Unique identifier for the payment verification.\n        \n    - **appointmentId** (string): The appointment ID linked to the payment.\n        \n    - **patientId** (string): The ID of the patient associated with the appointment.\n        \n    - **amount** (integer): The amount paid.\n        \n    - **currency** (string): The currency in which the payment was made.\n        \n    - **razorpayOrderId** (string): The Razorpay order ID.\n        \n    - **razorpayPaymentId** (string): The Razorpay payment ID.\n        \n    - **status** (string): The status of the payment.\n        \n    - **gateway** (string): The payment gateway used.\n        \n    - **createdAt** (string): Timestamp of when the payment was created.\n        \n- **timestamp** (string): The time at which the response was generated.\n    \n\n**Example Response**:\n\n``` json\n{\n  \"success\": true,\n  \"status\": 0,\n  \"message\": \"\",\n  \"data\": {\n    \"id\": \"\",\n    \"appointmentId\": \"\",\n    \"patientId\": \"\",\n    \"amount\": 0,\n    \"currency\": \"\",\n    \"razorpayOrderId\": \"\",\n    \"razorpayPaymentId\": \"\",\n    \"status\": \"\",\n    \"gateway\": \"\",\n    \"createdAt\": \"\"\n  },\n  \"timestamp\": \"\"\n}\n\n ```"
+              },
+              "response": []
+            },
+            {
+              "name": "Fetch Patient Payment History",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/payment/history",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "payment",
+                    "history"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0",
+                      "disabled": true
+                    },
+                    {
+                      "key": "size",
+                      "value": "0",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Fetch Payment Details for Specific Appointment",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/payment/appointment/:appointmentId",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "payment",
+                    "appointment",
+                    ":appointmentId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "appointmentId",
+                      "value": "027a14b4-63b1-462e-8013-4154c2b26795"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Notification",
+          "item": [
+            {
+              "name": "Fetch All Notifications",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/notification",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "notification"
+                  ],
+                  "query": [
+                    {
+                      "key": "isRead",
+                      "value": "false",
+                      "disabled": true
+                    },
+                    {
+                      "key": "page",
+                      "value": "0",
+                      "disabled": true
+                    },
+                    {
+                      "key": "size",
+                      "value": "0",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete All Notifications",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/notification/all",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "notification",
+                    "all"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Read All Notifications",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/notification/read-all",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "notification",
+                    "read-all"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Count Unread Notifications",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/notification/unread-count",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "notification",
+                    "unread-count"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete a Specific Notification",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/notification/:notificationId",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "notification",
+                    ":notificationId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "notificationId",
+                      "value": "123"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Read a Notification",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/notification/:notificationId/read",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "notification",
+                    ":notificationId",
+                    "read"
+                  ],
+                  "variable": [
+                    {
+                      "key": "notificationId",
+                      "value": "69f1b65beccabb2c59b0e7d2"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Feedback",
+          "item": [
+            {
+              "name": "Fetch Doctor's Received Feedback",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accss_token_doctor}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/feedback/doctor/my",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "feedback",
+                    "doctor",
+                    "my"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0",
+                      "disabled": true
+                    },
+                    {
+                      "key": "size",
+                      "value": "0",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Fetch Feedback's for Specific Doctor",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/feedback/doctor/:doctorId",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "feedback",
+                    "doctor",
+                    ":doctorId"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0",
+                      "disabled": true
+                    },
+                    {
+                      "key": "size",
+                      "value": "0",
+                      "disabled": true
+                    }
+                  ],
+                  "variable": [
+                    {
+                      "key": "doctorId",
+                      "value": "e6fb1666-f03a-4e06-9f0e-a2f9058e85c4"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Submit Feedback",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"appointmentId\": \"17e61044-602a-4345-8bfa-9716438494be\",\n    \"rating\": 4.5,\n    \"comment\": \"Great experience!\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/feedback/doctor/:doctorId",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "feedback",
+                    "doctor",
+                    ":doctorId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "doctorId",
+                      "value": "0d1b3760-5c78-42cc-ad51-b4fbd5eb83e7"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Fetch Feedback Submitted by Patient",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/feedback/patient/my",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "feedback",
+                    "patient",
+                    "my"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0",
+                      "disabled": true
+                    },
+                    {
+                      "key": "size",
+                      "value": "0",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Submitted Feedback",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"rating\": 4.5,\n    \"comment\": \"Overall good experience!\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/feedback/:feedbackId",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "feedback",
+                    ":feedbackId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "feedbackId",
+                      "value": "69f1b807a691a30873dfc7b9"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Submitted Feedback",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/feedback/:feedbackId",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "feedback",
+                    ":feedbackId"
+                  ],
+                  "variable": [
+                    {
+                      "key": "feedbackId",
+                      "value": "69f1b96aa691a30873dfc7ba"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Admin",
+          "item": [
+            {
+              "name": "List of Pending Verifications",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token_admin}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/admin/doctors/pending",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "admin",
+                    "doctors",
+                    "pending"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Reject Doctor's Onboarding Verification Details",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token_admin}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"reason\": \"Resubmit the document\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/admin/doctors/:doctorId/reject",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "admin",
+                    "doctors",
+                    ":doctorId",
+                    "reject"
+                  ],
+                  "variable": [
+                    {
+                      "key": "doctorId",
+                      "value": "98eccb89-9a39-4f8b-b55c-8d4ffe052a23"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Approve Doctor's Onboarding Verification",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token_admin}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/admin/doctors/:doctorId/verify",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "admin",
+                    "doctors",
+                    ":doctorId",
+                    "verify"
+                  ],
+                  "variable": [
+                    {
+                      "key": "doctorId",
+                      "value": "927c3fe2-67c4-4e5e-8de7-27f21c852556"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Analytics Overview",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token_admin}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/admin/analytics/overview",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "admin",
+                    "analytics",
+                    "overview"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Login Account",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{   \n    \"phoneNumber\": \"9674741683\",\n    \"password\": \"password123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://{{host}}:{{port}}/api/auth/login",
+                  "protocol": "http",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "port": "{{port}}",
+                  "path": [
+                    "api",
+                    "auth",
+                    "login"
+                  ]
+                },
+                "description": "# Login API\n\nThis endpoint is used for user authentication in the application. It allows users to log in by providing their phone number and password.\n\n## Request\n\n### Method\n\n`POST`\n\n### URL\n\n`http://{{hostname}}:{{port}}/api/auth/login`\n\n### Request Body\n\nThe request body must be in JSON format and should include the following parameters:\n\n- **phoneNumber** (string): The phone number associated with the user account. This is a required field.\n    \n- **password** (string): The password for the user account. This is also a required field.\n    \n\n#### Example Request Body\n\n``` json\n{\n  \"phoneNumber\": \"8240967184\",\n  \"password\": \"password123\"\n}\n\n ```\n\n## Response\n\nUpon a successful login, the API will return a response containing user authentication details. The structure of the response may include:\n\n- **status** (string): Indicates the success or failure of the login attempt.\n    \n- **message** (string): A message providing more details about the login attempt.\n    \n- **token** (string): A token that can be used for subsequent authenticated requests.\n    \n\n### Important Notes\n\n- Ensure that the phone number is in the correct format and is registered in the system.\n    \n- The password should meet the application's security requirements.\n    \n- If the login fails, the response will provide an appropriate error message for the user to understand the reason for the failure.\n    \n\nThis API is essential for user sessions and should be used securely to protect user credentials."
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
