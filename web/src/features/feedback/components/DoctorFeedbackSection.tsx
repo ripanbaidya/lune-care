@@ -69,7 +69,12 @@ export const DoctorFeedbackSection: React.FC<DoctorFeedbackSectionProps> = ({
       ) : (
         <div className="space-y-4">
           {reviews.map((fb) => (
-            <FeedbackCard key={fb.id} feedback={fb} editable={false} />
+            <FeedbackCard
+              key={fb.id}
+              feedback={fb}
+              editable={false}
+              showPatientIdentity={true}
+            />
           ))}
         </div>
       )}
