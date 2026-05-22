@@ -142,7 +142,7 @@ const HomeFooter: React.FC = () => {
           </div>
         </div>
         <div className="border-t border-gray-800 pt-8 text-center text-sm text-gray-500">
-          <p>&copy; 2026 LuneCare. Crafted for exceptional care delivery.</p>
+          <p>&copy; 2026 LuneCare. All rights reserved.</p>
         </div>
       </div>
     </footer>
