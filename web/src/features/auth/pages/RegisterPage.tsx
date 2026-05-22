@@ -4,7 +4,7 @@ import { useRegister } from "../hooks/useRegister";
 import { ROUTES } from "../../../routes/routePaths";
 import { FieldErrorMessage } from "../../../shared/components/ui/FieldErrorMessage";
 import Spinner from "../../../shared/components/ui/Spinner";
-import { Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import FormCard from "../components/FormCard";
 import PasswordStrengthIndicator from "../components/PasswordStrengthIndicator";
 
@@ -33,6 +33,16 @@ export default function RegisterPage() {
       </div>
 
       <div className="relative z-10 h-full w-full">
+        <div className="absolute top-4 left-4 z-20">
+          <Link
+            to={ROUTES.home}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full border border-gray-700/60 bg-gray-950/70 text-gray-300 text-sm hover:text-white hover:border-gray-500/70 hover:bg-gray-900/80 transition-all duration-200 backdrop-blur-md"
+          >
+            <ArrowLeft size={14} />
+            Home
+          </Link>
+        </div>
+
         <div className="h-full w-full bg-gray-950/70 backdrop-blur-xl overflow-hidden">
           <div className="grid h-full w-full lg:grid-cols-[1.1fr_1fr]">
            
