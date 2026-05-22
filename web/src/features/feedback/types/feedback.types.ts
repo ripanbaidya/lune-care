@@ -2,7 +2,9 @@ export interface FeedbackResponse {
     id: string;
     appointmentId: string;
     doctorId: string;
+    doctorName?: string | null;
     patientId: string;
+    patientName?: string | null;
     rating: number;
     comment: string | null;
     createdAt: string;
