@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { AlertTriangle, ArrowLeft } from "lucide-react";
 import {
   useAppointment,
   useCancelPatientAppointment,
@@ -105,6 +105,7 @@ const AppointmentDetailPage: React.FC = () => {
   const [paymentProcessing, setPaymentProcessing] = React.useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = React.useState(false);
   const [showFeedbackForm, setShowFeedbackForm] = React.useState(false);
+  const [showCancelDialog, setShowCancelDialog] = React.useState(false);
   const [stripeState, setStripeState] = React.useState<{
     clientSecret: string;
     stripeKey: string;
@@ -238,21 +239,25 @@ const AppointmentDetailPage: React.FC = () => {
   };
 
   // ── Appointment Cancellation ──
-  const handleCancel = () => {
+  const handleCancelRequest = () => {
+    setShowCancelDialog(true);
+  };
+
+  const handleCancelConfirm = () => {
     if (!appointment) return;
-    if (
-      !window.confirm("Cancel this appointment? This action cannot be undone.")
-    )
-      return;
 
     cancelAppointment(
       { appointmentId: appointment.id, reason: "Cancelled by patient" },
       {
         onSuccess: () => {
           toast.success("Appointment cancelled.");
+          setShowCancelDialog(false);
           refetch();
         },
-        onError: (err: AppError) => toast.error(err.message),
+        onError: (err: AppError) => {
+          toast.error(err.message);
+          setShowCancelDialog(false);
+        },
       },
     );
   };
@@ -340,7 +345,7 @@ const AppointmentDetailPage: React.FC = () => {
       {(isPendingPayment || isConfirmed) && !stripeState && (
         <CancelAppointmentButton
           isCancelling={isCancelling}
-          onCancel={handleCancel}
+          onCancel={handleCancelRequest}
         />
       )}
 
@@ -354,6 +359,46 @@ const AppointmentDetailPage: React.FC = () => {
           Back to Appointments
         </Link>
       </div>
+
+      {/* ── Cancel Confirmation Dialog ── */}
+      {showCancelDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-red-500/20 bg-gradient-to-b from-gray-900 to-black shadow-2xl">
+            <div className="px-6 pt-5 pb-3 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center">
+                <AlertTriangle size={18} className="text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-white">
+                  Cancel Appointment?
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <div className="px-6 pb-5 pt-2 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setShowCancelDialog(false)}
+                disabled={isCancelling}
+                className="px-4 py-2 text-sm rounded-lg border border-gray-700/70 text-gray-300 hover:bg-gray-800/60 transition-colors disabled:opacity-50"
+              >
+                No, Keep It
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelConfirm}
+                disabled={isCancelling}
+                className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-500 transition-colors disabled:opacity-50"
+              >
+                Yes, Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
