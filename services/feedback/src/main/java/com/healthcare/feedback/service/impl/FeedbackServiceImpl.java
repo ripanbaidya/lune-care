@@ -1,9 +1,13 @@
 package com.healthcare.feedback.service.impl;
 
+import com.healthcare.feedback.client.DoctorServiceClient;
+import com.healthcare.feedback.client.PatientServiceClient;
 import com.healthcare.feedback.entity.Feedback;
 import com.healthcare.feedback.enums.ErrorCode;
 import com.healthcare.feedback.exception.FeedbackException;
 import com.healthcare.feedback.mapper.FeedbackMapper;
+import com.healthcare.feedback.payload.dto.doctor.DoctorIdentityResponse;
+import com.healthcare.feedback.payload.dto.patient.PatientSummaryResponse;
 import com.healthcare.feedback.payload.dto.success.PageInfo;
 import com.healthcare.feedback.payload.request.SubmitFeedbackRequest;
 import com.healthcare.feedback.payload.request.UpdateFeedbackRequest;
@@ -21,7 +25,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -31,17 +39,18 @@ public class FeedbackServiceImpl implements FeedbackService {
     private final FeedbackRepository feedbackRepository;
     private final FeedbackEligibilityRepository eligibilityRepository;
     private final FeedbackAggregationRepository aggregationRepository;
+    private final PatientServiceClient patientServiceClient;
+    private final DoctorServiceClient doctorServiceClient;
 
     /**
      * Submit feedback for a completed appointment.
-     * <br>Guard conditions are checked before saving the feedback.
-     * <br>1. Eligibility check - appointment must exist in {@code feedback_eligibility}
-     * AND belong to this patient. If not found → 422 FEEDBACK_NOT_ELIGIBLE
-     * <br>2. Duplicate check - feedback must not yet exist for this appointmentId.
-     * if exist -> 409 FEEDBACK_ALREADY_EXISTS
-     * <p><b>Re-submission after delete:</b> Deleting feedback removes the
-     * {@code Feedback} document but leaves the eligibility record intact,
-     * so the patient can submit again.
+     * Guard conditions are checked before saving the feedback.
+     * 1. Eligibility check: appointment must exist in {@code feedback_eligibility} and belong
+     * to this patient. If not found → 422 (Feedback not eligible)
+     * 2. Duplicate check: feedback must not yet exist for this appointmentId.
+     * If the feedback exists > 409 (Feedback already exists)
+     * Re-submission after delete: Deleting feedback removes the {@code Feedback} document but
+     * leaves the eligibility record intact, so the patient can submit again.
      */
     @Override
     @Transactional
@@ -82,7 +91,11 @@ public class FeedbackServiceImpl implements FeedbackService {
         log.info("Feedback submitted — feedbackId: {}, appointmentId: {}, rating: {}",
                 feedback.getId(), appointmentId, feedback.getRating());
 
-        return FeedbackMapper.toResponse(feedback);
+        return FeedbackMapper.toResponse(
+                feedback,
+                resolvePatientName(feedback.getPatientId()),
+                resolveDoctorName(feedback.getDoctorId())
+        );
     }
 
     /**
@@ -108,7 +121,11 @@ public class FeedbackServiceImpl implements FeedbackService {
 
         List<FeedbackResponse> content = feedbackPage.getContent()
                 .stream()
-                .map(FeedbackMapper::toResponse)
+                .map(feedback -> FeedbackMapper.toResponse(
+                        feedback,
+                        resolvePatientName(feedback.getPatientId()),
+                        resolveDoctorName(feedback.getDoctorId())
+                ))
                 .toList();
 
         log.info("Doctor feedback fetched — doctorId: {}, totalReviews: {}, averageRating: {}",
@@ -132,9 +149,15 @@ public class FeedbackServiceImpl implements FeedbackService {
         log.debug("Fetching submitted feedback — patientId: {}, page: {}, size: {}",
                 patientId, page, size);
 
-        return feedbackRepository
-                .findByPatientIdOrderByCreatedAtDesc(patientId, PageRequest.of(page, size))
-                .map(FeedbackMapper::toResponse);
+        Page<Feedback> feedbackPage = feedbackRepository
+                .findByPatientIdOrderByCreatedAtDesc(patientId, PageRequest.of(page, size));
+
+        Map<String, String> doctorNameMap = resolveDoctorNames(feedbackPage.getContent());
+        return feedbackPage.map(feedback -> FeedbackMapper.toResponse(
+                feedback,
+                resolvePatientName(feedback.getPatientId()),
+                doctorNameMap.get(feedback.getDoctorId())
+        ));
     }
 
     /**
@@ -146,14 +169,21 @@ public class FeedbackServiceImpl implements FeedbackService {
         log.debug("Fetching received feedback — doctorId: {}, page: {}, size: {}",
                 doctorId, page, size);
 
-        return feedbackRepository
-                .findByDoctorIdOrderByCreatedAtDesc(doctorId, PageRequest.of(page, size))
-                .map(FeedbackMapper::toResponse);
+        Page<Feedback> feedbackPage = feedbackRepository
+                .findByDoctorIdOrderByCreatedAtDesc(doctorId, PageRequest.of(page, size));
+
+        Map<String, String> patientNameMap = resolvePatientNames(feedbackPage.getContent());
+        String doctorName = resolveDoctorName(doctorId);
+        return feedbackPage.map(feedback -> FeedbackMapper.toResponse(
+                feedback,
+                patientNameMap.get(feedback.getPatientId()),
+                doctorName
+        ));
     }
 
     /**
      * Update rating and/or comment on existing feedback.
-     * Only the patient who submitted the feedback can update it.
+     * The patient who submitted the feedback can update it.
      */
     @Override
     @Transactional
@@ -164,22 +194,24 @@ public class FeedbackServiceImpl implements FeedbackService {
 
         Feedback feedback = findOwnedFeedback(feedbackId, patientId);
 
-        // TODO: Rating is not updated to the DB
-        // Update only if the field is non-null
+        // Update only if the field is non-null (allows partial updates)
         if (request.rating() != null) feedback.setRating(request.rating());
         if (StringUtils.hasText(request.comment())) feedback.setComment(request.comment());
 
         feedbackRepository.save(feedback);
 
         log.info("Feedback updated — feedbackId: {}, newRating: {}", feedbackId, request.rating());
-        return FeedbackMapper.toResponse(feedback);
+        return FeedbackMapper.toResponse(
+                feedback,
+                resolvePatientName(feedback.getPatientId()),
+                resolveDoctorName(feedback.getDoctorId())
+        );
     }
 
     /**
-     * Delete feedback by ID.
-     * Only the patient who submitted it can delete it.
-     * The eligibility record is intentionally preserved so the patient
-     * can re-submit feedback for the same appointment.
+     * Delete feedback by id, Only the patient who submitted it can delete it.
+     * The eligibility record is intentionally preserved so the patient can re-submit
+     * feedback for the same appointment.
      */
     @Override
     @Transactional
@@ -215,6 +247,80 @@ public class FeedbackServiceImpl implements FeedbackService {
         }
 
         return feedback;
+    }
+
+    private Map<String, String> resolvePatientNames(List<Feedback> feedbacks) {
+        Set<String> patientIds = feedbacks.stream()
+                .map(Feedback::getPatientId)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toSet());
+
+        Map<String, String> patientNameMap = new HashMap<>();
+        for (String patientId : patientIds) {
+            patientNameMap.put(patientId, resolvePatientName(patientId));
+        }
+        return patientNameMap;
+    }
+
+    private Map<String, String> resolveDoctorNames(List<Feedback> feedbacks) {
+        Set<String> doctorIds = feedbacks.stream()
+                .map(Feedback::getDoctorId)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toSet());
+
+        Map<String, String> doctorNameMap = new HashMap<>();
+        for (String doctorId : doctorIds) {
+            doctorNameMap.put(doctorId, resolveDoctorName(doctorId));
+        }
+        return doctorNameMap;
+    }
+
+    private String resolvePatientName(String patientId) {
+        if (!StringUtils.hasText(patientId)) return null;
+
+
+        try {
+            PatientSummaryResponse summary = patientServiceClient.getPatientSummaryByUserId(patientId);
+            if (summary == null) return null;
+
+
+            if (StringUtils.hasText(summary.fullName())) {
+                return summary.fullName().trim();
+            }
+
+            String firstName = summary.firstName();
+            String lastName = summary.lastName();
+            String fallbackFullName = ((firstName == null ? "" : firstName.trim()) + " "
+                    + (lastName == null ? "" : lastName.trim())).trim();
+
+            return StringUtils.hasText(fallbackFullName) ? fallbackFullName : null;
+        } catch (Exception ex) {
+            log.warn("Unable to resolve patient name for patientId: {}. Falling back to patientId display.", patientId);
+            return null;
+        }
+    }
+
+    private String resolveDoctorName(String doctorId) {
+        if (!StringUtils.hasText(doctorId)) return null;
+
+        try {
+            DoctorIdentityResponse summary = doctorServiceClient.getDoctorIdentityByUserId(doctorId);
+            if (summary == null) return null;
+
+            if (StringUtils.hasText(summary.fullName())) {
+                return summary.fullName().trim();
+            }
+
+            String firstName = summary.firstName();
+            String lastName = summary.lastName();
+            String fallbackFullName = ((firstName == null ? "" : firstName.trim()) + " "
+                    + (lastName == null ? "" : lastName.trim())).trim();
+
+            return StringUtils.hasText(fallbackFullName) ? fallbackFullName : null;
+        } catch (Exception ex) {
+            log.warn("Unable to resolve doctor name for doctorId: {}. Falling back to doctorId display.", doctorId);
+            return null;
+        }
     }
 
 }
