@@ -87,9 +87,9 @@ export default function RegisterPage() {
 
                   <div className="flex items-center gap-3">
                     <div className="flex -space-x-2">
-                      <img src="/public/avatars/2.png" alt="user" className="h-8 w-8 rounded-full border-2 border-indigo-900 object-cover"/>
-                      <img src="/public/avatars/1.png" alt="user" className="h-8 w-8 rounded-full border-2 border-indigo-900 object-cover"/>
-                      <img src="/public/avatars/3.png" alt="user" className="h-8 w-8 rounded-full border-2 border-indigo-900 object-cover"/>
+                      <img src="/avatars/2.png" alt="user" className="h-8 w-8 rounded-full border-2 border-indigo-900 object-cover"/>
+                      <img src="/avatars/1.png" alt="user" className="h-8 w-8 rounded-full border-2 border-indigo-900 object-cover"/>
+                      <img src="/avatars/3.png" alt="user" className="h-8 w-8 rounded-full border-2 border-indigo-900 object-cover"/>
                     </div>
                     <p className="text-xs text-blue-100/80">
                       Join thousands building healthier routines
