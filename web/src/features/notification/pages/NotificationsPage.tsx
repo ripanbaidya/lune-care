@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { NotificationCard } from "../components/NotificationCard";
 import {
   NotificationTabs,
@@ -27,6 +27,7 @@ const TAB_TO_IS_READ: Record<FilterTab, boolean | undefined> = {
 const NotificationsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [page, setPage] = useState(0);
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
   const PAGE_SIZE = 15;
 
   const [actingOnId, setActingOnId] = useState<string | null>(null);
@@ -84,11 +85,19 @@ const NotificationsPage: React.FC = () => {
   };
 
   const handleDeleteAll = () => {
-    if (!window.confirm("Delete all notifications? This cannot be undone."))
-      return;
+    setShowDeleteAllDialog(true);
+  };
+
+  const handleDeleteAllConfirm = () => {
     deleteAll(undefined, {
-      onSuccess: () => toast.success("All notifications deleted"),
-      onError: (err: AppError) => toast.error(err.message),
+      onSuccess: () => {
+        toast.success("All notifications deleted");
+        setShowDeleteAllDialog(false);
+      },
+      onError: (err: AppError) => {
+        toast.error(err.message);
+        setShowDeleteAllDialog(false);
+      },
     });
   };
 
@@ -157,6 +166,45 @@ const NotificationsPage: React.FC = () => {
             >
               Next <ChevronRight size={14} />
             </button>
+          </div>
+        </div>
+      )}
+
+      {showDeleteAllDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-red-500/20 bg-gradient-to-b from-gray-900 to-black shadow-2xl">
+            <div className="px-6 pt-5 pb-3 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center">
+                <AlertTriangle size={18} className="text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-white">
+                  Clear All Notifications?
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <div className="px-6 pb-5 pt-2 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setShowDeleteAllDialog(false)}
+                disabled={isDeletingAll}
+                className="px-4 py-2 text-sm rounded-lg border border-gray-700/70 text-gray-300 hover:bg-gray-800/60 transition-colors disabled:opacity-50"
+              >
+                No, Keep Them
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAllConfirm}
+                disabled={isDeletingAll}
+                className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-500 transition-colors disabled:opacity-50"
+              >
+                Yes, Clear All
+              </button>
+            </div>
           </div>
         </div>
       )}
