@@ -8,6 +8,7 @@ import com.healthcare.patient.mapper.PatientMapper;
 import com.healthcare.patient.payload.request.CreateProfileRequest;
 import com.healthcare.patient.payload.request.UpdateProfileRequest;
 import com.healthcare.patient.payload.response.PatientProfileResponse;
+import com.healthcare.patient.payload.response.PatientSummaryResponse;
 import com.healthcare.patient.repository.PatientRepository;
 import com.healthcare.patient.service.CloudinaryService;
 import com.healthcare.patient.service.PatientService;
@@ -22,6 +23,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
+import java.util.StringJoiner;
 
 @Slf4j
 @Service
@@ -154,6 +156,31 @@ public class PatientServiceImpl implements PatientService {
                     userId, publicId, e.getMessage(), e);
             throw e;
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PatientSummaryResponse getPatientSummaryByUserId(String userId) {
+        Patient patient = findByUserId(userId);
+
+        String firstName = patient.getFirstName();
+        String lastName = patient.getLastName();
+        String fullName = new StringJoiner(" ")
+                .add(firstName == null ? "" : firstName.trim())
+                .add(lastName == null ? "" : lastName.trim())
+                .toString()
+                .trim();
+
+        if (!StringUtils.hasText(fullName)) {
+            fullName = null;
+        }
+
+        return PatientSummaryResponse.builder()
+                .userId(patient.getUserId())
+                .firstName(firstName)
+                .lastName(lastName)
+                .fullName(fullName)
+                .build();
     }
 
     /*

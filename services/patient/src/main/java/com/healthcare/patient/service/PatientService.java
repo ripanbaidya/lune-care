@@ -3,6 +3,7 @@ package com.healthcare.patient.service;
 import com.healthcare.patient.payload.request.CreateProfileRequest;
 import com.healthcare.patient.payload.request.UpdateProfileRequest;
 import com.healthcare.patient.payload.response.PatientProfileResponse;
+import com.healthcare.patient.payload.response.PatientSummaryResponse;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface PatientService {
@@ -22,5 +23,7 @@ public interface PatientService {
     PatientProfileResponse uploadProfilePhoto(String userId, MultipartFile file);
 
     PatientProfileResponse removeProfilePhoto(String userId);
+
+    PatientSummaryResponse getPatientSummaryByUserId(String userId);
 
 }
