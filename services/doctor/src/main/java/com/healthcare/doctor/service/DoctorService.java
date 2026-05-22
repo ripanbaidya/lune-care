@@ -7,6 +7,7 @@ import com.healthcare.doctor.payload.request.UpdateDoctorProfileRequest;
 import com.healthcare.doctor.payload.request.UpdateVerificationStatusRequest;
 import com.healthcare.doctor.payload.response.DoctorProfileResponse;
 import com.healthcare.doctor.payload.response.DoctorPublicResponse;
+import com.healthcare.doctor.payload.response.DoctorIdentityResponse;
 import com.healthcare.doctor.payload.response.DoctorSummaryResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
@@ -43,6 +44,8 @@ public interface DoctorService {
     Doctor findByUserId(String userId);
 
     List<DoctorSummaryResponse> getDoctorsPendingVerification();
+
+    DoctorIdentityResponse getDoctorIdentityByUserId(String userId);
 
     void updateVerificationStatus(String doctorId, UpdateVerificationStatusRequest request);
 }

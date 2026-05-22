@@ -18,6 +18,7 @@ import com.healthcare.doctor.payload.request.UpdateDoctorProfileRequest;
 import com.healthcare.doctor.payload.request.UpdateVerificationStatusRequest;
 import com.healthcare.doctor.payload.response.DoctorProfileResponse;
 import com.healthcare.doctor.payload.response.DoctorPublicResponse;
+import com.healthcare.doctor.payload.response.DoctorIdentityResponse;
 import com.healthcare.doctor.payload.response.DoctorSummaryResponse;
 import com.healthcare.doctor.repository.ClinicRepository;
 import com.healthcare.doctor.repository.DoctorRepository;
@@ -42,6 +43,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -343,6 +345,31 @@ public class DoctorServiceImpl implements DoctorService {
                 .stream()
                 .map(DoctorMapper::toSummaryResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DoctorIdentityResponse getDoctorIdentityByUserId(String userId) {
+        Doctor doctor = findByUserId(userId);
+
+        String firstName = doctor.getFirstName();
+        String lastName = doctor.getLastName();
+        String fullName = new StringJoiner(" ")
+                .add(firstName == null ? "" : firstName.trim())
+                .add(lastName == null ? "" : lastName.trim())
+                .toString()
+                .trim();
+
+        if (!StringUtils.hasText(fullName)) {
+            fullName = null;
+        }
+
+        return DoctorIdentityResponse.builder()
+                .userId(doctor.getUserId())
+                .firstName(firstName)
+                .lastName(lastName)
+                .fullName(fullName)
+                .build();
     }
 
     @Override
