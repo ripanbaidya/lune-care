@@ -1,12 +1,15 @@
 package com.healthcare.patient.controller;
 
 import com.healthcare.patient.payload.request.CreateProfileRequest;
+import com.healthcare.patient.payload.response.PatientSummaryResponse;
 import com.healthcare.patient.service.PatientService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,5 +27,12 @@ public class InternalPatientController {
     ) {
         patientService.creteProfile(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @GetMapping("/user/{userId}/summary")
+    public ResponseEntity<PatientSummaryResponse> getPatientSummaryByUserId(
+            @PathVariable String userId
+    ) {
+        return ResponseEntity.ok(patientService.getPatientSummaryByUserId(userId));
     }
 }
