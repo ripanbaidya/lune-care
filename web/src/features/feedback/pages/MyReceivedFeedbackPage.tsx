@@ -76,7 +76,7 @@ const MyReceivedFeedbackPage: React.FC = () => {
                 key={fb.id}
                 feedback={fb}
                 editable={false}
-                showPatientId={true}
+                showPatientIdentity={true}
               />
             ))}
           </div>

@@ -16,6 +16,14 @@ const MySubmittedFeedbackPage: React.FC = () => {
   const totalPages = pageInfo?.totalPages ?? 0;
   const totalElements = pageInfo?.totalElements ?? 0;
 
+  const getDoctorDisplayName = (doctorName?: string | null, doctorId?: string) => {
+    if (doctorName?.trim()) return doctorName.trim();
+    if (!doctorId) return "Unknown doctor";
+    return doctorId.length > 16
+      ? `${doctorId.slice(0, 8)}...${doctorId.slice(-4)}`
+      : doctorId;
+  };
+
   return (
     <div className="space-y-6 pb-8">
       {/* Header */}
@@ -53,8 +61,10 @@ const MySubmittedFeedbackPage: React.FC = () => {
               <div key={fb.id} className="space-y-2">
                 {/* Show which doctor the feedback was for */}
                 <p className="text-xs font-medium text-gray-500 px-1">
-                  Doctor ID:{" "}
-                  <span className="font-mono text-gray-400">{fb.doctorId}</span>
+                  Doctor:{" "}
+                  <span className="text-gray-300">
+                    {getDoctorDisplayName(fb.doctorName, fb.doctorId)}
+                  </span>
                 </p>
                 <FeedbackCard feedback={fb} editable={true} />
               </div>
