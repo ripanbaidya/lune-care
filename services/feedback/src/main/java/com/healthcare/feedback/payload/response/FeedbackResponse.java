@@ -18,8 +18,14 @@ public record FeedbackResponse(
         @Schema(description = "Doctor's profile ID this feedback is for")
         String doctorId,
 
+        @Schema(description = "Doctor display name for review UI")
+        String doctorName,
+
         @Schema(description = "Patient's user ID who submitted this feedback")
         String patientId,
+
+        @Schema(description = "Patient display name for review UI")
+        String patientName,
 
         @Schema(description = "Rating given by the patient (1.0 to 5.0)", example = "4.5")
         double rating,
