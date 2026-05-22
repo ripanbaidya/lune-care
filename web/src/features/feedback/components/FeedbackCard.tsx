@@ -15,10 +15,11 @@ interface FeedbackCardProps {
    * Should be true only when the current user is the feedback owner (patient view).
    */
   editable?: boolean;
+
   /**
-   * Show patient ID label (used in doctor's "received feedback" view)
+   * Show patient identity label (used in doctor's "received feedback" view)
    */
-  showPatientId?: boolean;
+  showPatientIdentity?: boolean;
 }
 
 /**
@@ -30,7 +31,7 @@ interface FeedbackCardProps {
 export const FeedbackCard: React.FC<FeedbackCardProps> = ({
   feedback,
   editable = false,
-  showPatientId = false,
+  showPatientIdentity = false,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editRating, setEditRating] = useState(feedback.rating);
@@ -100,6 +101,14 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
     });
   };
 
+  const getPatientDisplayName = () => {
+    if (feedback.patientName?.trim()) return feedback.patientName.trim();
+    if (!feedback.patientId) return "Anonymous";
+    return feedback.patientId.length > 16
+      ? `${feedback.patientId.slice(0, 8)}...${feedback.patientId.slice(-4)}`
+      : feedback.patientId;
+  };
+
   return (
     <div className="bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm rounded-xl border border-gray-800/50 px-5 py-4 hover:border-gray-700/50 transition-all duration-200">
       {/* Header row */}
@@ -112,9 +121,9 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({
             size="sm"
             showValue
           />
-          {showPatientId && (
-            <p className="text-xs text-gray-500 font-mono truncate max-w-[160px]">
-              Patient: {feedback.patientId}
+          {showPatientIdentity && (
+            <p className="text-xs text-gray-500 truncate max-w-[220px]">
+              {getPatientDisplayName()}
             </p>
           )}
         </div>
