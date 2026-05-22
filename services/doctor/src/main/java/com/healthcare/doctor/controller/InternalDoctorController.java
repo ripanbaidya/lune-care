@@ -3,6 +3,7 @@ package com.healthcare.doctor.controller;
 import com.healthcare.doctor.payload.request.CreateDoctorProfileRequest;
 import com.healthcare.doctor.payload.request.UpdateVerificationStatusRequest;
 import com.healthcare.doctor.payload.response.DoctorDocumentResponse;
+import com.healthcare.doctor.payload.response.DoctorIdentityResponse;
 import com.healthcare.doctor.payload.response.DoctorSummaryResponse;
 import com.healthcare.doctor.service.ClinicService;
 import com.healthcare.doctor.service.DoctorDocumentService;
@@ -42,6 +43,13 @@ public class InternalDoctorController {
     @GetMapping("/pending-verification")
     public ResponseEntity<List<DoctorSummaryResponse>> getDoctorsPendingVerification() {
         return ResponseEntity.ok(doctorService.getDoctorsPendingVerification());
+    }
+
+    @GetMapping("/user/{userId}/summary")
+    public ResponseEntity<DoctorIdentityResponse> getDoctorIdentityByUserId(
+            @PathVariable String userId
+    ) {
+        return ResponseEntity.ok(doctorService.getDoctorIdentityByUserId(userId));
     }
 
     @GetMapping("/{doctorId}/documents")
