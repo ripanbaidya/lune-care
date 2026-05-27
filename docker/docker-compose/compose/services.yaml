@@ -243,6 +243,18 @@ services:
     networks:
       - lunecare_network
 
+  # Frontend
+  frontend:
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-frontend:${IMAGE_TAG:-latest}
+    container_name: lunecare-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    networks:
+      - lunecare_network
+
 networks:
   lunecare_network:
     name: lunecare_network
