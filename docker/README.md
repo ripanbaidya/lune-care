@@ -1,4 +1,4 @@
-# 🚀 Running LuneCare Locally (Docker Compose + Makefile)
+# Running LuneCare Locally (Docker Compose + Makefile)
 
 Two environments are provided. Pick one based on your workflow:
 
@@ -16,35 +16,32 @@ wrapper that sets the compose file list and delegates to it.
 
 ```
 docker/
-├── .env.example                          ← copy to compose/.env.dev and fill values
 ├── .gitignore
 ├── README.md
 └── docker-compose/
-    ├── Makefile.common                   ← shared targets (included by both envs)
-    │
-    ├── local/                            ← IntelliJ dev: infra + databases only
+    ├── Makefile.common # shared targets (included by both envs)
+    ├── .env.example    # copy to create .env file and fill values
+    ├── local/          # IntelliJ dev: infra + databases only
     │   ├── Makefile
-    │   ├── infra.yaml                    ← RabbitMQ, Redis
-    │   └── databases.yaml               ← PostgreSQL, MongoDB
+    │   ├── infra.yaml      # RabbitMQ, Redis
+    │   └── databases.yaml  # PostgreSQL, MongoDB
     │
-    ├── compose/                          ← fully containerised: everything in Docker
+    ├── compose/                # fully containerised: everything in Docker
     │   ├── Makefile
-    │   ├── .env.dev                      ← your local env vars (not committed)
-    │   ├── infra.yaml                    ← RabbitMQ, Redis
-    │   ├── databases.yaml               ← PostgreSQL, MongoDB
-    │   ├── services.yaml                ← all microservices + API Gateway
-    │   ├── observability.yaml           ← Loki, Alloy, MinIO, Prometheus, Grafana
-    │   └── commons.yaml                 ← shared OpenTelemetry config (extends)
+    │   ├── .env                # your env vars
+    │   ├── infra.yaml          # RabbitMQ, Redis
+    │   ├── databases.yaml      # PostgreSQL, MongoDB
+    │   ├── services.yaml       # all microservices + API Gateway + Frontend
+    │   ├── observability.yaml  # Loki, Alloy, MinIO, Prometheus, Grafana
+    │   └── commons.yaml        # shared OpenTelemetry config (extends)
     │
-    └── observability/                   ← tool-specific configs (shared by compose/)
+    └── observability/  # tool-specific configs (shared by compose/)
         ├── alloy/alloy-config.yaml
         ├── grafana/datasource.yaml
         ├── loki/loki-config.yaml
         ├── prometheus/prometheus.yaml
         └── tempo/tempo.yaml
 ```
-
----
 
 ## 🖥️ Local Setup (IntelliJ + Docker for infra/db)
 
@@ -61,8 +58,6 @@ make up-db      # RabbitMQ + Redis + PostgreSQL + MongoDB
 
 Then run each microservice from IntelliJ with the `dev` Spring profile.
 
----
-
 ## 🐳 Compose Setup (Fully Containerised)
 
 Use this when you want everything running in Docker — no IntelliJ required.
@@ -70,7 +65,7 @@ Use this when you want everything running in Docker — no IntelliJ required.
 ### Prerequisites
 
 - Docker Desktop running
-- `.env.dev` configured (see below)
+- `.env` configured (see below)
 - Images built: `ripanbaidya/lunecare-*:1.0.0`
 - `init-db.sql` present at project root (creates PostgreSQL schemas)
 - RSA keys at `secrets/keys/private_key.pem` and `secrets/keys/public_key.pem`
@@ -80,8 +75,8 @@ Use this when you want everything running in Docker — no IntelliJ required.
 ```bash
 cd docker/docker-compose/compose
 
-cp ../../.env.example .env.dev
-# Open .env.dev and set ENCRYPT_KEY — must match the key used to encrypt {cipher} values
+cp ../../.env.example .env
+# Open .env and set ENCRYPT_KEY — must match the key used to encrypt {cipher} values
 ```
 
 ### Run Everything
@@ -96,8 +91,6 @@ Boot order managed by healthcheck dependencies:
 RabbitMQ + Redis → PostgreSQL + MongoDB → Config Server → Eureka → Microservices → API Gateway
 ```
 
----
-
 ## ⚙️ Core Commands (available in both environments)
 
 | Command        | Description                                    |
@@ -108,7 +101,7 @@ RabbitMQ + Redis → PostgreSQL + MongoDB → Config Server → Eureka → Micro
 | `make restart` | Restart all containers                         |
 | `make rebuild` | Pull latest images and recreate containers     |
 
-## 🔍 Selective Startup
+### 🔍 Selective Startup
 
 | Command            | Description                                                     |
 |--------------------|-----------------------------------------------------------------|
@@ -116,7 +109,7 @@ RabbitMQ + Redis → PostgreSQL + MongoDB → Config Server → Eureka → Micro
 | `make up-db`       | Start infra + PostgreSQL + MongoDB                              |
 | `make up-services` | Start microservices only (`compose/` only; requires infra + db) |
 
-## 📊 Observability & Debugging
+### 📊 Observability & Debugging
 
 | Command             | Description                                           |
 |---------------------|-------------------------------------------------------|
@@ -127,7 +120,7 @@ RabbitMQ + Redis → PostgreSQL + MongoDB → Config Server → Eureka → Micro
 | `make logs-<name>`  | Tail logs for a specific service (e.g. `logs-auth`)   |
 | `make logs-errors`  | Aggregate ERROR/EXCEPTION lines across all services   |
 
-## 🗄️ Database Utilities
+### 🗄️ Database Utilities
 
 | Command              | Description                    |
 |----------------------|--------------------------------|
@@ -136,14 +129,12 @@ RabbitMQ + Redis → PostgreSQL + MongoDB → Config Server → Eureka → Micro
 | `make mongo-connect` | Open MongoDB shell (`mongosh`) |
 | `make mongo-dbs`     | List all MongoDB databases     |
 
-## 🔧 Config Server
+### 🔧 Config Server
 
 | Command               | Description                                          |
 |-----------------------|------------------------------------------------------|
 | `make config-check`   | Validate config-server is serving configs            |
 | `make config-refresh` | Trigger Spring Cloud Bus refresh across all services |
-
----
 
 ## 🌐 API Access
 
@@ -156,8 +147,6 @@ http://localhost:8080/api/v1/appointment/book
 
 > Always use `localhost` from your browser or Postman.
 > Container names (`auth`, `appointment`, etc.) are only resolvable inside the Docker network.
-
----
 
 ## 🔑 Spring Profile Strategy
 
@@ -179,8 +168,6 @@ application.yml
 → services/<name>/application-docker.yml
 ```
 
----
-
 ## 🐛 Common Issues
 
 | Symptom                              | Cause                                      | Fix                                                        |
@@ -191,12 +178,10 @@ application.yml
 | `pull access denied`                 | Wrong image prefix                         | Check `DOCKERHUB_ACCOUNT` in `.env.dev`                    |
 | Services up but not in Eureka        | Wrong `SPRING_PROFILES_ACTIVE`             | Must be `dev,docker` — not `docker` alone                  |
 
----
-
 ### 📌 Tip
 
 ```bash
 make help
 ```
 
-Lists every available command with a description.
+and this will lists every available command with a description.
