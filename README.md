@@ -659,7 +659,7 @@ web/
 
 ```bash
 cd docker/docker-compose/dev
-cp .env.example .env.dev
+cp .env.example .env
 make up
 ```
 
