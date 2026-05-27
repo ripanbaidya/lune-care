@@ -6,7 +6,7 @@
 #
 # Prerequisites:
 #   - Docker Desktop running
-#   - .env.dev present (cp ../../.env.example .env.dev and fill values)
+#   - .env present (cp ../../.env.example .env and fill values)
 #   - Images built: ripanbaidya/lunecare-*:1.0.0
 #   - init-db.sql at project root
 #   - RSA keys at secrets/keys/private_key.pem and public_key.pem
