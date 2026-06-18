@@ -1,8 +1,10 @@
 package com.healthcare.payment.controller;
 
 import com.healthcare.payment.payload.dto.success.ResponseWrapper;
+import com.healthcare.payment.payload.request.DemoPaymentFailureRequest;
 import com.healthcare.payment.payload.request.InitiatePaymentRequest;
 import com.healthcare.payment.payload.request.VerifyPaymentRequest;
+import com.healthcare.payment.payload.response.PaymentConfigResponse;
 import com.healthcare.payment.payload.response.PaymentResponse;
 import com.healthcare.payment.service.PaymentService;
 import com.healthcare.payment.util.ResponseUtil;
@@ -26,7 +28,7 @@ import java.util.Map;
 @Tag(
         name = "Payments",
         description = "Endpoints for initiating, verifying and retrieving payments. " +
-                "Supports Razorpay and Stripe gateways."
+                "Supports Razorpay, Stripe and demo mode."
 )
 @RestController
 @RequestMapping("/api/payment")
@@ -44,6 +46,20 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     @Operation(
+            summary = "Get payment config",
+            description = "Returns demo payment toggle state and supported gateways for the frontend."
+    )
+    @ApiResponse(responseCode = "200", description = "Payment config fetched successfully")
+    @GetMapping("/config")
+    @PreAuthorize("hasAuthority('ROLE_PATIENT')")
+    public ResponseEntity<ResponseWrapper<PaymentConfigResponse>> getConfig() {
+        return ResponseUtil.ok(
+                "Payment config fetched successfully!",
+                paymentService.getConfig()
+        );
+    }
+
+    @Operation(
             summary = "Initiate payment",
             description = """
                     Initiates a payment session for a booked appointment.
@@ -54,6 +70,9 @@ public class PaymentController {
                     **Stripe flow:** Returns a `clientSecret` which the frontend uses to call 
                     `stripe.confirmPayment()`. The `clientSecret` is only present in this response 
                     and will be null in all subsequent responses.
+
+                    **Demo flow:** Returns a demo session ID that the frontend can use to
+                    simulate success or failure without any third-party provider.
                     
                     After the frontend completes checkout, call `/api/payment/verify` to confirm.
                     """
@@ -86,6 +105,9 @@ public class PaymentController {
                     
                     **Stripe:** Provide `stripePaymentIntentId`. The service fetches the 
                     PaymentIntent from Stripe and checks its status.
+
+                    **Demo:** No gateway fields are required. The frontend only sends the 
+                    appointment ID to confirm the demo flow.
                     
                     On success, the appointment status is updated to CONFIRMED via an internal 
                     call to appointment-service.
@@ -105,6 +127,23 @@ public class PaymentController {
         return ResponseUtil.ok(
                 "Payment verified successfully!",
                 paymentService.verifyPayment(userId, request)
+        );
+    }
+
+    @Operation(
+            summary = "Mark demo payment failure",
+            description = "Simulates a failed demo payment so the frontend can show the failure state."
+    )
+    @ApiResponse(responseCode = "200", description = "Demo payment failed successfully")
+    @PostMapping("/demo/failure")
+    @PreAuthorize("hasAuthority('ROLE_PATIENT')")
+    public ResponseEntity<ResponseWrapper<PaymentResponse>> failDemoPayment(
+            @AuthenticationPrincipal String userId,
+            @Valid @RequestBody DemoPaymentFailureRequest request
+    ) {
+        return ResponseUtil.ok(
+                "Demo payment failed!",
+                paymentService.markDemoPaymentFailure(userId, request)
         );
     }
 
