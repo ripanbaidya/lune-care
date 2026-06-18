@@ -11,7 +11,7 @@ choose between two execution modes depending on your development workflow.
   containers. You manually boot up the individual backend microservices and the frontend application within your
   preferred IDE or terminal.
 * **Best for:** Active development, debugging, and writing code.
-* 👉 **[Read the Hybrid Local Setup Guide](docker/docker-compose/local/README.md)**
+* 👉 **[Read the Hybrid Local Setup Guide](/docker/docker-compose/local/README.md)**
 
 ### 2. Full Containerized Mode (Docker Compose Stack)
 
@@ -19,7 +19,7 @@ choose between two execution modes depending on your development workflow.
   simultaneously using pre-built images via Docker Compose.
 * **Best for:** Quick testing, product demonstrations, or validating cross-service integrations without local
   compilation.
-* 👉 **[Read the Full Docker Compose Guide](docker/docker-compose/compose/README.md)**
+* 👉 **[Read the Full Docker Compose Guide](/docker/docker-compose/compose/README.md)**
 
 ---
 
