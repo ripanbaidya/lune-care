@@ -18,7 +18,7 @@ public record InitiatePaymentRequest(
         @Schema(
                 description = "Payment gateway to use. Defaults to RAZORPAY if not provided",
                 example = "RAZORPAY",
-                allowableValues = {"RAZORPAY", "STRIPE"}
+                allowableValues = {"RAZORPAY", "STRIPE", "DEMO"}
         )
         @NotNull(message = "Gateway type is required")
         PaymentGatewayType gatewayType
