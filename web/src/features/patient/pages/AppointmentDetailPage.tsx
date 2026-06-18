@@ -8,13 +8,21 @@ import {
 import {
   useInitiateRazorpay,
   useInitiateStripe,
+  useInitiateDemoPayment,
+  useVerifyDemoPayment,
   useVerifyRazorpay,
   useVerifyStripe,
+  useFailDemoPayment,
+  usePaymentConfig,
 } from "../../payment/hooks/usePayment";
-import type { GatewayType } from "../../payment/types/payment.types";
+import type { GatewayType, PaymentResponse } from "../../payment/types/payment.types";
 import { AppError } from "../../../shared/utils/errorParser";
 import { toast } from "sonner";
-import { ROUTES } from "../../../routes/routePaths";
+import {
+  ROUTES,
+  patientPaymentDemoFailurePath,
+  patientPaymentDemoSuccessPath,
+} from "../../../routes/routePaths";
 
 // Imported components
 import AppointmentStatusBanner from "../components/appointments/AppointmentStatusBanner";
@@ -92,10 +100,16 @@ const AppointmentDetailPage: React.FC = () => {
     useInitiateRazorpay();
   const { mutate: initiateStripe, isPending: isInitiatingStripe } =
     useInitiateStripe();
+  const { mutate: initiateDemo, isPending: isInitiatingDemo } =
+    useInitiateDemoPayment();
   const { mutate: verifyRazorpay, isPending: isVerifyingRzp } =
     useVerifyRazorpay();
   const { mutate: verifyStripe, isPending: isVerifyingStripe } =
     useVerifyStripe();
+  const { mutate: verifyDemo, isPending: isVerifyingDemo } =
+    useVerifyDemoPayment();
+  const { mutate: failDemo, isPending: isFailingDemo } = useFailDemoPayment();
+  const { data: paymentConfigRes } = usePaymentConfig();
   const { mutate: cancelAppointment, isPending: isCancelling } =
     useCancelPatientAppointment();
 
@@ -106,6 +120,10 @@ const AppointmentDetailPage: React.FC = () => {
   const [feedbackSubmitted, setFeedbackSubmitted] = React.useState(false);
   const [showFeedbackForm, setShowFeedbackForm] = React.useState(false);
   const [showCancelDialog, setShowCancelDialog] = React.useState(false);
+  const [demoMode, setDemoMode] = React.useState(false);
+  const [demoPayment, setDemoPayment] = React.useState<PaymentResponse | null>(
+    null,
+  );
   const [stripeState, setStripeState] = React.useState<{
     clientSecret: string;
     stripeKey: string;
@@ -115,11 +133,20 @@ const AppointmentDetailPage: React.FC = () => {
 
   // Computed values
   const isInitiating = isInitiatingRzp || isInitiatingStripe;
-  const isVerifying = isVerifyingRzp || isVerifyingStripe;
+  const isVerifying = isVerifyingRzp || isVerifyingStripe || isVerifyingDemo;
+  const isDemoProcessing = isInitiatingDemo || isVerifyingDemo || isFailingDemo;
+  const demoPaymentEnabled = paymentConfigRes?.data?.demoPaymentEnabled ?? false;
   const status = appointment?.status as StatusKey;
   const isPendingPayment = status === "PENDING_PAYMENT";
   const isConfirmed = status === "CONFIRMED";
   const isCompleted = status === "COMPLETED";
+
+  React.useEffect(() => {
+    if (!demoPaymentEnabled) {
+      setDemoMode(false);
+      setDemoPayment(null);
+    }
+  }, [demoPaymentEnabled]);
 
   // ── Razorpay Payment Flow ──
   const handleRazorpayPayment = async () => {
@@ -213,6 +240,23 @@ const AppointmentDetailPage: React.FC = () => {
     );
   };
 
+  const handleDemoInitiate = () => {
+    if (!appointment) return;
+
+    initiateDemo(
+      { appointmentId: appointment.id, gatewayType: "DEMO" },
+      {
+        onSuccess: (res) => {
+          setDemoPayment(res.data);
+          toast.success("Demo payment session prepared.");
+        },
+        onError: (err: AppError) => {
+          toast.error(err.message);
+        },
+      },
+    );
+  };
+
   const handleStripeSuccess = (paymentIntentId: string) => {
     if (!appointment) return;
     verifyStripe(
@@ -228,6 +272,57 @@ const AppointmentDetailPage: React.FC = () => {
         },
       },
     );
+  };
+
+  const handleDemoSuccess = () => {
+    if (!appointment) return;
+
+    verifyDemo(appointment.id, {
+      onSuccess: () => {
+        toast.success("Demo payment successful!");
+        refetch();
+        navigate(patientPaymentDemoSuccessPath(appointment.id), {
+          replace: true,
+        });
+      },
+      onError: (err: AppError) => {
+        toast.error(`Verification failed: ${err.message}`);
+      },
+    });
+  };
+
+  const handleDemoFailure = () => {
+    if (!appointment) return;
+
+    failDemo(
+      { appointmentId: appointment.id, reason: "Simulated demo failure" },
+      {
+        onSuccess: () => {
+          toast.error("Demo payment failed.");
+          refetch();
+          navigate(patientPaymentDemoFailurePath(appointment.id), {
+            replace: true,
+          });
+        },
+        onError: (err: AppError) => {
+          toast.error(err.message);
+        },
+      },
+    );
+  };
+
+  const handleDemoBackToLive = () => {
+    setDemoMode(false);
+    setDemoPayment(null);
+    setStripeState(null);
+    setPaymentProcessing(false);
+  };
+
+  const handleDemoModeChange = (enabled: boolean) => {
+    setDemoMode(enabled);
+    setStripeState(null);
+    setPaymentProcessing(false);
+    setDemoPayment(null);
   };
 
   const handlePaymentInitiate = () => {
@@ -319,7 +414,16 @@ const AppointmentDetailPage: React.FC = () => {
           isVerifying={isVerifying}
           isVerifyingStripe={isVerifyingStripe}
           stripeState={stripeState}
+          demoPaymentEnabled={demoPaymentEnabled}
+          demoMode={demoMode}
+          demoPayment={demoPayment}
+          isDemoProcessing={isDemoProcessing}
+          onDemoModeChange={handleDemoModeChange}
           onPaymentInitiate={handlePaymentInitiate}
+          onDemoInitiate={handleDemoInitiate}
+          onDemoSuccess={handleDemoSuccess}
+          onDemoFailure={handleDemoFailure}
+          onDemoBackToLive={handleDemoBackToLive}
           onStripeSuccess={handleStripeSuccess}
           onStripeError={(msg) => toast.error(msg)}
           onStripeCancel={() => {
