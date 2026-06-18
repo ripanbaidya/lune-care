@@ -237,12 +237,19 @@ services:
         condition: service_healthy
       eureka-server:
         condition: service_healthy
+    healthcheck:
+      # Blocks subsequent services until service heartbeat ledger is active
+      test: [ "CMD-SHELL", "curl -sf http://localhost:8080/actuator/health/readiness | grep -q UP || exit 1" ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
     networks:
       - lunecare_network
 
   # USER INTERFACE(UI)
   frontend:
-    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-frontend:${IMAGE_TAG:-latest}
+    image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-frontend:latest
     container_name: lunecare-frontend
     ports:
       - "5173:80" # Proxies host port 5173 over to the internal server running on container port 80
