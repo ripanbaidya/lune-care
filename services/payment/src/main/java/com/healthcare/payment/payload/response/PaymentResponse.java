@@ -32,16 +32,19 @@ public record PaymentResponse(
         @Schema(
                 description = "Payment gateway used for this transaction",
                 example = "RAZORPAY",
-                allowableValues = {"RAZORPAY", "STRIPE"}
+                allowableValues = {"RAZORPAY", "STRIPE", "DEMO"}
         )
         PaymentGatewayType gateway,
 
         @Schema(
                 description = "Current payment status",
-                example = "COMPLETED",
-                allowableValues = {"INITIATED", "COMPLETED", "FAILED", "REFUNDED"}
+                example = "SUCCESS",
+                allowableValues = {"INITIATED", "SUCCESS", "FAILED", "REFUNDED", "REFUND_FAILED"}
         )
         PaymentStatus status,
+
+        @Schema(description = "Failure reason for failed or refunded payments")
+        String failureReason,
 
         @Schema(description = "Timestamp when the payment record was created")
         Instant createdAt,
@@ -58,6 +61,9 @@ public record PaymentResponse(
 
         @Schema(description = "[Stripe only] Stripe PaymentIntent ID — null for Razorpay payments")
         String stripePaymentIntentId,
+
+        @Schema(description = "[Demo only] Demo session ID — null for live gateway payments")
+        String demoSessionId,
 
         @Schema(
                 description = "[Stripe only] Client secret required by the frontend to call " +
