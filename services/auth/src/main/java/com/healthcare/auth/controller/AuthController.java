@@ -2,10 +2,13 @@ package com.healthcare.auth.controller;
 
 import com.healthcare.auth.payload.dto.success.ResponseWrapper;
 import com.healthcare.auth.payload.request.DoctorRegisterRequest;
+import com.healthcare.auth.payload.request.ForgotPasswordRequest;
 import com.healthcare.auth.payload.request.LoginRequest;
 import com.healthcare.auth.payload.request.PatientRegisterRequest;
 import com.healthcare.auth.payload.request.RefreshTokenRequest;
+import com.healthcare.auth.payload.request.ResetPasswordRequest;
 import com.healthcare.auth.payload.response.AuthResponse;
+import com.healthcare.auth.payload.response.PasswordResetResponse;
 import com.healthcare.auth.payload.response.TokenResponse;
 import com.healthcare.auth.service.AuthService;
 import com.healthcare.auth.util.ResponseUtil;
@@ -75,6 +78,38 @@ public class AuthController {
     ) {
         var response = authService.login(request);
         return ResponseUtil.ok("Login Successful", response);
+    }
+
+    @Operation(
+            summary = "Request password reset",
+            description = """
+                    Starts the forgot-password flow using the registered phone number.
+
+                    Because this project does not yet include email/SMS delivery, the one-time
+                    reset token is returned in the response so the frontend can present the
+                    reset screen immediately during local/demo usage.
+                    """
+    )
+    @ApiResponse(responseCode = "200", description = "Password reset token generated")
+    @PostMapping("/password/forgot")
+    public ResponseEntity<ResponseWrapper<PasswordResetResponse>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request
+    ) {
+        var response = authService.requestPasswordReset(request);
+        return ResponseUtil.ok("Password reset token generated successfully", response);
+    }
+
+    @Operation(
+            summary = "Reset password",
+            description = "Completes the password reset using the one-time token returned by the forgot-password request"
+    )
+    @ApiResponse(responseCode = "200", description = "Password reset successfully")
+    @PostMapping("/password/reset")
+    public ResponseEntity<ResponseWrapper<Void>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request
+    ) {
+        authService.resetPassword(request);
+        return ResponseUtil.ok("Password reset successfully");
     }
 
     @Operation(
