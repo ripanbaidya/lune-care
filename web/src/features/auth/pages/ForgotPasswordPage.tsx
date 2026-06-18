@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Copy, LockKeyhole, Sparkles } from "lucide-react";
+import { ArrowLeft, Copy } from "lucide-react";
 import { ROUTES } from "../../../routes/routePaths";
 import { FieldErrorMessage } from "../../../shared/components/ui/FieldErrorMessage";
 import Spinner from "../../../shared/components/ui/Spinner";
