@@ -39,4 +39,8 @@ public class PaymentGatewayDetail {
 
     @Column(name = "stripe_refund_id")
     private String stripeRefundId;
+
+    // Demo fields
+    @Column(name = "demo_session_id", unique = true)
+    private String demoSessionId;
 }
