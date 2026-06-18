@@ -64,3 +64,18 @@ export interface LogoutRequest {
 export interface RefreshTokenRequest {
     refreshToken: string;
 }
+
+export interface ForgotPasswordRequest {
+    phoneNumber: string;
+}
+
+export interface PasswordResetResponse {
+    message: string;
+    resetToken: string;
+    expiresAt: string;
+}
+
+export interface ResetPasswordRequest {
+    resetToken: string;
+    newPassword: string;
+}
