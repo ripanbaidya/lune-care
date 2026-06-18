@@ -2,11 +2,14 @@ import { apiClient } from '../../../lib/axios';
 import type { ResponseWrapper } from '../../../types/api.types';
 import type {
     AuthResponse,
+    ForgotPasswordRequest,
     LoginRequest,
     PatientRegisterRequest,
     DoctorRegisterRequest,
     LogoutRequest,
+    PasswordResetResponse,
     TokenResponse,
+    ResetPasswordRequest,
 } from '../types/auth.types';
 
 export const authService = {
@@ -43,6 +46,21 @@ export const authService = {
         const res = await apiClient.post<ResponseWrapper<TokenResponse>>('/auth/refresh', {
             refreshToken,
         });
+        return res.data;
+    },
+
+    forgotPassword: async (
+        data: ForgotPasswordRequest,
+    ): Promise<ResponseWrapper<PasswordResetResponse>> => {
+        const res = await apiClient.post<ResponseWrapper<PasswordResetResponse>>(
+            '/auth/password/forgot',
+            data,
+        );
+        return res.data;
+    },
+
+    resetPassword: async (data: ResetPasswordRequest): Promise<ResponseWrapper<void>> => {
+        const res = await apiClient.post<ResponseWrapper<void>>('/auth/password/reset', data);
         return res.data;
     },
 };
