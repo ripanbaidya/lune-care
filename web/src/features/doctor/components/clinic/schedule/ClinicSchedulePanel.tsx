@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { CalendarDays, Plus } from "lucide-react";
+import { AlertTriangle, CalendarDays, Plus, X } from "lucide-react";
 import {
   useDoctorSchedule,
   useSetSchedule,
@@ -60,6 +60,7 @@ const ClinicSchedulePanel: React.FC<ClinicSchedulePanelProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [deletingDay, setDeletingDay] = useState<string | null>(null);
+  const [deleteTargetDay, setDeleteTargetDay] = useState<string | null>(null);
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(thirtyDaysLater);
   const [entries, setEntries] = useState<ScheduleEntry[]>([
@@ -162,16 +163,24 @@ const ClinicSchedulePanel: React.FC<ClinicSchedulePanelProps> = ({
   };
 
   const handleDeleteDay = (dayOfWeek: string) => {
-    if (!window.confirm(`Remove ${dayOfWeek} from schedule?`)) return;
+    setDeleteTargetDay(dayOfWeek);
+  };
+
+  const confirmDeleteDay = () => {
+    if (!deleteTargetDay) return;
+
+    const dayOfWeek = deleteTargetDay;
     setDeletingDay(dayOfWeek);
     deleteDay(dayOfWeek, {
       onSuccess: () => {
         toast.success(`${dayOfWeek} schedule removed`);
         setDeletingDay(null);
+        setDeleteTargetDay(null);
       },
       onError: (err: AppError) => {
         toast.error(err.message);
         setDeletingDay(null);
+        setDeleteTargetDay(null);
       },
     });
   };
@@ -236,6 +245,52 @@ const ClinicSchedulePanel: React.FC<ClinicSchedulePanelProps> = ({
           onSave={handleSave}
           onCancel={closeEditor}
         />
+      )}
+
+      {deleteTargetDay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-red-500/20 bg-gradient-to-b from-gray-900 to-black shadow-2xl">
+            <div className="px-6 pt-5 pb-3 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center">
+                <AlertTriangle size={18} className="text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-white">
+                  Remove {deleteTargetDay} Schedule?
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  This will delete the schedule entry for this day.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeleteTargetDay(null)}
+                className="ml-auto p-1.5 text-gray-600 hover:text-gray-300 hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="px-6 pb-5 pt-2 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setDeleteTargetDay(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm rounded-lg border border-gray-700/70 text-gray-300 hover:bg-gray-800/60 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteDay}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-500 transition-colors disabled:opacity-50"
+              >
+                Yes, Remove
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
