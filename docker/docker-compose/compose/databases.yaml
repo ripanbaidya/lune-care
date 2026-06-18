@@ -1,67 +1,79 @@
-# Strategy: schema-per-service on a single PostgreSQL instance
-# Schemas: auth, patient, doctor, appointment, payment
-# This conserves memory and resources in containerized environments.
+# Database configuration for all microservices.
+# We use both SQL (PostgreSQL) and NoSQL (MongoDB):
+# - PostgreSQL: Follows a schema-per-service approach within a single PostgreSQL instance.
+#   Example: auth_service, patient_service, and doctor_service each have their own schema.
 #
-# MongoDB: single instance, database-per-service
-#   notification → notification_db
-#   feedback     → feedback_db
+# - MongoDB: Follows a database-per-service approach within a single MongoDB instance.
+#   Example: the notification service uses a dedicated database named `notification_db`.
+#
+# This approach provides logical data isolation while keeping infrastructure management simple.
 
 services:
 
-  # PostgreSQL — schema-per-service
-  # Connect with: ?currentSchema=<schema_name>
-  # Spring services receive JDBC URLs from config-server as {cipher} values.
+  # PostgreSQL Database Server (Schema-per-Service Strategy)
+  # Consolidates core domains in one instance. To route a Spring microservice
+  # to its isolated domain schema, pass the parameter: ?currentSchema=<schema_name>
   postgres:
     image: postgres:16-alpine
     container_name: lunecare-postgres
+    # Hard constraints on resource consumption to prevent container drift/bloat
     mem_limit: 512m
     mem_reservation: 256m
     environment:
+      # Credentials default to local fallback; Spring microservices pull production
+      # credentials as {cipher} encrypted tokens from the Config Server.
       POSTGRES_DB: ${POSTGRES_DB:-lunecare}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
-      - "5432:5432"
+      - "5432:5432" # Exposed for debugging, migration tools, or local client connections
     volumes:
-      - pg_data:/var/lib/postgresql/data
+      - pg_data:/var/lib/postgresql/data # Prevents data wipe on container recreation
+      # Mounts initialization scripts to spin up schemas (auth, patient, etc.) on first boot
       - ../../../init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     networks:
       - lunecare_network
     healthcheck:
+      # Verifies the engine is running and accepting queries on the default database
       test: [ "CMD-SHELL", "pg_isready -U postgres -d lunecare" ]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 15s
 
-  # MongoDB — database-per-service
-  # Spring services receive MongoDB URIs from config-server as {cipher} values.
+  # MongoDB Server (Database-per-Service Strategy)
+  # Handles unstructured domains (Notifications & Feedback) via isolated databases.
+  # Dynamic database connections are provisioned via Config Server {cipher} Mongo URIs.
   mongodb:
     image: mongo:8.2
     container_name: lunecare-mongodb
     environment:
+      # Administrative fallback credentials for initialization
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-mongouser}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-mongopass}
       MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-lunecare}
     ports:
-      - "27017:27017"
+      - "27017:27017" # Standard MongoDB wire protocol port
     volumes:
-      - mongo_data:/data/db
+      - mongo_data:/data/db # Persists document collections across runs
     networks:
       - lunecare_network
     healthcheck:
+      # Uses modern mongosh tool to evaluate system health rather than legacy mongo shell
       test: [ "CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok" ]
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 20s
 
+# Named Volumes (Data Persistence)
 volumes:
   pg_data:
     name: lunecare_pg_data
   mongo_data:
     name: lunecare_mongo_data
 
+# Network Configuration
 networks:
   lunecare_network:
     name: lunecare_network

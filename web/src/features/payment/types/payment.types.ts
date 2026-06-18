@@ -1,9 +1,14 @@
-export type GatewayType = 'RAZORPAY' | 'STRIPE';
+export type GatewayType = 'RAZORPAY' | 'STRIPE' | 'DEMO';
 export type PaymentStatus = 'INITIATED' | 'SUCCESS' | 'FAILED' | 'REFUNDED' | 'REFUND_FAILED';
 
 export interface InitiatePaymentRequest {
     appointmentId: string;
     gatewayType: GatewayType;
+}
+
+export interface PaymentConfigResponse {
+    demoPaymentEnabled: boolean;
+    supportedGateways: GatewayType[];
 }
 
 // Razorpay
@@ -61,10 +66,12 @@ export interface PaymentResponse {
     currency: string;
     gateway: GatewayType;
     status: PaymentStatus;
+    failureReason?: string | null;
     createdAt: string;
     razorpayOrderId: string | null;
     razorpayPaymentId: string | null;
     stripePaymentIntentId: string | null;
+    demoSessionId: string | null;
     clientSecret: string | null;
 }
 
@@ -92,4 +99,10 @@ export const PAYMENT_STATUS_COLORS: Record<PaymentStatus, string> = {
     FAILED: 'bg-red-100 text-red-700',
     REFUNDED: 'bg-blue-100 text-blue-700',
     REFUND_FAILED: 'bg-red-100 text-red-500'
+};
+
+export const GATEWAY_LABELS: Record<GatewayType, string> = {
+    RAZORPAY: 'Razorpay',
+    STRIPE: 'Stripe',
+    DEMO: 'Demo',
 };

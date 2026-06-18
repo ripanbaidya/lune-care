@@ -6,6 +6,7 @@ import com.healthcare.payment.entity.PaymentRecord;
 import com.healthcare.payment.enums.ErrorCode;
 import com.healthcare.payment.enums.PaymentGatewayType;
 import com.healthcare.payment.enums.PaymentStatus;
+import com.healthcare.payment.config.properties.DemoPaymentProperties;
 import com.healthcare.payment.event.AppointmentCancelledEvent;
 import com.healthcare.payment.exception.PaymentException;
 import com.healthcare.payment.gateway.OrderResult;
@@ -14,8 +15,10 @@ import com.healthcare.payment.gateway.PaymentGatewayRegistry;
 import com.healthcare.payment.mapper.PaymentMapper;
 import com.healthcare.payment.payload.dto.appointment.AppointmentDetails;
 import com.healthcare.payment.payload.dto.appointment.ConfirmPaymentRequest;
+import com.healthcare.payment.payload.request.DemoPaymentFailureRequest;
 import com.healthcare.payment.payload.request.InitiatePaymentRequest;
 import com.healthcare.payment.payload.request.VerifyPaymentRequest;
+import com.healthcare.payment.payload.response.PaymentConfigResponse;
 import com.healthcare.payment.payload.response.PaymentResponse;
 import com.healthcare.payment.repository.PaymentRepository;
 import com.healthcare.payment.service.PaymentService;
@@ -36,6 +39,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentGatewayRegistry gatewayRegistry;
     private final PaymentRepository paymentRepository;
     private final AppointmentServiceClient appointmentClient;
+    private final DemoPaymentProperties demoPaymentProperties;
 
     /**
      * SAGA Step 1 — Initiate payment.
@@ -138,6 +142,10 @@ public class PaymentServiceImpl implements PaymentService {
             gatewayOrderId = request.razorpayOrderId();
             gatewayPaymentId = request.razorpayPaymentId();
             signature = request.razorpaySignature();
+        } else if (gatewayType == PaymentGatewayType.DEMO) {
+            gatewayOrderId = paymentRecord.getGatewayDetail().getDemoSessionId();
+            gatewayPaymentId = paymentRecord.getGatewayDetail().getDemoSessionId();
+            signature = null;
         } else {
             // Stripe - It verify retrieves the PaymentIntent directly — no signature needed
             gatewayOrderId = request.stripePaymentIntentId();
@@ -216,6 +224,48 @@ public class PaymentServiceImpl implements PaymentService {
         return paymentRepository
                 .findByPatientIdOrderByCreatedAtDesc(patientId, PageRequest.of(page, size))
                 .map(PaymentMapper::toSafeResponse); // safe — no clientSecret in history
+    }
+
+    @Override
+    @Transactional
+    public PaymentResponse markDemoPaymentFailure(String patientId, DemoPaymentFailureRequest request) {
+        String appointmentId = request.appointmentId();
+        String reason = request.reason() == null || request.reason().isBlank()
+                ? "Demo payment failed"
+                : request.reason().trim();
+
+        PaymentRecord paymentRecord = paymentRepository.findByAppointmentId(appointmentId)
+                .orElseThrow(() -> new PaymentException(ErrorCode.PAYMENT_NOT_FOUND,
+                        "No payment record found for appointment: " + appointmentId));
+
+        if (!paymentRecord.getPatientId().equals(patientId)) {
+            throw new PaymentException(ErrorCode.PAYMENT_NOT_FOUND, "Unauthorized payment access");
+        }
+
+        if (paymentRecord.getGateway() != PaymentGatewayType.DEMO) {
+            throw new PaymentException(ErrorCode.PAYMENT_NOT_FOUND,
+                    "Demo failure can only be applied to demo payments");
+        }
+
+        if (paymentRecord.getStatus() == PaymentStatus.SUCCESS) {
+            throw new PaymentException(ErrorCode.PAYMENT_ALREADY_COMPLETED,
+                    "Demo payment already completed for this appointment");
+        }
+
+        paymentRecord.setStatus(PaymentStatus.FAILED);
+        paymentRecord.setFailureReason(reason);
+        paymentRepository.save(paymentRecord);
+
+        return PaymentMapper.toSafeResponse(paymentRecord);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaymentConfigResponse getConfig() {
+        return new PaymentConfigResponse(
+                demoPaymentProperties.enabled(),
+                gatewayRegistry.getAvailableGateways()
+        );
     }
 
     /**
@@ -368,6 +418,7 @@ public class PaymentServiceImpl implements PaymentService {
         return switch (gatewayType) {
             case RAZORPAY -> createRazorpayOrder(appointmentId, appointment, gateway);
             case STRIPE -> createStripeOrder(appointmentId, appointment, gateway);
+            case DEMO -> gateway.createOrder(appointmentId, appointment.consultationFees(), "INR");
         };
     }
 
@@ -418,6 +469,7 @@ public class PaymentServiceImpl implements PaymentService {
         return switch (gatewayType) {
             case RAZORPAY -> verifyRazorpay(gateway, gatewayOrderId, gatewayPaymentId, signature);
             case STRIPE -> verifyStripe(gateway, gatewayOrderId, gatewayPaymentId, signature);
+            case DEMO -> gateway.verifyPayment(gatewayOrderId, gatewayPaymentId, signature);
         };
     }
 
@@ -467,6 +519,7 @@ public class PaymentServiceImpl implements PaymentService {
         return switch (gatewayType) {
             case RAZORPAY -> refundRazorpay(gateway, gatewayPaymentId, record);
             case STRIPE -> refundStripe(gateway, gatewayPaymentId, record);
+            case DEMO -> gateway.refund(gatewayPaymentId, record.getAmount());
         };
     }
 
@@ -510,6 +563,8 @@ public class PaymentServiceImpl implements PaymentService {
         } else if (gatewayType == PaymentGatewayType.STRIPE) {
             detailBuilder.stripePaymentIntentId(orderResult.gatewayOrderId())
                     .clientSecret(orderResult.clientSecret());
+        } else if (gatewayType == PaymentGatewayType.DEMO) {
+            detailBuilder.demoSessionId(orderResult.gatewayOrderId());
         }
 
         paymentRecord.setGatewayDetail(detailBuilder.build());
@@ -520,18 +575,22 @@ public class PaymentServiceImpl implements PaymentService {
      * Returns the payment ID that should be passed to appointment-service on confirmation.
      */
     private String resolveConfirmedPaymentId(PaymentRecord record) {
-        return record.getGateway() == PaymentGatewayType.RAZORPAY
-                ? record.getGatewayDetail().getRazorpayPaymentId()
-                : record.getGatewayDetail().getStripePaymentIntentId();
+        return switch (record.getGateway()) {
+            case RAZORPAY -> record.getGatewayDetail().getRazorpayPaymentId();
+            case STRIPE -> record.getGatewayDetail().getStripePaymentIntentId();
+            case DEMO -> record.getGatewayDetail().getDemoSessionId();
+        };
     }
 
     /**
      * Returns the gateway payment ID to use when issuing a refund.
      */
     private String resolvePaymentIdForRefund(PaymentRecord record) {
-        return record.getGateway() == PaymentGatewayType.RAZORPAY
-                ? record.getGatewayDetail().getRazorpayPaymentId()
-                : record.getGatewayDetail().getStripePaymentIntentId();
+        return switch (record.getGateway()) {
+            case RAZORPAY -> record.getGatewayDetail().getRazorpayPaymentId();
+            case STRIPE -> record.getGatewayDetail().getStripePaymentIntentId();
+            case DEMO -> record.getGatewayDetail().getDemoSessionId();
+        };
     }
 
     /**
@@ -540,7 +599,7 @@ public class PaymentServiceImpl implements PaymentService {
     private void storeRefundId(PaymentRecord record, String refundId) {
         if (record.getGateway() == PaymentGatewayType.RAZORPAY) {
             record.getGatewayDetail().setRazorpayRefundId(refundId);
-        } else {
+        } else if (record.getGateway() == PaymentGatewayType.STRIPE) {
             record.getGatewayDetail().setStripeRefundId(refundId);
         }
     }

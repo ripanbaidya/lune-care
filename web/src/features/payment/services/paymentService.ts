@@ -2,6 +2,7 @@ import { apiClient } from '../../../lib/axios';
 import type { ResponseWrapper } from '../../../types/api.types';
 import type {
     InitiatePaymentRequest,
+    PaymentConfigResponse,
     PaymentPage,
     PaymentResponse,
     RazorpayInitiateResponse,
@@ -11,6 +12,10 @@ import type {
 } from '../types/payment.types';
 
 export const paymentService = {
+    getConfig: async (): Promise<ResponseWrapper<PaymentConfigResponse>> => {
+        const res = await apiClient.get<ResponseWrapper<PaymentConfigResponse>>('/payment/config');
+        return res.data;
+    },
 
     // Initiate
     initiateRazorpay: async (
@@ -33,6 +38,16 @@ export const paymentService = {
         return res.data;
     },
 
+    initiateDemo: async (
+        data: InitiatePaymentRequest,
+    ): Promise<ResponseWrapper<PaymentResponse>> => {
+        const res = await apiClient.post<ResponseWrapper<PaymentResponse>>(
+            '/payment/initiate',
+            { ...data, gatewayType: 'DEMO' },
+        );
+        return res.data;
+    },
+
     // Verify
 
     verifyRazorpay: async (
@@ -51,6 +66,27 @@ export const paymentService = {
         const res = await apiClient.post<ResponseWrapper<PaymentResponse>>(
             '/payment/verify',
             data,
+        );
+        return res.data;
+    },
+
+    verifyDemo: async (
+        appointmentId: string,
+    ): Promise<ResponseWrapper<PaymentResponse>> => {
+        const res = await apiClient.post<ResponseWrapper<PaymentResponse>>(
+            '/payment/verify',
+            { appointmentId },
+        );
+        return res.data;
+    },
+
+    failDemo: async (
+        appointmentId: string,
+        reason: string,
+    ): Promise<ResponseWrapper<PaymentResponse>> => {
+        const res = await apiClient.post<ResponseWrapper<PaymentResponse>>(
+            '/payment/demo/failure',
+            { appointmentId, reason },
         );
         return res.data;
     },

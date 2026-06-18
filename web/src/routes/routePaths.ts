@@ -3,6 +3,8 @@
 export const PUBLIC_ROUTES = {
     home: '/',
     login: '/login',
+    forgotPassword: '/forgot-password',
+    resetPassword: '/reset-password',
     register: '/register',
     findDoctors: '/find-doctors',
     about: '/about',
@@ -20,6 +22,8 @@ export const PATIENT_ROUTES = {
     patientAppointments: '/patient/appointments',
     patientAppointmentDetail: '/patient/appointments/:appointmentId',
     patientPayments: '/patient/payments',
+    patientPaymentDemoSuccess: '/patient/payments/demo/success/:appointmentId',
+    patientPaymentDemoFailure: '/patient/payments/demo/failure/:appointmentId',
     patientNotifications: '/patient/notifications',
     patientFeedback: '/patient/feedback',
 } as const;
@@ -48,6 +52,10 @@ export const ROUTES = {
 
 /** Helper — build the concrete appointment detail URL (replaces :appointmentId) */
 export const appointmentDetailPath = (id: string) => `/patient/appointments/${id}`;
+export const patientPaymentDemoSuccessPath = (appointmentId: string) =>
+    `/patient/payments/demo/success/${appointmentId}`;
+export const patientPaymentDemoFailurePath = (appointmentId: string) =>
+    `/patient/payments/demo/failure/${appointmentId}`;
 
 export type PublicRoute = typeof ROUTES[keyof typeof PUBLIC_ROUTES];
 export type PatientRoute = typeof ROUTES[keyof typeof PATIENT_ROUTES];

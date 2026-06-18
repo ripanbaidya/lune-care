@@ -1,9 +1,12 @@
 package com.healthcare.auth.service;
 
 import com.healthcare.auth.payload.request.DoctorRegisterRequest;
+import com.healthcare.auth.payload.request.ForgotPasswordRequest;
 import com.healthcare.auth.payload.request.LoginRequest;
 import com.healthcare.auth.payload.request.PatientRegisterRequest;
+import com.healthcare.auth.payload.request.ResetPasswordRequest;
 import com.healthcare.auth.payload.response.AuthResponse;
+import com.healthcare.auth.payload.response.PasswordResetResponse;
 import com.healthcare.auth.payload.response.TokenResponse;
 
 public interface AuthService {
@@ -13,6 +16,10 @@ public interface AuthService {
     AuthResponse registerDoctor(DoctorRegisterRequest request);
 
     AuthResponse login(LoginRequest request);
+
+    PasswordResetResponse requestPasswordReset(ForgotPasswordRequest request);
+
+    void resetPassword(ResetPasswordRequest request);
 
     /**
      * Issues a fresh access token and refresh token pair in exchange for a valid,

@@ -36,9 +36,11 @@ public final class PaymentMapper {
                 .currency(paymentRecord.getCurrency())
                 .gateway(paymentRecord.getGateway())
                 .status(paymentRecord.getStatus())
+                .failureReason(paymentRecord.getFailureReason())
                 .createdAt(paymentRecord.getCreatedAt())
                 .razorpayOrderId(detail.getRazorpayOrderId())
                 .razorpayPaymentId(detail.getRazorpayPaymentId())
-                .stripePaymentIntentId(detail.getStripePaymentIntentId());
+                .stripePaymentIntentId(detail.getStripePaymentIntentId())
+                .demoSessionId(detail.getDemoSessionId());
     }
 }

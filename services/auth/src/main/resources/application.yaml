@@ -10,3 +10,8 @@ spring:
 
   profiles:
     active: dev
+
+app:
+  auth:
+    password-reset:
+      token-ttl: 15m

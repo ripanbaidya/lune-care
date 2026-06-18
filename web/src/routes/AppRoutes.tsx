@@ -5,6 +5,8 @@ import PrivateRoute from "../shared/components/guards/PrivateRoute";
 import RoleRoute from "../shared/components/guards/RoleRoute";
 import PatientLayout from "../features/patient/pages/PatientLayout";
 import LoginPage from "../features/auth/pages/LoginPage";
+import ForgotPasswordPage from "../features/auth/pages/ForgotPasswordPage";
+import ResetPasswordPage from "../features/auth/pages/ResetPasswordPage";
 import RegisterPage from "../features/auth/pages/RegisterPage";
 
 // Public pages
@@ -25,6 +27,8 @@ import PatientAppointmentsPage from "../features/patient/pages/PatientAppointmen
 import AppointmentDetailPage from "../features/patient/pages/AppointmentDetailPage";
 import FindDoctorsPage from "../features/public/pages/FindDoctorsPage";
 import PaymentHistoryPage from "../features/payment/pages/PaymentHistoryPage";
+import PaymentDemoSuccessPage from "../features/payment/pages/PaymentDemoSuccessPage";
+import PaymentDemoFailurePage from "../features/payment/pages/PaymentDemoFailurePage";
 
 import NotificationsPage from "../features/notification/pages/NotificationsPage";
 import MySubmittedFeedbackPage from "../features/feedback/pages/MySubmittedFeedbackPage";
@@ -67,6 +71,22 @@ const AppRoutes: React.FC = () => (
       }
     />
     <Route
+      path={ROUTES.forgotPassword}
+      element={
+        <GuestRoute>
+          <ForgotPasswordPage />
+        </GuestRoute>
+      }
+    />
+    <Route
+      path={ROUTES.resetPassword}
+      element={
+        <GuestRoute>
+          <ResetPasswordPage />
+        </GuestRoute>
+      }
+    />
+    <Route
       path={ROUTES.register}
       element={
         <GuestRoute>
@@ -105,6 +125,14 @@ const AppRoutes: React.FC = () => (
 
       {/* Payment history */}
       <Route path={ROUTES.patientPayments} element={<PaymentHistoryPage />} />
+      <Route
+        path={ROUTES.patientPaymentDemoSuccess}
+        element={<PaymentDemoSuccessPage />}
+      />
+      <Route
+        path={ROUTES.patientPaymentDemoFailure}
+        element={<PaymentDemoFailurePage />}
+      />
 
       <Route
         path={ROUTES.patientNotifications}

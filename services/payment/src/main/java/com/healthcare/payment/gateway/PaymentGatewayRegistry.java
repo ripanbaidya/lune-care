@@ -60,4 +60,8 @@ public class PaymentGatewayRegistry {
     public boolean isAvailable(PaymentGatewayType type) {
         return gateways.containsKey(type);
     }
+
+    public List<PaymentGatewayType> getAvailableGateways() {
+        return gateways.keySet().stream().toList();
+    }
 }

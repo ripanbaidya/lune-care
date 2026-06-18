@@ -4,6 +4,7 @@ import {useAppQuery} from '../../../shared/hooks/useAppQuery';
 import {paymentService} from '../services/paymentService';
 import type {
     InitiatePaymentRequest,
+    PaymentConfigResponse,
     PaymentPage,
     PaymentResponse,
     RazorpayInitiateResponse,
@@ -24,6 +25,12 @@ export function useInitiateRazorpay() {
 export function useInitiateStripe() {
     return useAppMutation<ResponseWrapper<StripeInitiateResponse>, InitiatePaymentRequest>({
         mutationFn: (data) => paymentService.initiateStripe(data),
+    });
+}
+
+export function useInitiateDemoPayment() {
+    return useAppMutation<ResponseWrapper<PaymentResponse>, InitiatePaymentRequest>({
+        mutationFn: (data) => paymentService.initiateDemo(data),
     });
 }
 
@@ -50,6 +57,38 @@ export function useVerifyStripe() {
             qc.invalidateQueries({queryKey: ['patient', 'appointment', appointmentId]});
             qc.invalidateQueries({queryKey: ['payment', 'history']});
         },
+    });
+}
+
+export function useVerifyDemoPayment() {
+    const qc = useQueryClient();
+    return useAppMutation<ResponseWrapper<PaymentResponse>, string>({
+        mutationFn: (appointmentId) => paymentService.verifyDemo(appointmentId),
+        onSuccess: (_res, appointmentId) => {
+            qc.invalidateQueries({queryKey: PATIENT_APPOINTMENT_HISTORY_KEY});
+            qc.invalidateQueries({queryKey: ['patient', 'appointment', appointmentId]});
+            qc.invalidateQueries({queryKey: ['payment', 'history']});
+        },
+    });
+}
+
+export function useFailDemoPayment() {
+    const qc = useQueryClient();
+    return useAppMutation<ResponseWrapper<PaymentResponse>, { appointmentId: string; reason: string }>({
+        mutationFn: ({ appointmentId, reason }) => paymentService.failDemo(appointmentId, reason),
+        onSuccess: (_res, {appointmentId}) => {
+            qc.invalidateQueries({queryKey: PATIENT_APPOINTMENT_HISTORY_KEY});
+            qc.invalidateQueries({queryKey: ['patient', 'appointment', appointmentId]});
+            qc.invalidateQueries({queryKey: ['payment', 'history']});
+        },
+    });
+}
+
+export function usePaymentConfig() {
+    return useAppQuery<ResponseWrapper<PaymentConfigResponse>>({
+        queryKey: ['payment', 'config'],
+        queryFn: () => paymentService.getConfig(),
+        staleTime: 5 * 60 * 1000,
     });
 }
 

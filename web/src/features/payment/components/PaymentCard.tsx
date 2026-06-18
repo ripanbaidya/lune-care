@@ -11,7 +11,11 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { appointmentDetailPath } from "../../../routes/routePaths";
-import type { PaymentResponse, PaymentStatus } from "../types/payment.types";
+import {
+  GATEWAY_LABELS,
+  type PaymentResponse,
+  type PaymentStatus,
+} from "../types/payment.types";
 
 // Status config
 const STATUS_CONFIG: Record<
@@ -54,7 +58,10 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({ payment }) => {
 
   const amountRupees = payment.amount;
   const txnId =
-    payment.razorpayPaymentId ?? payment.stripePaymentIntentId ?? payment.id;
+    payment.razorpayPaymentId ??
+    payment.stripePaymentIntentId ??
+    payment.demoSessionId ??
+    payment.id;
 
   const formattedDate = new Date(payment.createdAt).toLocaleDateString(
     "en-IN",
@@ -108,7 +115,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({ payment }) => {
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <p className="text-sm font-semibold text-gray-200">
-                {payment.gateway === "RAZORPAY" ? "Razorpay" : "Stripe"}
+                {GATEWAY_LABELS[payment.gateway]}
               </p>
               <span
                 className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${cfg.className}`}

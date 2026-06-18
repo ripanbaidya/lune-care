@@ -1,6 +1,4 @@
-# ============================================================
 # compose/Makefile — Fully containerised environment
-#
 # Use this when running everything in Docker — no IDE required.
 # Starts: infra → databases → config-server → eureka → services → gateway
 #
@@ -18,7 +16,7 @@
 #   make health       → check all service health endpoints
 # ============================================================
 
-ENV_FILE      := .env.dev
+ENV_FILE      := .env
 COMPOSE_BASE  := docker compose --env-file $(ENV_FILE)
 COMPOSE_ALL   := $(COMPOSE_BASE) -f infra.yaml -f databases.yaml -f services.yaml -f observability.yaml
 COMPOSE_INFRA := $(COMPOSE_BASE) -f infra.yaml

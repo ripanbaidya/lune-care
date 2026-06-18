@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { useLogin } from "../hooks/useLogin";
 import { ROUTES } from "../../../routes/routePaths";
@@ -8,6 +8,9 @@ import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import FormCard from "../components/FormCard";
 
 export default function LoginPage() {
+  const location = useLocation() as {
+    state?: { passwordResetSuccess?: boolean };
+  };
   const {
     phoneNumber,
     setPhoneNumber,
@@ -20,6 +23,7 @@ export default function LoginPage() {
   } = useLogin();
 
   const [showPassword, setShowPassword] = useState(false);
+  const passwordResetSuccess = Boolean(location.state?.passwordResetSuccess);
 
   return (
     <div className="h-screen bg-black relative overflow-hidden">
@@ -137,7 +141,16 @@ export default function LoginPage() {
                         </Link>
                       </p>
                     }
-                  >
+                    >
+                      {passwordResetSuccess && (
+                        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3">
+                          <p className="text-sm text-emerald-100">
+                            Your password has been reset successfully. You can
+                            sign in with the new password now.
+                          </p>
+                        </div>
+                      )}
+
                     <form onSubmit={handleSubmit} className="space-y-4">
                       {/* Phone Number Input */}
                       <div className="space-y-2">
@@ -184,6 +197,14 @@ export default function LoginPage() {
                           </button>
                         </div>
                         <FieldErrorMessage message={fieldErrors.password} />
+                        <div className="pt-1 text-right">
+                          <Link
+                            to={ROUTES.forgotPassword}
+                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                          >
+                            Forgot password?
+                          </Link>
+                        </div>
                       </div>
 
                       {/* Submit Button */}

@@ -3,6 +3,7 @@ package com.healthcare.gateway.util;
 import com.healthcare.gateway.enums.ErrorCode;
 import com.healthcare.gateway.exception.KeyLoadException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 
@@ -22,11 +23,10 @@ import java.util.Base64;
 
 /**
  * Utility for loading RSA keys from PEM files.
- * Supports two path schemes:
- * {@code classpath:keys/public_key.pem} — loaded from the JAR (safe for public keys only)
- * {@code /run/secrets/private_key.pem} — loaded from the filesystem (required for private keys)
- * <p>Private keys must never be bundled inside the JAR. Always supply them via a filesystem path
- * backed by an environment variable or a secrets' manager.
+ * Supports either a Spring classpath resource (for example {@code classpath:keys/public_key.pem})
+ * or a filesystem path (for example {@code /app/secrets/keys/private_key.pem}).
+ * <p>Private keys should stay on the filesystem and be mounted at runtime; public keys can also
+ * be mounted or bundled on the classpath if that better fits the service.
  */
 @Slf4j
 public final class KeyUtils {
@@ -37,18 +37,18 @@ public final class KeyUtils {
     private static final String PUBLIC_KEY_FOOTER = "-----END PUBLIC KEY-----";
     private static final String KEY_ALGORITHM = "RSA";
     private static final String CLASSPATH_PREFIX = "classpath:";
+    private static final String FILE_PREFIX = "file:";
 
     private KeyUtils() {
     }
 
     /**
-     * Loads an RSA private key in PKCS#8 PEM format.
-     * <p>The path must point to a filesystem location — private keys must not
-     * be bundled in the classpath. Inject the path via an environment variable
-     * in all deployed environments.
+     * Loads an RSA private key from a PEM file.
+     * <p>The private key file is expected to contain a standard {@code BEGIN PRIVATE KEY}
+     * PEM block, which maps to PKCS#8 once the Base64 body is decoded.
      *
-     * @param pemPath        filesystem path to the {@code .pem} file
-     * @param resourceLoader Spring resource loader (used for classpath fallback in tests)
+     * @param pemPath        filesystem or classpath location to the {@code .pem} file
+     * @param resourceLoader Spring resource loader used to resolve classpath resources
      * @return the parsed {@link PrivateKey}
      * @throws KeyLoadException if the file is missing, unreadable, or the key is malformed
      */
@@ -73,13 +73,11 @@ public final class KeyUtils {
     }
 
     /**
-     * Loads an RSA public key in X.509 PEM format.
-     * <p>The public key is safe to bundle in the classpath (e.g. inside the JAR)
-     * because it carries no secret material. Services that only verify JWTs
-     * can use a {@code classpath:} path here.
+     * Loads an RSA public key from a PEM file.
+     * <p>The public key is safe to ship via the classpath or as a mounted file.
      *
-     * @param pemPath        classpath or filesystem path to the {@code .pem} file
-     * @param resourceLoader Spring resource loader
+     * @param pemPath        filesystem or classpath location to the {@code .pem} file
+     * @param resourceLoader Spring resource loader used to resolve classpath resources
      * @return the parsed {@link PublicKey}
      * @throws KeyLoadException if the file is missing, unreadable, or the key is malformed
      */
@@ -129,26 +127,22 @@ public final class KeyUtils {
     }
 
     /**
-     * Reads raw PEM text from either the classpath or the filesystem,
-     * determined by whether the path starts with {@code classpath:}.
+     * Reads raw PEM text from either the classpath or the filesystem.
      */
     private static String readPemContent(String location, ResourceLoader resourceLoader) {
-        return location.startsWith(CLASSPATH_PREFIX)
-                ? readFromClasspath(location, resourceLoader)
-                : readFromFilesystem(location);
-    }
-
-    /**
-     * Loads a classpath resource using Spring's {@link ResourceLoader}.
-     * Suitable for public keys shipped inside the application JAR.
-     */
-    private static String readFromClasspath(String location, ResourceLoader resourceLoader) {
-        Resource resource = resourceLoader.getResource(location);
+        Resource resource = resolveResource(location, resourceLoader);
 
         if (!resource.exists()) {
             throw new KeyLoadException(
                     ErrorCode.KEY_FILE_NOT_FOUND,
-                    "Classpath key resource not found: %s".formatted(location)
+                    "Key file not found: %s".formatted(location)
+            );
+        }
+
+        if (!resource.isReadable()) {
+            throw new KeyLoadException(
+                    ErrorCode.KEY_FILE_NOT_READABLE,
+                    "Key file exists but is not readable: %s".formatted(location)
             );
         }
 
@@ -157,41 +151,25 @@ public final class KeyUtils {
         } catch (IOException ex) {
             throw new KeyLoadException(
                     ErrorCode.KEY_FILE_READ_FAILED,
-                    "Failed to read classpath key resource: %s".formatted(location),
+                    "Failed to read key file: %s".formatted(location),
                     ex
             );
         }
     }
 
     /**
-     * Loads a PEM file from an absolute or relative filesystem path.
-     * Required for private keys, which must not be bundled in the JAR.
+     * Resolves a resource from either the classpath or the filesystem.
      */
-    private static String readFromFilesystem(String location) {
+    private static Resource resolveResource(String location, ResourceLoader resourceLoader) {
+        if (location.startsWith(CLASSPATH_PREFIX) || location.startsWith(FILE_PREFIX)) {
+            return resourceLoader.getResource(location);
+        }
+
         Path path = Paths.get(location);
-
-        if (!Files.exists(path)) {
-            throw new KeyLoadException(
-                    ErrorCode.KEY_FILE_NOT_FOUND,
-                    "Key file not found at filesystem path: %s".formatted(location)
-            );
+        if (path.isAbsolute() || Files.exists(path)) {
+            return new FileSystemResource(path);
         }
 
-        if (!Files.isReadable(path)) {
-            throw new KeyLoadException(
-                    ErrorCode.KEY_FILE_NOT_READABLE,
-                    "Key file exists but is not readable (check file permissions): %s".formatted(location)
-            );
-        }
-
-        try {
-            return Files.readString(path);
-        } catch (IOException ex) {
-            throw new KeyLoadException(
-                    ErrorCode.KEY_FILE_READ_FAILED,
-                    "IO error while reading key file: %s".formatted(location),
-                    ex
-            );
-        }
+        return resourceLoader.getResource(location);
     }
 }

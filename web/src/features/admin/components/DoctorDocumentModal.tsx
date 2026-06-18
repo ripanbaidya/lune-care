@@ -6,6 +6,16 @@ import type {
 } from "../types/admin.types";
 import { DOCUMENT_TYPE_LABELS } from "../types/admin.types";
 
+function getDocumentPreviewUrl(documentUrl: string) {
+  const [baseUrl, queryString = ""] = documentUrl.split("?", 2);
+
+  if (baseUrl.toLowerCase().endsWith(".pdf")) {
+    return `${baseUrl.slice(0, -4)}.jpg${queryString ? `?${queryString}` : ""}`;
+  }
+
+  return documentUrl;
+}
+
 interface Props {
   doctor: PendingDoctorResponse;
   onClose: () => void;
@@ -13,6 +23,8 @@ interface Props {
 
 const DocumentRow: React.FC<{ doc: DoctorDocumentResponse }> = ({ doc }) => {
   const label = DOCUMENT_TYPE_LABELS[doc.documentType] ?? doc.documentType;
+  const isPdf = doc.documentUrl.toLowerCase().includes(".pdf");
+  const previewUrl = getDocumentPreviewUrl(doc.documentUrl);
   const uploadedAt = new Date(doc.uploadedAt).toLocaleDateString("en-IN", {
     day: "numeric",
     month: "short",
@@ -31,12 +43,12 @@ const DocumentRow: React.FC<{ doc: DoctorDocumentResponse }> = ({ doc }) => {
         </div>
       </div>
       <a
-        href={doc.documentUrl}
+        href={previewUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 border border-blue-500/30 text-blue-400 text-xs font-medium rounded-lg hover:bg-blue-600/30 transition-colors flex-shrink-0 ml-3"
       >
-        View <ExternalLink size={11} />
+        {isPdf ? "Preview" : "View"} <ExternalLink size={11} />
       </a>
     </div>
   );

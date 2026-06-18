@@ -1,4 +1,4 @@
-import { Building2, Plus } from "lucide-react";
+import { AlertTriangle, Building2, Plus, X } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
 import Spinner from "../../../shared/components/ui/Spinner";
@@ -31,6 +31,8 @@ const DoctorClinicsPage: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTargetClinic, setDeleteTargetClinic] =
+    useState<ClinicResponse | null>(null);
 
   const resetFormState = () => {
     setFormError(null);
@@ -82,18 +84,30 @@ const DoctorClinicsPage: React.FC = () => {
     );
   };
 
-  const handleDelete = (clinicId: string) => {
-    if (!window.confirm("Remove this clinic? This action cannot be undone."))
-      return;
+  const handleDeleteRequest = (clinic: ClinicResponse) => {
+    setDeleteTargetClinic(clinic);
+  };
+
+  const handleDeleteCancel = () => {
+    if (isDeleting && deletingId === deleteTargetClinic?.id) return;
+    setDeleteTargetClinic(null);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!deleteTargetClinic) return;
+
+    const clinicId = deleteTargetClinic.id;
     setDeletingId(clinicId);
     deleteClinic(clinicId, {
       onSuccess: () => {
         toast.success("Clinic removed");
         setDeletingId(null);
+        setDeleteTargetClinic(null);
       },
       onError: (err: AppError) => {
         toast.error(err.message);
         setDeletingId(null);
+        setDeleteTargetClinic(null);
       },
     });
   };
@@ -199,12 +213,58 @@ const DoctorClinicsPage: React.FC = () => {
                 resetFormState();
                 setMode({ editId: clinic.id });
               }}
-              onDelete={() => handleDelete(clinic.id)}
+              onDelete={() => handleDeleteRequest(clinic)}
               isDeleting={isDeleting && deletingId === clinic.id}
             />
           );
         })}
       </div>
+
+      {deleteTargetClinic && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-red-500/20 bg-gradient-to-b from-gray-900 to-black shadow-2xl">
+            <div className="px-6 pt-5 pb-3 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center">
+                <AlertTriangle size={18} className="text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-white">
+                  Remove {deleteTargetClinic.name}?
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  This action cannot be undone.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleDeleteCancel}
+                className="ml-auto p-1.5 text-gray-600 hover:text-gray-300 hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="px-6 pb-5 pt-2 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={handleDeleteCancel}
+                disabled={isDeleting && deletingId === deleteTargetClinic.id}
+                className="px-4 py-2 text-sm rounded-lg border border-gray-700/70 text-gray-300 hover:bg-gray-800/60 transition-colors disabled:opacity-50"
+              >
+                No, Keep It
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                disabled={isDeleting && deletingId === deleteTargetClinic.id}
+                className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-500 transition-colors disabled:opacity-50"
+              >
+                Yes, Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -29,7 +29,6 @@ spring-shell.log
 # Secrets/config
 .env
 !.evn.example
-encrypted-config.yml
 
 # Frontend outputs (web/)
 web/node_modules/

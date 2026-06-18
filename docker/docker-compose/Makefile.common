@@ -1,6 +1,4 @@
-# ============================================================
-# Makefile.common — Shared targets for local and compose envs
-#
+# Makefile.common — Shared targets
 # Include this from environment-specific Makefiles:
 #   include ../Makefile.common
 #

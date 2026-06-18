@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -62,7 +63,7 @@ public class CloudinaryServiceImpl implements CloudinaryService {
             );
 
             String uploadedPublicId = (String) result.get(PUBLIC_ID);
-            String url = (String) result.get("secure_url");
+            String url = resolveDeliveryUrl(result);
 
             log.info("Cloudinary upload successful. publicId={}, url={}", uploadedPublicId, url);
 
@@ -96,7 +97,7 @@ public class CloudinaryServiceImpl implements CloudinaryService {
             );
 
             String uploadedPublicId = (String) result.get(PUBLIC_ID);
-            String url = (String) result.get("secure_url");
+            String url = resolveDeliveryUrl(result);
 
             log.info("Cloudinary document upload successful. publicId={}, url={}", uploadedPublicId, url);
 
@@ -127,5 +128,34 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         } catch (IOException e) {
             log.error("Failed to delete Cloudinary file. publicId={}, error={}", publicId, e.getMessage(), e);
         }
+    }
+
+    private String resolveDeliveryUrl(Map<?, ?> result) {
+        String secureUrl = (String) result.get("secure_url");
+        String format = (String) result.get("format");
+
+        if (secureUrl == null) {
+            throw new CloudinaryException(ErrorCode.PHOTO_UPLOAD_FAILED,
+                    "Cloudinary did not return a delivery URL.");
+        }
+
+        if (format == null || format.isBlank()) {
+            return secureUrl;
+        }
+
+        String baseUrl = secureUrl;
+        String queryString = "";
+        int queryIndex = secureUrl.indexOf('?');
+        if (queryIndex >= 0) {
+            baseUrl = secureUrl.substring(0, queryIndex);
+            queryString = secureUrl.substring(queryIndex);
+        }
+
+        String normalizedFormat = format.toLowerCase(Locale.ROOT);
+        if (baseUrl.toLowerCase(Locale.ROOT).endsWith("." + normalizedFormat)) {
+            return secureUrl;
+        }
+
+        return baseUrl + "." + normalizedFormat + queryString;
     }
 }

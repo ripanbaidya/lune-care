@@ -1,46 +1,57 @@
 services:
 
+  # RabbitMQ Message Broker
   rabbitmq:
+    # Using the lightweight Alpine variant that includes the Management Web UI
     image: rabbitmq:3.12-management-alpine
     container_name: lunecare-rabbitmq
     ports:
-      - "5672:5672"
-      - "15672:15672" # Management UI → http://localhost:15672 (guest/guest)
+      - "5672:5672"   # AMQP protocol port for application connections
+      - "15672:15672" # RabbitMQ Management Web UI dashboard
     environment:
+      # Default credentials for local development (Change in production!)
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
     volumes:
+      # Persists broker state, queues, and messages across container restarts
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - lunecare_network
     healthcheck:
+      # Ensures the broker is fully responsive before dependent services boot up
       test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
       interval: 15s
       timeout: 10s
       retries: 5
       start_period: 30s
 
+  # Redis Cache
   redis:
+    # Using the Alpine variant for a minimal image footprint
     image: redis:7.2-alpine
     container_name: lunecare-redis
     ports:
-      - "6379:6379"
+      - "6379:6379"   # Standard Redis connection port
     volumes:
+      # Persists Redis snapshots data dump locally
       - redis_data:/data
     networks:
       - lunecare_network
     healthcheck:
+      # Simple ping test to verify the Redis server is alive and accepting commands
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 3s
       retries: 5
       start_period: 10s
 
+# Named Volumes (Data Persistence)
 volumes:
   rabbitmq_data:
   redis_data:
 
+# Network Configuration
 networks:
   lunecare_network:
     name: lunecare_network
-    driver: bridge
+    driver: bridge # Standard isolated network layer for internal container communication

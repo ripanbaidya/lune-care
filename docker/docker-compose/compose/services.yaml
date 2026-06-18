@@ -1,15 +1,6 @@
-# Spring profile strategy: SPRING_PROFILES_ACTIVE=dev,docker
-#
-# Load order (last wins):
-#   application.yml
-#   → application-dev.yml        (localhost refs, dev behaviour)
-#   → application-docker.yml     (overrides localhost → docker service names)
-#   → services/<name>/application.yml
-#   → services/<name>/application-dev.yml
-#   → services/<name>/application-docker.yml
-#
-# Boot order: infra → databases → config-server → eureka → services → api-gateway
-#
+# Load order
+# infra → databases → config-server → eureka → services → api-gateway
+
 # To enable OpenTelemetry tracing on a service, add:
 #   extends:
 #     file: commons.yaml
@@ -17,54 +8,58 @@
 
 services:
 
-  # Infrastructure
-
-  # Config Server — must start first; all services pull their config from here
+  # CENTRALIZED CONFIGURATION (Bootstrap Root)
+  # ConfigServer - must start first; all services pull their config from here
   config-server:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-config-server:${IMAGE_TAG:-latest}
     container_name: lunecare-config-server
     ports:
-      - "8888:8888"
+      - "8888:8888" # Exposed port for centralized properties serving
     environment:
       SPRING_APPLICATION_NAME: config-server
-      SPRING_PROFILES_ACTIVE: docker
-      SPRING_CLOUD_CONFIG_SERVER_GIT_URI: ${GIT_URI}
-      ENCRYPT_KEY: ${ENCRYPT_KEY}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      # Remote Git repository housing localized environmental property profiles
+      SPRING_CLOUD_CONFIG_SERVER_GIT_URI: ${GIT_URI:-https://github.com/ripanbaidya/lunecare-config.git}
+      ENCRYPT_KEY: ${ENCRYPT_KEY} # Symmetric key used to decode structural {cipher} tags
     networks:
       - lunecare_network
     healthcheck:
+      # Actuator endpoint validation ensures configuration parser is ready before exposing to microservices
       test: [ "CMD-SHELL", "curl -sf http://localhost:8888/actuator/health/readiness | grep -q UP || exit 1" ]
       interval: 15s
       timeout: 5s
       retries: 10
       start_period: 30s
 
-  # Eureka Server — service registry; depends on config-server
+  # SERVICE REGISTRY & DISCOVERY
+  # EurekaServer — service registry
   eureka-server:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-eureka-server:${IMAGE_TAG:-latest}
     container_name: lunecare-eureka-server
     ports:
-      - "8761:8761"
+      - "8761:8761" # Eureka Dashboard and registration endpoint
     environment:
       SPRING_APPLICATION_NAME: eureka-server
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev,docker}
-      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      # Fetches its own registry coordination metadata from the upstream config server
+      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL:-http://config-server:8888}
     depends_on:
       config-server:
         condition: service_healthy
     networks:
       - lunecare_network
     healthcheck:
+      # Blocks subsequent services until service heartbeat ledger is active
       test: [ "CMD-SHELL", "curl -sf http://localhost:8761/actuator/health/readiness | grep -q UP || exit 1" ]
       interval: 15s
       timeout: 5s
       retries: 10
       start_period: 40s
 
-  # Services
+  # CORE/DOMAIN APPLICATION MICROSERVICES
 
-  # Auth Service — port 8081
-  # Storage: PostgreSQL (schema: auth) + Redis (token blacklist)
+  # AuthService (8081)
+  # DB - PostgreSQL (schema: auth) + Redis (token blacklist)
   # Requires RSA private + public key mounts for JWT signing
   auth:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-auth:${IMAGE_TAG:-latest}
@@ -73,9 +68,10 @@ services:
       - "8081:8081"
     environment:
       SPRING_APPLICATION_NAME: auth
-      SPRING_PROFILES_ACTIVE: dev,docker
-      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
+      SPRING_PROFILES_ACTIVE:  ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL:-http://config-server:8888}
     volumes:
+      # Read-only mount supplying cryptographic RSA pairs required to issue secure tokens
       - ../../../secrets/keys:/app/secrets/keys:ro
     depends_on:
       config-server:
@@ -85,8 +81,8 @@ services:
     networks:
       - lunecare_network
 
-  # Patient Service — port 8082
-  # Storage: PostgreSQL (schema: patient)
+  # PatientService (8082)
+  # DB: PostgreSQL (schema: patient)
   patient:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-patient:${IMAGE_TAG:-latest}
     container_name: lunecare-patient
@@ -94,8 +90,8 @@ services:
       - "8082:8082"
     environment:
       SPRING_APPLICATION_NAME: patient
-      SPRING_PROFILES_ACTIVE: dev,docker
-      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL:-http://config-server:8888}
     depends_on:
       config-server:
         condition: service_healthy
@@ -104,8 +100,8 @@ services:
     networks:
       - lunecare_network
 
-  # Doctor Service — port 8083
-  # Storage: PostgreSQL (schema: doctor)
+  # DoctorService (8083)
+  # DB - PostgreSQL (schema: doctor)
   doctor:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-doctor:${IMAGE_TAG:-latest}
     container_name: lunecare-doctor
@@ -113,8 +109,8 @@ services:
       - "8083:8083"
     environment:
       SPRING_APPLICATION_NAME: doctor
-      SPRING_PROFILES_ACTIVE: dev,docker
-      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL:-http://config-server:8888}
     depends_on:
       config-server:
         condition: service_healthy
@@ -123,8 +119,8 @@ services:
     networks:
       - lunecare_network
 
-  # Appointment Service — port 8084
-  # Storage: PostgreSQL (schema: appointment) + Redis (cache)
+  # AppointmentService (8084)
+  # DB - PostgreSQL (schema: appointment) + Redis (cache)
   appointment:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-appointment:${IMAGE_TAG:-latest}
     container_name: lunecare-appointment
@@ -132,8 +128,8 @@ services:
       - "8084:8084"
     environment:
       SPRING_APPLICATION_NAME: appointment
-      SPRING_PROFILES_ACTIVE: dev,docker
-      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL:-http://config-server:8888}
     depends_on:
       config-server:
         condition: service_healthy
@@ -142,8 +138,8 @@ services:
     networks:
       - lunecare_network
 
-  # Payment Service — port 8085
-  # Storage: PostgreSQL (schema: payment)
+  # PaymentService (8085)
+  # DB: PostgreSQL (schema: payment)
   payment:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-payment:${IMAGE_TAG:-latest}
     container_name: lunecare-payment
@@ -151,8 +147,8 @@ services:
       - "8085:8085"
     environment:
       SPRING_APPLICATION_NAME: payment
-      SPRING_PROFILES_ACTIVE: dev,docker
-      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL:-http://config-server:8888}
     depends_on:
       config-server:
         condition: service_healthy
@@ -161,8 +157,8 @@ services:
     networks:
       - lunecare_network
 
-  # Notification Service — port 8086
-  # Storage: MongoDB (notification_db)
+  # NotificationService (8086)
+  # DB - MongoDB (notification_db)
   notification:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-notification:${IMAGE_TAG:-latest}
     container_name: lunecare-notification
@@ -170,8 +166,8 @@ services:
       - "8086:8086"
     environment:
       SPRING_APPLICATION_NAME: notification
-      SPRING_PROFILES_ACTIVE: dev,docker
-      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL:-http://config-server:8888}
     depends_on:
       config-server:
         condition: service_healthy
@@ -180,8 +176,8 @@ services:
     networks:
       - lunecare_network
 
-  # Feedback Service — port 8087
-  # Storage: MongoDB (feedback_db)
+  # FeedbackService (8087)
+  # DB: MongoDB (feedback_db)
   feedback:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-feedback:${IMAGE_TAG:-latest}
     container_name: lunecare-feedback
@@ -189,8 +185,8 @@ services:
       - "8087:8087"
     environment:
       SPRING_APPLICATION_NAME: feedback
-      SPRING_PROFILES_ACTIVE: dev,docker
-      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL:-http://config-server:8888}
     depends_on:
       config-server:
         condition: service_healthy
@@ -199,7 +195,7 @@ services:
     networks:
       - lunecare_network
 
-  # Admin Service — port 8088
+  # AdminService (8088)
   # No dedicated DB; aggregates via Feign (doctor-service, auth-service)
   admin:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-admin:${IMAGE_TAG:-latest}
@@ -208,8 +204,8 @@ services:
       - "8088:8088"
     environment:
       SPRING_APPLICATION_NAME: admin
-      SPRING_PROFILES_ACTIVE: dev,docker
-      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL:-http://config-server:8888}
     depends_on:
       config-server:
         condition: service_healthy
@@ -218,22 +214,23 @@ services:
     networks:
       - lunecare_network
 
-  # Gateway
+  # EDGE ROUTING & GATEWAY OVERLAY
 
-  # API Gateway — port 8080
+  # API Gateway (8080)
   # Entry point for all external traffic.
-  # Requires RSA public key mount for JWT verification.
+  # Requires RSA private key & public key mount for JWT verification.
   # Start last — after all domain services are registered in Eureka.
   api-gateway:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-api-gateway:${IMAGE_TAG:-latest}
     container_name: lunecare-api-gateway
     ports:
-      - "8080:8080"
+      - "8080:8080" # Consolidated single public endpoint for front-end proxying
     environment:
       SPRING_APPLICATION_NAME: api-gateway
-      SPRING_PROFILES_ACTIVE: dev,docker
-      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_CONFIG_IMPORT: configserver:${CONFIG_SERVER_URL:-http://config-server:8888}
     volumes:
+      # Public keys mounted safely to decode and verify JWT signatures stateless at the edge
       - ../../../secrets/keys:/app/secrets/keys:ro
     depends_on:
       config-server:
@@ -243,18 +240,20 @@ services:
     networks:
       - lunecare_network
 
-  # Frontend
+  # USER INTERFACE(UI)
   frontend:
     image: ${DOCKERHUB_ACCOUNT:-ripanbaidya}/lunecare-frontend:${IMAGE_TAG:-latest}
     container_name: lunecare-frontend
     ports:
-      - "5173:80"
+      - "5173:80" # Proxies host port 5173 over to the internal server running on container port 80
     depends_on:
+      # Ensures clients don't encounter dead upstream connection limits during initialization
       api-gateway:
         condition: service_healthy
     networks:
       - lunecare_network
 
+# Shared Application Network Boundary
 networks:
   lunecare_network:
     name: lunecare_network

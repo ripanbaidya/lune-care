@@ -5,6 +5,7 @@ spring:
   application:
     name: config-server
 
+  # profiles - [dev, docker, prod]
   profiles:
     active: dev
 

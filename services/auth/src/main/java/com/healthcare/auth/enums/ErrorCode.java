@@ -27,6 +27,11 @@ public enum ErrorCode {
     REFRESH_TOKEN_EXPIRED(ErrorType.AUTHENTICATION, "The refresh token has expired"),
     REFRESH_TOKEN_REVOKED(ErrorType.AUTHENTICATION, "The refresh token has been revoked and cannot be used"),
 
+    // Password Reset
+    PASSWORD_RESET_TOKEN_NOT_FOUND(ErrorType.AUTHENTICATION, "The password reset token was not found"),
+    PASSWORD_RESET_TOKEN_EXPIRED(ErrorType.AUTHENTICATION, "The password reset token has expired"),
+    PASSWORD_RESET_TOKEN_USED(ErrorType.AUTHENTICATION, "The password reset token has already been used"),
+
     // Key Loading / Security Infrastructure
     KEY_FILE_NOT_FOUND(ErrorType.INTERNAL, "The key file could not be found"),
     KEY_FILE_NOT_READABLE(ErrorType.INTERNAL, "The key file exists but cannot be read"),

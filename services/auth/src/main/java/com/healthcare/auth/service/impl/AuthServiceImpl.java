@@ -3,7 +3,9 @@ package com.healthcare.auth.service.impl;
 import com.healthcare.auth.client.DoctorServiceClient;
 import com.healthcare.auth.client.PatientServiceClient;
 import com.healthcare.auth.config.properties.JwtSecurityProperties;
+import com.healthcare.auth.config.properties.PasswordResetProperties;
 import com.healthcare.auth.entity.RefreshToken;
+import com.healthcare.auth.entity.PasswordResetToken;
 import com.healthcare.auth.entity.User;
 import com.healthcare.auth.enums.AccountStatus;
 import com.healthcare.auth.enums.ErrorCode;
@@ -12,10 +14,14 @@ import com.healthcare.auth.exception.AuthException;
 import com.healthcare.auth.payload.dto.doctor.CreateDoctorProfileRequest;
 import com.healthcare.auth.payload.dto.patient.CreatePatientProfileRequest;
 import com.healthcare.auth.payload.request.DoctorRegisterRequest;
+import com.healthcare.auth.payload.request.ForgotPasswordRequest;
 import com.healthcare.auth.payload.request.LoginRequest;
 import com.healthcare.auth.payload.request.PatientRegisterRequest;
+import com.healthcare.auth.payload.request.ResetPasswordRequest;
 import com.healthcare.auth.payload.response.AuthResponse;
+import com.healthcare.auth.payload.response.PasswordResetResponse;
 import com.healthcare.auth.payload.response.TokenResponse;
+import com.healthcare.auth.respository.PasswordResetTokenRepository;
 import com.healthcare.auth.respository.RefreshTokenRepository;
 import com.healthcare.auth.respository.UserRepository;
 import com.healthcare.auth.security.JwtService;
@@ -29,7 +35,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.Base64;
 
 import static com.healthcare.auth.util.MaskingUtil.maskPhoneNumber;
 
@@ -40,6 +50,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final PasswordEncoder passwordEncoder;
     private final JwtSecurityProperties jwtProperties;
+    private final PasswordResetProperties passwordResetProperties;
 
     private final JwtService jwtService;
     private final TokenBlacklistService tokenBlacklistService;
@@ -49,6 +60,10 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final int PASSWORD_RESET_TOKEN_BYTES = 32;
 
     @Override
     @Transactional
@@ -125,6 +140,72 @@ public class AuthServiceImpl implements AuthService {
         TokenResponse tokens = issueTokenPair(user);
         log.info("Login successful — userId='{}', role='{}'.", user.getId(), user.getRole());
         return AuthResponse.of(user, tokens);
+    }
+
+    @Override
+    @Transactional
+    public PasswordResetResponse requestPasswordReset(ForgotPasswordRequest request) {
+        String phoneNumber = request.phoneNumber();
+        log.info("Password reset requested for phoneNumber='{}'", maskPhoneNumber(phoneNumber));
+
+        User user = userRepository.findByPhoneNumber(phoneNumber).orElseThrow(
+                () -> {
+                    log.warn("Password reset failed — no account found for phoneNumber='{}'",
+                            maskPhoneNumber(phoneNumber));
+                    return new AuthException(ErrorCode.USER_NOT_FOUND);
+                }
+        );
+
+        passwordResetTokenRepository.revokeActiveTokensByUserId(user.getId(), Instant.now());
+
+        String rawToken = generateResetToken();
+        String tokenHash = hashToken(rawToken);
+        Instant expiresAt = Instant.now().plus(passwordResetProperties.tokenTtl());
+
+        PasswordResetToken token = new PasswordResetToken();
+        token.setUser(user);
+        token.setTokenHash(tokenHash);
+        token.setExpiresAt(expiresAt);
+        passwordResetTokenRepository.save(token);
+
+        log.info("Password reset token issued — userId='{}', expiresAt='{}'.", user.getId(), expiresAt);
+
+        return new PasswordResetResponse("Password reset token generated successfully.", rawToken, expiresAt);
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        String rawToken = request.resetToken();
+        String tokenHash = hashToken(rawToken);
+        Instant now = Instant.now();
+
+        PasswordResetToken token = passwordResetTokenRepository.findByTokenHash(tokenHash)
+                .orElseThrow(() -> new AuthException(ErrorCode.PASSWORD_RESET_TOKEN_NOT_FOUND));
+
+        if (token.isUsed()) {
+            throw new AuthException(ErrorCode.PASSWORD_RESET_TOKEN_USED);
+        }
+        if (token.isExpired(now)) {
+            token.markUsed(now);
+            passwordResetTokenRepository.save(token);
+            throw new AuthException(ErrorCode.PASSWORD_RESET_TOKEN_EXPIRED);
+        }
+
+        User user = token.getUser();
+        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(user);
+
+        token.markUsed(now);
+        passwordResetTokenRepository.save(token);
+
+        // Revoke active refresh tokens so the old password can't keep existing sessions alive.
+        refreshTokenRepository.findActiveByUserId(user.getId(), now).ifPresent(existing -> {
+            existing.revoke(now);
+            refreshTokenRepository.save(existing);
+        });
+
+        log.info("Password reset completed — userId='{}'.", user.getId());
     }
 
     /**
@@ -276,6 +357,26 @@ public class AuthServiceImpl implements AuthService {
                 user.getId(), entity.getExpiresAt());
 
         return TokenResponse.of(accessToken, refreshToken, accessExpiryMillis);
+    }
+
+    private String generateResetToken() {
+        byte[] randomBytes = new byte[PASSWORD_RESET_TOKEN_BYTES];
+        SECURE_RANDOM.nextBytes(randomBytes);
+        return "rpt_" + Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+    }
+
+    private String hashToken(String token) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashed = digest.digest(token.getBytes(StandardCharsets.UTF_8));
+            StringBuilder builder = new StringBuilder(hashed.length * 2);
+            for (byte b : hashed) {
+                builder.append(String.format("%02x", b));
+            }
+            return builder.toString();
+        } catch (Exception ex) {
+            throw new AuthException(ErrorCode.INTERNAL_ERROR, "Failed to process password reset token");
+        }
     }
 
     private void validatePhoneNumberNotTaken(String phoneNumber) {
