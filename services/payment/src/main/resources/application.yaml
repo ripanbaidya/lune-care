@@ -10,3 +10,8 @@ spring:
 
   profiles:
     active: dev
+
+app:
+  payment:
+    demo:
+      enabled: true
