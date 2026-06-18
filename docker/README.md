@@ -1,187 +1,102 @@
 # Running LuneCare Locally (Docker Compose + Makefile)
 
-Two environments are provided. Pick one based on your workflow:
+This guide provides instructions for setting up and running the entire **LuneCare** microservice stack locally. You can
+choose between two execution modes depending on your development workflow.
 
-| Environment | Location                  | When to use                                                       |
-|-------------|---------------------------|-------------------------------------------------------------------|
-| `local/`    | `docker-compose/local/`   | Run microservices from IntelliJ; only infra + databases in Docker |
-| `compose/`  | `docker-compose/compose/` | Run everything in Docker; no IDE required                         |
+## Execution Modes 🚀
 
-A shared `Makefile.common` holds all targets. Each environment's `Makefile` is a thin
-wrapper that sets the compose file list and delegates to it.
+### 1. Hybrid Mode (Local Services + Docker Infrastructure)
+
+* **How it works:** Core infrastructure components (`PostgreSQL`, `MongoDB`, `RabbitMQ`, `Redis`) run inside Docker
+  containers. You manually boot up the individual backend microservices and the frontend application within your
+  preferred IDE or terminal.
+* **Best for:** Active development, debugging, and writing code.
+* 👉 **[Read the Hybrid Local Setup Guide](docker/docker-compose/local/README.md)**
+
+### 2. Full Containerized Mode (Docker Compose Stack)
+
+* **How it works:** The entire stack—including all backend microservices and the frontend application—is spun up
+  simultaneously using pre-built images via Docker Compose.
+* **Best for:** Quick testing, product demonstrations, or validating cross-service integrations without local
+  compilation.
+* 👉 **[Read the Full Docker Compose Guide](docker/docker-compose/compose/README.md)**
 
 ---
 
-## 📁 Directory Structure
+## Makefile Command Reference
 
-```
-docker/
-├── .gitignore
-├── README.md
-└── docker-compose/
-    ├── Makefile.common # shared targets (included by both envs)
-    ├── .env.example    # copy to create .env file and fill values
-    ├── local/          # IntelliJ dev: infra + databases only
-    │   ├── Makefile
-    │   ├── infra.yaml      # RabbitMQ, Redis
-    │   └── databases.yaml  # PostgreSQL, MongoDB
-    │
-    ├── compose/                # fully containerised: everything in Docker
-    │   ├── Makefile
-    │   ├── .env                # your env vars
-    │   ├── infra.yaml          # RabbitMQ, Redis
-    │   ├── databases.yaml      # PostgreSQL, MongoDB
-    │   ├── services.yaml       # all microservices + API Gateway + Frontend
-    │   ├── observability.yaml  # Loki, Alloy, MinIO, Prometheus, Grafana
-    │   └── commons.yaml        # shared OpenTelemetry config (extends)
-    │
-    └── observability/  # tool-specific configs (shared by compose/)
-        ├── alloy/alloy-config.yaml
-        ├── grafana/datasource.yaml
-        ├── loki/loki-config.yaml
-        ├── prometheus/prometheus.yaml
-        └── tempo/tempo.yaml
-```
+A centralized `Makefile` is provided at the root of the project to simplify environment orchestration. These shortcuts
+work across both deployment setups.
 
-## 🖥️ Local Setup (IntelliJ + Docker for infra/db)
+### 📋 General Lifecycle Management
 
-Use this when you want hot-reload from IntelliJ while keeping infrastructure containerised.
-
-```bash
-cd docker/docker-compose/local
-```
-
-```bash
-make up-infra   # RabbitMQ + Redis only
-make up-db      # RabbitMQ + Redis + PostgreSQL + MongoDB
-```
-
-Then run each microservice from IntelliJ with the `dev` Spring profile.
-
-## 🐳 Compose Setup (Fully Containerised)
-
-Use this when you want everything running in Docker — no IntelliJ required.
-
-### Prerequisites
-
-- Docker Desktop running
-- `.env` configured (see below)
-- Images built: `ripanbaidya/lunecare-*:1.0.0`
-- `init-db.sql` present at project root (creates PostgreSQL schemas)
-- RSA keys at `secrets/keys/private_key.pem` and `secrets/keys/public_key.pem`
-
-### First-Time Setup
-
-```bash
-cd docker/docker-compose/compose
-
-cp ../../.env.example .env
-# Open .env and set ENCRYPT_KEY — must match the key used to encrypt {cipher} values
-```
-
-### Run Everything
-
-```bash
-make up
-```
-
-Boot order managed by healthcheck dependencies:
-
-```
-RabbitMQ + Redis → PostgreSQL + MongoDB → Config Server → Eureka → Microservices → API Gateway
-```
-
-## ⚙️ Core Commands (available in both environments)
-
-| Command        | Description                                    |
-|----------------|------------------------------------------------|
-| `make up`      | Start all services                             |
-| `make down`    | Stop containers (volumes preserved)            |
-| `make down-v`  | Stop containers and remove volumes (full wipe) |
-| `make restart` | Restart all containers                         |
-| `make rebuild` | Pull latest images and recreate containers     |
+| Command        | Description                                                        |
+|----------------|--------------------------------------------------------------------|
+| `make up`      | Start all defined services and infrastructure.                     |
+| `make down`    | Stop running containers (**volumes are preserved**; data is safe). |
+| `make down-v`  | Stop containers and **remove all volumes** (full data wipe).       |
+| `make restart` | Quick restart of all containers.                                   |
+| `make rebuild` | Pull the latest images and recreate the container environment.     |
 
 ### 🔍 Selective Startup
 
-| Command            | Description                                                     |
-|--------------------|-----------------------------------------------------------------|
-| `make up-infra`    | Start only RabbitMQ + Redis                                     |
-| `make up-db`       | Start infra + PostgreSQL + MongoDB                              |
-| `make up-services` | Start microservices only (`compose/` only; requires infra + db) |
+| Command            | Description                                                                                       |
+|--------------------|---------------------------------------------------------------------------------------------------|
+| `make up-infra`    | Start only foundational infrastructure components (**RabbitMQ** + **Redis**).                     |
+| `make up-db`       | Start backend databases (**PostgreSQL** + **MongoDB**).                                           |
+| `make up-services` | Start backend microservices only *(Full Containerized Mode only; requires infra & DBs to be up)*. |
 
 ### 📊 Observability & Debugging
 
-| Command             | Description                                           |
-|---------------------|-------------------------------------------------------|
-| `make ps`           | Container status in table format                      |
-| `make health`       | Check `/actuator/health` for all services             |
-| `make test-network` | Verify inter-container DNS resolution via API Gateway |
-| `make logs`         | Tail all service logs                                 |
-| `make logs-<name>`  | Tail logs for a specific service (e.g. `logs-auth`)   |
-| `make logs-errors`  | Aggregate ERROR/EXCEPTION lines across all services   |
+| Command             | Description                                                                     |
+|---------------------|---------------------------------------------------------------------------------|
+| `make ps`           | Display the status of all containers in a clean table format.                   |
+| `make health`       | Curl and check the `/actuator/health` endpoint for all running services.        |
+| `make test-network` | Verify inter-container DNS resolution and routing via the API Gateway.          |
+| `make logs`         | Tail logs for all running services simultaneously.                              |
+| `make logs-<name>`  | Tail logs for a specific service (e.g., `make logs-auth`).                      |
+| `make logs-errors`  | Aggregate and stream only `ERROR` or `EXCEPTION` lines across all service logs. |
 
 ### 🗄️ Database Utilities
 
-| Command              | Description                    |
-|----------------------|--------------------------------|
-| `make db-connect`    | Open PostgreSQL shell (`psql`) |
-| `make db-schemas`    | List all PostgreSQL schemas    |
-| `make mongo-connect` | Open MongoDB shell (`mongosh`) |
-| `make mongo-dbs`     | List all MongoDB databases     |
+| Command              | Description                                                                         |
+|----------------------|-------------------------------------------------------------------------------------|
+| `make db-connect`    | Establish an interactive terminal session inside the PostgreSQL container (`psql`). |
+| `make db-schemas`    | Quickly list all active PostgreSQL schemas.                                         |
+| `make mongo-connect` | Establish an interactive terminal session inside the MongoDB container (`mongosh`). |
+| `make mongo-dbs`     | Quickly list all active MongoDB databases.                                          |
 
-### 🔧 Config Server
+### 🔧 Config Server Utilities
 
-| Command               | Description                                          |
-|-----------------------|------------------------------------------------------|
-| `make config-check`   | Validate config-server is serving configs            |
-| `make config-refresh` | Trigger Spring Cloud Bus refresh across all services |
+| Command               | Description                                                                                     |
+|-----------------------|-------------------------------------------------------------------------------------------------|
+| `make config-check`   | Validate that the `config-server` is actively and correctly serving environment configurations. |
+| `make config-refresh` | Trigger a Spring Cloud Bus refresh event to hot-reload configs across all active services.      |
 
-## 🌐 API Access
+---
 
-All external traffic goes through the **API Gateway** on port `8080`:
+## 🐛 Troubleshooting & Common Issues
 
-```
-http://localhost:8080/api/v1/auth/login
-http://localhost:8080/api/v1/appointment/book
-```
+| Symptom                                          | Probable Cause                                       | Actionable Fix                                                                                      |
+|--------------------------------------------------|------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
+| `network lunecare_network not found`             | Running a single Compose file manually in isolation. | Always orchestrate via `make` commands—they dynamically stitch required configurations together.    |
+| `{cipher}` values are not decrypting             | Missing or invalid encryption secrets.               | Set the `ENCRYPT_KEY` variable in your `.env.dev` file. **Do not wrap the key in quotes.**          |
+| Service fails on startup due to missing RSA keys | Security PEM keys are not mounted or accessible.     | Ensure that a valid `secrets/keys/` directory populated with RSA keys exists at the project root.   |
+| `pull access denied`                             | Incorrect Docker registry image prefix.              | Double-check and correct the `DOCKERHUB_ACCOUNT` property inside your `.env.dev` profile.           |
+| Services are up but not registering on Eureka    | Wrong profile settings applied to the container.     | The `SPRING_PROFILES_ACTIVE` environment variable must be set to `dev,docker` (not `docker` alone). |
 
-> Always use `localhost` from your browser or Postman.
-> Container names (`auth`, `appointment`, etc.) are only resolvable inside the Docker network.
+### 📌 Quick Help Tip
 
-## 🔑 Spring Profile Strategy
-
-All microservices start with `SPRING_PROFILES_ACTIVE=dev,docker`.
-
-| Profile  | Purpose                                                                 |
-|----------|-------------------------------------------------------------------------|
-| `dev`    | Owns all config — JPA, logging, non-prod behaviour                      |
-| `docker` | Patches hostnames only — replaces `localhost` with Docker service names |
-
-Load order (last wins):
-
-```
-application.yml
-→ application-dev.yml          (localhost refs, dev behaviour)
-→ application-docker.yml       (overrides hostnames to docker service names)
-→ services/<name>/application.yml
-→ services/<name>/application-dev.yml
-→ services/<name>/application-docker.yml
-```
-
-## 🐛 Common Issues
-
-| Symptom                              | Cause                                      | Fix                                                        |
-|--------------------------------------|--------------------------------------------|------------------------------------------------------------|
-| `network lunecare_network not found` | Running a single compose file in isolation | Always run via `make` — it combines all required files     |
-| `{cipher}` values not decrypted      | Wrong or missing `ENCRYPT_KEY`             | Set `ENCRYPT_KEY` in `.env.dev` without surrounding quotes |
-| Service fails — missing RSA key      | PEM files not mounted                      | Ensure `secrets/keys/` exists at project root              |
-| `pull access denied`                 | Wrong image prefix                         | Check `DOCKERHUB_ACCOUNT` in `.env.dev`                    |
-| Services up but not in Eureka        | Wrong `SPRING_PROFILES_ACTIVE`             | Must be `dev,docker` — not `docker` alone                  |
-
-### 📌 Tip
+If you ever forget a shortcut or want to see dynamic parameters, simply run:
 
 ```bash
 make help
+
 ```
 
-and this will lists every available command with a description.
+This will print out a comprehensive, self-documenting list of every target available in the project's automation
+workflow.
+
+---
+
+⭐ **Please** Consider leaving a star on the repository to show your support!
